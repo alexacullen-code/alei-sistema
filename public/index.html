@@ -1,0 +1,1670 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ALEI 2026 - Gestión Integral</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#012169',
+            secondary: '#C8102E',
+            accent: '#1e40af'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Inter', sans-serif; background: #f8fafc; }
+    .glass { background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); }
+    .card { @apply bg-white rounded-xl shadow-lg border border-gray-100 transition-all hover:shadow-xl; }
+    .btn-primary { @apply bg-primary hover:bg-blue-800 text-white font-semibold py-2 px-4 rounded-lg transition shadow-lg; }
+    .btn-secondary { @apply bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded-lg transition; }
+    .btn-success { @apply bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition; }
+    .btn-danger { @apply bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition; }
+    .input { @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition; }
+    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 50; backdrop-filter: blur(4px); }
+    .modal.active { display: flex; align-items: center; justify-content: center; }
+    .section { display: none; animation: fadeIn 0.3s; }
+    .section.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .toast { position: fixed; bottom: 20px; right: 20px; padding: 16px 24px; border-radius: 12px; color: white; font-weight: 500; z-index: 100; transform: translateX(400px); transition: transform 0.3s; }
+    .toast.show { transform: translateX(0); }
+    .search-highlight { background: yellow; }
+  </style>
+</head>
+<body class="text-gray-800">
+
+  <!-- Header -->
+  <header class="bg-gradient-to-r from-primary to-blue-800 text-white shadow-2xl sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+      <div class="flex items-center gap-4">
+        <div class="flex items-center gap-2">
+          <i class="fas fa-graduation-cap text-2xl"></i>
+          <div>
+            <h1 class="text-xl font-bold tracking-tight">ALEI Gestión</h1>
+            <p class="text-blue-200 text-xs">Sistema Integral 2026</p>
+          </div>
+        </div>
+        
+        <!-- Selector de Año Lectivo -->
+        <select id="selector-ano" onchange="cambiarAnoLectivo()" class="bg-white/20 text-white border border-white/30 rounded-lg px-3 py-1 text-sm focus:outline-none">
+          <!-- Se llena dinámicamente -->
+        </select>
+      </div>
+      
+      <div class="flex items-center gap-4">
+        <!-- Búsqueda Global -->
+        <div class="relative hidden md:block">
+          <input type="text" id="global-search" placeholder="Buscar alumno, libro, pago..." 
+                 class="pl-10 pr-4 py-2 rounded-full bg-white/20 text-white placeholder-blue-200 border border-white/30 focus:bg-white focus:text-gray-800 transition w-64"
+                 onkeyup="busquedaGlobal(event)">
+          <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-blue-200"></i>
+        </div>
+        
+        <!-- Notificaciones -->
+        <button onclick="toggleAlertas()" class="relative p-2 hover:bg-white/10 rounded-full transition">
+          <i class="fas fa-bell text-xl"></i>
+          <span id="badge-alertas" class="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hidden">0</span>
+        </button>
+        
+        <div class="text-right hidden md:block text-sm">
+          <div id="current-date" class="font-semibold"></div>
+          <div id="current-time" class="text-blue-200"></div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Alertas Dropdown -->
+  <div id="panel-alertas" class="hidden fixed top-16 right-4 w-80 bg-white rounded-xl shadow-2xl z-50 max-h-96 overflow-y-auto border border-gray-200">
+    <div class="p-4 border-b bg-gray-50 rounded-t-xl">
+      <h3 class="font-bold text-gray-800">Notificaciones</h3>
+    </div>
+    <div id="lista-alertas" class="p-2 space-y-2">
+      <p class="text-gray-500 text-center py-4">Sin notificaciones</p>
+    </div>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="bg-white shadow-md sticky top-[65px] z-30">
+    <div class="max-w-7xl mx-auto px-4">
+      <div class="flex space-x-1 overflow-x-auto py-2 no-scrollbar">
+        <button onclick="mostrarSeccion('dashboard')" class="nav-btn active px-4 py-2 rounded-lg font-medium text-gray-600 hover:bg-blue-50 hover:text-primary transition whitespace-nowrap" data-section="dashboard">
+          <i class="fas fa-chart-line mr-2"></i>Dashboard
+        </button>
+        <button onclick="mostrarSeccion('caja-rapida')" class="nav-btn px-4 py-2 rounded-lg font-medium text-gray-600 hover:bg-green-50 hover:text-green-700 transition whitespace-nowrap" data-section="caja-rapida">
+          <i class="fas fa-cash-register mr-2"></i>Caja Rápida
+        </button>
+        <button onclick="mostrarSeccion('alumnos')" class="nav-btn px-4 py-2 rounded-lg font-medium text-gray-600 hover:bg-blue-50 hover:text-primary transition whitespace-nowrap" data-section="alumnos">
+          <i class="fas fa-users mr-2"></i>Alumnos
+        </button>
+        <button onclick="mostrarSeccion('mensualidades')" class="nav-btn px-4 py-2 rounded-lg font-medium text-gray-600 hover:bg-blue-50 hover:text-primary transition whitespace-nowrap" data-section="mensualidades">
+          <i class="fas fa-calendar-check mr-2"></i>Mensualidades
+        </button>
+        <button onclick="mostrarSeccion('libros')" class="nav-btn px-4 py-2 rounded-lg font-medium text-gray-600 hover:bg-blue-50 hover:text-primary transition whitespace-nowrap" data-section="libros">
+          <i class="fas fa-book mr-2"></i>Libros
+        </button>
+        <button onclick="mostrarSeccion('gastos')" class="nav-btn px-4 py-2 rounded-lg font-medium text-gray-600 hover:bg-blue-50 hover:text-primary transition whitespace-nowrap" data-section="gastos">
+          <i class="fas fa-wallet mr-2"></i>Gastos
+        </button>
+        <button onclick="mostrarSeccion('espera')" class="nav-btn px-4 py-2 rounded-lg font-medium text-gray-600 hover:bg-blue-50 hover:text-primary transition whitespace-nowrap" data-section="espera">
+          <i class="fas fa-user-clock mr-2"></i>Lista Espera
+        </button>
+        <button onclick="mostrarSeccion('reportes')" class="nav-btn px-4 py-2 rounded-lg font-medium text-gray-600 hover:bg-blue-50 hover:text-primary transition whitespace-nowrap" data-section="reportes">
+          <i class="fas fa-file-invoice-dollar mr-2"></i>Reportes
+        </button>
+        <button onclick="mostrarSeccion('config')" class="nav-btn px-4 py-2 rounded-lg font-medium text-gray-600 hover:bg-blue-50 hover:text-primary transition whitespace-nowrap" data-section="config">
+          <i class="fas fa-cog mr-2"></i>Config
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
+
+    <!-- DASHBOARD -->
+    <section id="dashboard" class="section active">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="card p-6 border-l-4 border-primary">
+          <div class="flex justify-between items-start">
+            <div>
+              <p class="text-gray-500 text-sm font-medium">Alumnos Activos</p>
+              <p class="text-3xl font-bold text-gray-800 mt-1" id="dash-total">0</p>
+            </div>
+            <div class="bg-blue-100 p-3 rounded-lg"><i class="fas fa-users text-primary text-xl"></i></div>
+          </div>
+        </div>
+        
+        <div class="card p-6 border-l-4 border-green-500">
+          <div class="flex justify-between items-start">
+            <div>
+              <p class="text-gray-500 text-sm font-medium">Ingresos Mes</p>
+              <p class="text-3xl font-bold text-gray-800 mt-1" id="dash-ingresos">$0</p>
+            </div>
+            <div class="bg-green-100 p-3 rounded-lg"><i class="fas fa-arrow-up text-green-600 text-xl"></i></div>
+          </div>
+        </div>
+
+        <div class="card p-6 border-l-4 border-red-500">
+          <div class="flex justify-between items-start">
+            <div>
+              <p class="text-gray-500 text-sm font-medium">Deuda Libros</p>
+              <p class="text-3xl font-bold text-gray-800 mt-1" id="dash-deuda">$0</p>
+            </div>
+            <div class="bg-red-100 p-3 rounded-lg"><i class="fas fa-book text-red-600 text-xl"></i></div>
+          </div>
+        </div>
+
+        <div class="card p-6 border-l-4 border-amber-500">
+          <div class="flex justify-between items-start">
+            <div>
+              <p class="text-gray-500 text-sm font-medium">Pagos Hoy</p>
+              <p class="text-3xl font-bold text-gray-800 mt-1" id="dash-hoy">0</p>
+            </div>
+            <div class="bg-amber-100 p-3 rounded-lg"><i class="fas fa-clock text-amber-600 text-xl"></i></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Deudores del Mes -->
+        <div class="card p-6">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-bold text-gray-800 flex items-center">
+              <i class="fas fa-exclamation-circle text-red-500 mr-2"></i>
+              Pendientes de Mensualidad - <span id="mes-actual-texto"></span>
+            </h3>
+            <button onclick="generarMensajesWhatsApp()" class="btn-success text-sm">
+              <i class="fab fa-whatsapp mr-1"></i>Generar Mensajes
+            </button>
+          </div>
+          <div id="dash-deudores" class="space-y-2 max-h-96 overflow-y-auto">
+            <p class="text-gray-400 text-center py-8">Cargando...</p>
+          </div>
+        </div>
+
+        <!-- Flujo de Caja Simple -->
+        <div class="card p-6">
+          <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+            <i class="fas fa-chart-pie text-blue-500 mr-2"></i>
+            Flujo de Caja - Mes Actual
+          </h3>
+          <div class="space-y-4">
+            <div class="flex justify-between items-center p-4 bg-green-50 rounded-lg">
+              <span class="font-medium text-green-800">Ingresos</span>
+              <span class="text-2xl font-bold text-green-600" id="flujo-ingresos">$0</span>
+            </div>
+            <div class="flex justify-between items-center p-4 bg-red-50 rounded-lg">
+              <span class="font-medium text-red-800">Gastos</span>
+              <span class="text-2xl font-bold text-red-600" id="flujo-gastos">$0</span>
+            </div>
+            <div class="h-4 bg-gray-200 rounded-full overflow-hidden">
+              <div id="barra-flujo" class="h-full bg-primary transition-all duration-1000" style="width: 50%"></div>
+            </div>
+            <div class="flex justify-between text-sm">
+              <span class="text-gray-600">Balance Neto</span>
+              <span class="font-bold text-xl" id="flujo-neto">$0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CAJA RÁPIDA (POS) -->
+    <section id="caja-rapida" class="section">
+      <div class="max-w-2xl mx-auto">
+        <div class="card p-8 border-2 border-primary border-opacity-20">
+          <div class="text-center mb-8">
+            <h2 class="text-2xl font-bold text-gray-800">Caja Rápida</h2>
+            <p class="text-gray-500">Registro express de pagos</p>
+          </div>
+
+          <form id="form-caja-rapida" onsubmit="procesarCajaRapida(event)" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Alumno *</label>
+              <select id="caja-alumno" required class="input">
+                <option value="">Seleccionar alumno...</option>
+              </select>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Concepto *</label>
+                <select id="caja-concepto" required class="input" onchange="ajustarMontoCaja()">
+                  <option value="mensualidad">Mensualidad</option>
+                  <option value="matricula">Matrícula</option>
+                  <option value="libro">Libro</option>
+                  <option value="examen">Examen</option>
+                  <option value="otro">Otro</option>
+                </select>
+              </div>
+              
+              <div id="caja-mes-container">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Mes</label>
+                <select id="caja-mes" class="input">
+                  ${[...Array(12)].map((_,i) => `<option value="${i+1}" ${new Date().getMonth()+1 === i+1 ? 'selected' : ''}>${['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Set','Oct','Nov','Dic'][i]}</option>`).join('')}
+                </select>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Monto *</label>
+                <input type="number" id="caja-monto" required class="input" min="1">
+                <div id="caja-leyenda-recargo" class="text-xs mt-1 hidden">
+                  <span class="text-green-600 font-medium" id="caja-descuento">Descuento: $0</span>
+                  <span class="text-red-600 font-medium ml-2" id="caja-recargo">Recargo: $0</span>
+                </div>
+              </div>
+              
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
+                <input type="date" id="caja-fecha" required class="input" value="${new Date().toISOString().split('T')[0]}">
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Comentarios</label>
+              <input type="text" id="caja-comentarios" class="input" placeholder="Opcional">
+            </div>
+
+            <button type="submit" class="w-full btn-primary py-4 text-lg font-bold shadow-xl">
+              <i class="fas fa-check-circle mr-2"></i>REGISTRAR PAGO
+            </button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- ALUMNOS -->
+    <section id="alumnos" class="section">
+      <div class="card p-6 mb-6">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-xl font-bold text-gray-800" id="titulo-form-alumno">Nuevo Alumno</h2>
+          <div class="flex gap-2">
+            <button onclick="toggleImportarJSON()" class="btn-secondary">
+              <i class="fas fa-file-import mr-1"></i>Importar JSON
+            </button>
+          </div>
+        </div>
+
+        <!-- Importar JSON -->
+        <div id="panel-importar" class="hidden mb-6 p-4 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+          <div class="flex gap-4 mb-4">
+            <button onclick="modoImportar('file')" class="flex-1 py-2 bg-white border rounded-lg hover:bg-gray-50" id="btn-import-file">Subir Archivo</button>
+            <button onclick="modoImportar('text')" class="flex-1 py-2 bg-white border rounded-lg hover:bg-gray-50" id="btn-import-text">Pegar Texto</button>
+          </div>
+          
+          <div id="import-file-container">
+            <input type="file" accept=".json" onchange="procesarArchivoJSON(this)" class="w-full p-2 border rounded">
+          </div>
+          
+          <div id="import-text-container" class="hidden">
+            <textarea id="import-textarea" rows="6" class="input font-mono text-sm" placeholder="Pega aquí el array JSON..."></textarea>
+            <button onclick="procesarTextoJSON()" class="btn-primary mt-2 w-full">Procesar JSON</button>
+          </div>
+        </div>
+
+        <form id="form-alumno" onsubmit="guardarAlumno(event)" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <input type="hidden" id="alumno-id">
+          
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Nombre Completo *</label>
+            <input type="text" id="alumno-nombre" required class="input" placeholder="Apellido Nombre">
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Cédula *</label>
+            <input type="text" id="alumno-cedula" required class="input" placeholder="X.XXX.XXX-X" onblur="validarCedula()">
+            <span id="cedula-error" class="text-red-500 text-xs hidden">Cédula ya registrada</span>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <input type="email" id="alumno-email" class="input" placeholder="alumno@email.com">
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
+            <input type="text" id="alumno-telefono" class="input" placeholder="09X XXX XXX">
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Tel. Alternativo</label>
+            <input type="text" id="alumno-telefono-alt" class="input" placeholder="Otro contacto">
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Fecha Nacimiento</label>
+            <input type="date" id="alumno-nacimiento" class="input">
+          </div>
+
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Nombre Padre/Madre/Tutor</label>
+            <input type="text" id="alumno-tutor" class="input" placeholder="Nombre completo del responsable">
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Tel. Tutor</label>
+            <input type="text" id="alumno-tutor-tel" class="input" placeholder="Contacto principal">
+          </div>
+
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
+            <input type="text" id="alumno-direccion" class="input" placeholder="Calle, número, barrio">
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Nivel *</label>
+            <select id="alumno-nivel" required class="input">
+              <option value="">Seleccionar...</option>
+            </select>
+          </div>
+
+          <div class="md:col-span-3 flex items-center gap-4 p-4 bg-amber-50 rounded-lg border border-amber-200">
+            <input type="checkbox" id="alumno-es-hermano" class="w-5 h-5 text-primary rounded" onchange="toggleHermano()">
+            <div class="flex-1">
+              <label class="font-medium text-amber-900">Es Hermano (tiene descuento especial)</label>
+              <p class="text-sm text-amber-700">No aplica recargos/descuentos automáticos. Precio fijo.</p>
+            </div>
+            <div id="campo-monto-especial" class="hidden">
+              <input type="number" id="alumno-monto-especial" class="input" placeholder="Monto especial $" min="1">
+            </div>
+          </div>
+
+          <div class="md:col-span-3 flex gap-3">
+            <button type="submit" class="btn-primary flex-1">
+              <i class="fas fa-save mr-2"></i>Guardar Alumno
+            </button>
+            <button type="button" onclick="resetFormAlumno()" class="btn-secondary">
+              Limpiar
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card p-6">
+        <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
+          <h3 class="text-lg font-bold text-gray-800">Lista de Alumnos</h3>
+          <input type="text" id="buscar-alumno" oninput="filtrarAlumnos()" placeholder="Buscar..." class="input md:w-64">
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">N°</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Alumno</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Contacto</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Nivel</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Estado</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-alumnos" class="divide-y divide-gray-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- MENSUALIDADES -->
+    <section id="mensualidades" class="section">
+      <div class="card p-6 mb-6">
+        <h3 class="text-lg font-bold text-gray-800 mb-4">Control de Mensualidades</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <select id="mensualidad-mes" class="input" onchange="cargarMensualidades()">
+            ${[...Array(12)].map((_,i) => `<option value="${i+1}" ${new Date().getMonth()+1 === i+1 ? 'selected' : ''}>${['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Setiembre','Octubre','Noviembre','Diciembre'][i]}</option>`).join('')}
+          </select>
+          <select id="mensualidad-nivel" class="input" onchange="cargarMensualidades()">
+            <option value="">Todos los niveles</option>
+          </select>
+          <button onclick="exportarEstadoCuenta()" class="btn-success">
+            <i class="fas fa-download mr-2"></i>Exportar Estado de Cuenta
+          </button>
+        </div>
+        
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Alumno</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Monto Base</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Estado</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Fecha Pago</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-mensualidades" class="divide-y divide-gray-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- LIBROS -->
+    <section id="libros" class="section">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div class="card p-6">
+          <h3 class="text-lg font-bold text-gray-800 mb-4">Asignar Libro</h3>
+          <form id="form-libro" onsubmit="asignarLibro(event)" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Alumno *</label>
+              <select id="libro-alumno-id" required class="input"></select>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Título del Libro *</label>
+              <input type="text" id="libro-titulo" required class="input" placeholder="Ej: Wider World 2">
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Costo Total *</label>
+                <input type="number" id="libro-costo" required min="1" class="input" onchange="calcularSaldoLibro()">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Abono Inicial</label>
+                <input type="number" id="libro-abono" min="0" value="0" class="input" onchange="calcularSaldoLibro()">
+              </div>
+            </div>
+
+            <div class="p-3 bg-amber-50 rounded-lg border border-amber-200">
+              <div class="flex justify-between font-bold text-amber-800">
+                <span>Saldo a financiar:</span>
+                <span id="libro-saldo">$0</span>
+              </div>
+            </div>
+
+            <button type="submit" class="btn-primary w-full">Asignar Libro</button>
+          </form>
+        </div>
+
+        <div class="card p-6">
+          <h3 class="text-lg font-bold text-gray-800 mb-4">Resumen Libros</h3>
+          <div class="grid grid-cols-2 gap-4">
+            <div class="bg-blue-50 p-4 rounded-lg text-center">
+              <div class="text-2xl font-bold text-blue-700" id="stat-total-libros">0</div>
+              <div class="text-sm text-blue-600">Total Libros</div>
+            </div>
+            <div class="bg-green-50 p-4 rounded-lg text-center">
+              <div class="text-2xl font-bold text-green-700" id="stat-libros-pagados">0</div>
+              <div class="text-sm text-green-600">Pagados</div>
+            </div>
+            <div class="bg-amber-50 p-4 rounded-lg text-center">
+              <div class="text-2xl font-bold text-amber-700" id="stat-libros-pendientes">0</div>
+              <div class="text-sm text-amber-600">Con Saldo</div>
+            </div>
+            <div class="bg-red-50 p-4 rounded-lg text-center">
+              <div class="text-2xl font-bold text-red-700" id="stat-deuda-libros">$0</div>
+              <div class="text-sm text-red-600">Deuda Total</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card p-6">
+        <h3 class="text-lg font-bold text-gray-800 mb-4">Libros Activos</h3>
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Alumno</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Libro</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Saldo</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-libros" class="divide-y divide-gray-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- GASTOS -->
+    <section id="gastos" class="section">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <div class="card p-6 lg:col-span-1">
+          <h3 class="text-lg font-bold text-gray-800 mb-4">Registrar Gasto</h3>
+          <form id="form-gasto" onsubmit="guardarGasto(event)" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Concepto *</label>
+              <input type="text" id="gasto-concepto" required class="input" placeholder="Ej: Sillas, Limpieza, Sueldos">
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Proveedor</label>
+              <input type="text" id="gasto-proveedor" class="input" placeholder="Nombre del proveedor">
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Monto Total *</label>
+                <input type="number" id="gasto-monto" required min="1" class="input">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Fecha *</label>
+                <input type="date" id="gasto-fecha" required class="input" value="${new Date().toISOString().split('T')[0]}">
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
+              <select id="gasto-categoria" class="input">
+                <option value="servicios">Servicios (Luz, Agua, Internet)</option>
+                <option value="mobiliario">Mobiliario/Equipamiento</option>
+                <option value="materiales">Materiales de Oficina</option>
+                <option value="sueldos">Sueldos</option>
+                <option value="mantenimiento">Mantenimiento</option>
+                <option value="otros">Otros</option>
+              </select>
+            </div>
+
+            <div class="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+              <input type="checkbox" id="gasto-es-cuota" class="w-4 h-4" onchange="toggleCuotas()">
+              <label class="text-sm font-medium">Es compra en cuotas</label>
+            </div>
+
+            <div id="campo-cuotas" class="hidden">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Número de Cuotas</label>
+              <input type="number" id="gasto-cuotas" min="2" value="3" class="input">
+            </div>
+
+            <button type="submit" class="btn-danger w-full">
+              <i class="fas fa-minus-circle mr-2"></i>Registrar Gasto
+            </button>
+          </form>
+        </div>
+
+        <div class="card p-6 lg:col-span-2">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-bold text-gray-800">Historial de Gastos</h3>
+            <div class="flex gap-2">
+              <button onclick="filtrarGastos('todos')" class="px-3 py-1 rounded-full bg-gray-100 hover:bg-gray-200 text-sm">Todos</button>
+              <button onclick="filtrarGastos('cuotas')" class="px-3 py-1 rounded-full bg-amber-100 hover:bg-amber-200 text-sm text-amber-800">En Cuotas</button>
+            </div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Fecha</th>
+                  <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Concepto</th>
+                  <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Monto</th>
+                  <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Estado</th>
+                </tr>
+              </thead>
+              <tbody id="tabla-gastos" class="divide-y divide-gray-100"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- LISTA DE ESPERA -->
+    <section id="espera" class="section">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div class="card p-6">
+          <h3 class="text-lg font-bold text-gray-800 mb-4">Nueva Pre-inscripción</h3>
+          <form id="form-espera" onsubmit="guardarEspera(event)" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Nombre Interesado *</label>
+              <input type="text" id="espera-nombre" required class="input">
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
+                <input type="text" id="espera-telefono" class="input">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <input type="email" id="espera-email" class="input">
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Nivel de Interés</label>
+              <select id="espera-nivel" class="input"></select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Notas</label>
+              <textarea id="espera-notas" class="input" rows="2"></textarea>
+            </div>
+            <button type="submit" class="btn-primary w-full">Agregar a Lista</button>
+          </form>
+        </div>
+
+        <div class="card p-6">
+          <h3 class="text-lg font-bold text-gray-800 mb-4">Estadísticas de Conversión</h3>
+          <div class="space-y-4">
+            <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+              <span>Total Pre-inscripciones</span>
+              <span class="font-bold text-xl" id="stat-total-espera">0</span>
+            </div>
+            <div class="flex justify-between items-center p-4 bg-green-50 rounded-lg">
+              <span>Convertidos a Alumnos</span>
+              <span class="font-bold text-xl text-green-700" id="stat-convertidos">0</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-4">
+              <div id="barra-conversion" class="bg-green-500 h-4 rounded-full transition-all" style="width: 0%"></div>
+            </div>
+            <p class="text-center text-sm text-gray-600">Tasa de conversión: <span id="tasa-conversion">0%</span></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card p-6">
+        <h3 class="text-lg font-bold text-gray-800 mb-4">Lista de Espera</h3>
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Nombre</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Contacto</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Nivel</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Estado</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-espera" class="divide-y divide-gray-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- REPORTES -->
+    <section id="reportes" class="section">
+      <div class="card p-6 mb-6">
+        <h3 class="text-lg font-bold text-gray-800 mb-4">Generar Reportes</h3>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Desde</label>
+            <input type="date" id="reporte-desde" class="input">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Hasta</label>
+            <input type="date" id="reporte-hasta" class="input">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Rubro</label>
+            <select id="reporte-rubro" class="input">
+              <option value="todos">Todos</option>
+              <option value="matricula">Matrículas</option>
+              <option value="mensualidad">Mensualidades</option>
+              <option value="libro">Libros/Materiales</option>
+              <option value="examen">Exámenes</option>
+              <option value="gastos">Gastos</option>
+            </select>
+          </div>
+          <div class="flex items-end">
+            <button onclick="generarReporte()" class="btn-primary w-full">
+              <i class="fas fa-search mr-2"></i>Generar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div id="resultado-reporte" class="hidden space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="card p-6 text-center">
+            <div class="text-3xl font-bold text-green-600" id="reporte-total">$0</div>
+            <div class="text-gray-500">Total</div>
+          </div>
+          <div class="card p-6 text-center">
+            <div class="text-3xl font-bold text-blue-600" id="reporte-cantidad">0</div>
+            <div class="text-gray-500">Cantidad</div>
+          </div>
+          <div class="card p-6 text-center">
+            <div class="text-3xl font-bold text-purple-600" id="reporte-promedio">$0</div>
+            <div class="text-gray-500">Promedio</div>
+          </div>
+        </div>
+
+        <div class="card p-6">
+          <div class="flex justify-between items-center mb-4">
+            <h4 class="font-bold text-gray-800">Detalle</h4>
+            <button onclick="exportarReporte()" class="btn-secondary text-sm">
+              <i class="fas fa-download mr-1"></i>Exportar CSV
+            </button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Fecha</th>
+                  <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Concepto/Alumno</th>
+                  <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Rubro</th>
+                  <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Monto</th>
+                </tr>
+              </thead>
+              <tbody id="tabla-reporte" class="divide-y divide-gray-100"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CONFIGURACIÓN -->
+    <section id="config" class="section">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="card p-6 border-t-4 border-primary">
+          <h3 class="text-lg font-bold text-gray-800 mb-4">Año Lectivo</h3>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Crear Nuevo Año</label>
+              <input type="number" id="nuevo-ano" class="input" placeholder="2026" min="2020" max="2100">
+            </div>
+            <button onclick="crearAnoLectivo()" class="btn-primary w-full">Crear Año y Cambiar</button>
+          </div>
+        </div>
+
+        <div class="card p-6 border-t-4 border-green-500">
+          <h3 class="text-lg font-bold text-gray-800 mb-4">Exportar Datos</h3>
+          <p class="text-sm text-gray-600 mb-4">Descarga todos los datos del año actual en JSON</p>
+          <button onclick="exportarTodo()" class="btn-success w-full">
+            <i class="fas fa-database mr-2"></i>Backup Completo
+          </button>
+        </div>
+
+        <div class="card p-6 border-t-4 border-amber-500 md:col-span-2">
+          <h3 class="text-lg font-bold text-amber-600 mb-4">
+            <i class="fas fa-exclamation-triangle mr-2"></i>Importación Masiva
+          </h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Seleccionar Tabla</label>
+              <select id="import-tabla" class="input">
+                <option value="alumnos">Alumnos</option>
+                <option value="gastos">Gastos</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Modo</label>
+              <div class="flex gap-2">
+                <button onclick="modoImportarConfig('file')" class="flex-1 py-2 border rounded hover:bg-gray-50">Archivo</button>
+                <button onclick="modoImportarConfig('text')" class="flex-1 py-2 border rounded hover:bg-gray-50">Texto</button>
+              </div>
+            </div>
+          </div>
+          <div class="mt-4">
+            <textarea id="config-import-text" rows="6" class="input font-mono text-sm" placeholder="[{...}, {...}]"></textarea>
+            <input type="file" id="config-import-file" class="hidden" accept=".json" onchange="procesarImportConfig(this)">
+            <button onclick="ejecutarImportacion()" class="btn-primary w-full mt-2">Importar Datos</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL FICHA ALUMNO -->
+  <div class="modal" id="modal-ficha">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
+      <div class="sticky top-0 bg-white border-b p-4 flex justify-between items-center">
+        <h3 class="text-2xl font-bold text-gray-800">Ficha del Alumno</h3>
+        <button onclick="cerrarModal('modal-ficha')" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+      </div>
+      <div class="p-6" id="contenido-ficha">
+        <!-- Se llena dinámicamente -->
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL ABONO LIBRO -->
+  <div class="modal" id="modal-abono">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 p-6">
+      <h3 class="text-xl font-bold text-gray-800 mb-4">Abonar a Libro</h3>
+      <div id="info-abono-libro" class="mb-4 p-4 bg-gray-50 rounded-lg"></div>
+      <form onsubmit="registrarAbonoLibro(event)" class="space-y-4">
+        <input type="hidden" id="abono-libro-id">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Monto</label>
+          <input type="number" id="abono-monto" required min="1" class="input">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Comentarios</label>
+          <textarea id="abono-comentarios" class="input" rows="2"></textarea>
+        </div>
+        <div class="flex gap-3">
+          <button type="submit" class="btn-primary flex-1">Registrar</button>
+          <button type="button" onclick="cerrarModal('modal-abono')" class="btn-secondary">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div id="toast" class="toast"></div>
+
+  <script>
+    // === CONFIGURACIÓN GLOBAL ===
+    const API_URL = ''; // Vacío para mismo dominio en Vercel
+    let ANO_LECTIVO_ACTUAL = localStorage.getItem('alei_ano_activo') || new Date().getFullYear();
+    let CACHE_DATOS = {};
+
+    // === UTILIDADES ===
+    const Utils = {
+      id: () => crypto.randomUUID(),
+      fecha: () => new Date().toISOString().split('T')[0],
+      money: n => '$' + (n || 0).toLocaleString('es-UY'),
+      toast: (msg, type = 'success') => {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.className = `toast ${type === 'error' ? 'bg-red-600' : 'bg-green-600'}`;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 3000);
+      },
+      fetch: async (endpoint, options = {}) => {
+        try {
+          const res = await fetch(`${API_URL}/api/${endpoint}`, {
+            ...options,
+            headers: { 'Content-Type': 'application/json', ...options.headers }
+          });
+          if (!res.ok) throw new Error(await res.text());
+          return await res.json();
+        } catch(e) {
+          Utils.toast(e.message, 'error');
+          throw e;
+        }
+      }
+    };
+
+    // === INICIALIZACIÓN ===
+    document.addEventListener('DOMContentLoaded', async () => {
+      await cargarAnosLectivos();
+      await cargarSelectores();
+      setInterval(() => {
+        document.getElementById('current-time').textContent = new Date().toLocaleTimeString('es-UY');
+        document.getElementById('current-date').textContent = new Date().toLocaleDateString('es-UY', { weekday: 'long', day: 'numeric', month: 'long' });
+      }, 1000);
+      mostrarSeccion('dashboard');
+    });
+
+    async function cargarAnosLectivos() {
+      const anos = await Utils.fetch('anos');
+      const select = document.getElementById('selector-ano');
+      select.innerHTML = anos.map(a => `<option value="${a.id}" ${a.ano == ANO_LECTIVO_ACTUAL ? 'selected' : ''}>${a.ano}</option>`).join('');
+      if (anos.length === 0) {
+        // Crear año actual si no existe
+        await Utils.fetch('anos', { method: 'POST', body: JSON.stringify({ ano: new Date().getFullYear() }) });
+        cargarAnosLectivos();
+      }
+    }
+
+    function cambiarAnoLectivo() {
+      const select = document.getElementById('selector-ano');
+      ANO_LECTIVO_ACTUAL = select.value;
+      localStorage.setItem('alei_ano_activo', ANO_LECTIVO_ACTUAL);
+      location.reload();
+    }
+
+    async function crearAnoLectivo() {
+      const ano = document.getElementById('nuevo-ano').value;
+      if (!ano) return;
+      await Utils.fetch('anos', { method: 'POST', body: JSON.stringify({ ano: parseInt(ano) }) });
+      Utils.toast('Año creado');
+      cargarAnosLectivos();
+    }
+
+    // === NAVEGACIÓN ===
+    function mostrarSeccion(seccion) {
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.getElementById(seccion).classList.add('active');
+      
+      document.querySelectorAll('.nav-btn').forEach(b => {
+        b.classList.remove('active', 'bg-blue-50', 'text-primary');
+        if (b.dataset.section === seccion) b.classList.add('active', 'bg-blue-50', 'text-primary');
+      });
+
+      if (seccion === 'dashboard') cargarDashboard();
+      if (seccion === 'alumnos') cargarAlumnos();
+      if (seccion === 'caja-rapida') cargarSelectCaja();
+      if (seccion === 'mensualidades') cargarMensualidades();
+      if (seccion === 'libros') cargarLibros();
+      if (seccion === 'gastos') cargarGastos();
+      if (seccion === 'espera') cargarEspera();
+      if (seccion === 'reportes') {
+        document.getElementById('reporte-desde').value = Utils.fecha();
+        document.getElementById('reporte-hasta').value = Utils.fecha();
+      }
+    }
+
+    // === DASHBOARD ===
+    async function cargarDashboard() {
+      const data = await Utils.fetch(`dashboard?ano_lectivo_id=${ANO_LECTIVO_ACTUAL}`);
+      document.getElementById('dash-total').textContent = data.totalAlumnos;
+      document.getElementById('dash-ingresos').textContent = Utils.money(data.ingresosMes);
+      document.getElementById('dash-deuda').textContent = Utils.money(data.deudaLibros);
+      document.getElementById('dash-hoy').textContent = data.pagosHoy;
+      
+      // Flujo de caja
+      document.getElementById('flujo-ingresos').textContent = Utils.money(data.ingresosMes);
+      const gastosMes = (await Utils.fetch(`gastos?ano_lectivo_id=${ANO_LECTIVO_ACTUAL}`))
+        .filter(g => new Date(g.fecha).getMonth() + 1 === new Date().getMonth() + 1)
+        .reduce((a, b) => a + b.monto_total, 0);
+      document.getElementById('flujo-gastos').textContent = Utils.money(gastosMes);
+      document.getElementById('flujo-neto').textContent = Utils.money(data.ingresosMes - gastosMes);
+      
+      // Deudores
+      const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Setiembre','Octubre','Noviembre','Diciembre'];
+      document.getElementById('mes-actual-texto').textContent = meses[new Date().getMonth()];
+      
+      const html = data.deudores.map(d => `
+        <div class="flex justify-between items-center p-3 bg-red-50 rounded-lg border-l-4 border-red-500">
+          <div>
+            <div class="font-semibold">${d.nombre}</div>
+            <div class="text-xs text-gray-500">${d.nivel} | Tutor: ${d.tutor_telefono || d.telefono || 'Sin teléfono'}</div>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="enviarWhatsApp('${d.tutor_telefono || d.telefono}', '${d.nombre}')" class="text-green-600 hover:text-green-800" title="Enviar WhatsApp">
+              <i class="fab fa-whatsapp text-xl"></i>
+            </button>
+            <button onclick="verFichaAlumno('${d.id}')" class="text-blue-600 hover:text-blue-800" title="Ver ficha">
+              <i class="fas fa-eye"></i>
+            </button>
+          </div>
+        </div>
+      `).join('');
+      document.getElementById('dash-deudores').innerHTML = html || '<p class="text-gray-400 text-center py-4">¡Excelente! Todos al día</p>';
+      
+      // Cargar alertas
+      cargarAlertas();
+    }
+
+    // === ALUMNOS ===
+    async function cargarAlumnos() {
+      const [alumnos, niveles] = await Promise.all([
+        Utils.fetch(`alumnos?ano_lectivo_id=${ANO_LECTIVO_ACTUAL}`),
+        Utils.fetch(`niveles?ano_lectivo_id=${ANO_LECTIVO_ACTUAL}`)
+      ]);
+      
+      CACHE_DATOS.niveles = niveles;
+      CACHE_DATOS.alumnos = alumnos;
+      
+      // Llenar selectores
+      const opts = niveles.map(n => `<option value="${n.id}">${n.nombre}</option>`).join('');
+      document.getElementById('alumno-nivel').innerHTML = '<option value="">Seleccionar...</option>' + opts;
+      
+      // Tabla
+      renderizarTablaAlumnos(alumnos);
+    }
+
+    function renderizarTablaAlumnos(alumnos) {
+      const html = alumnos.map(a => `
+        <tr class="hover:bg-gray-50">
+          <td class="px-4 py-3 font-medium">${a.numero_anual || '-'}</td>
+          <td class="px-4 py-3">
+            <div class="font-semibold">${a.nombre}</div>
+            ${a.es_hermano ? '<span class="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded">Herman@</span>' : ''}
+          </td>
+          <td class="px-4 py-3 text-sm">
+            <div>${a.telefono || '-'}</div>
+            <div class="text-gray-500">${a.email || ''}</div>
+          </td>
+          <td class="px-4 py-3 text-sm">${a.nivel_nombre || '-'}</td>
+          <td class="px-4 py-3">
+            <span class="px-2 py-1 rounded-full text-xs font-bold ${a.estado === 'activo' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
+              ${a.estado}
+            </span>
+          </td>
+          <td class="px-4 py-3">
+            <button onclick="verFichaAlumno('${a.id}')" class="text-blue-600 hover:text-blue-800 mr-2" title="Ver ficha completa">
+              <i class="fas fa-id-card"></i>
+            </button>
+            <button onclick="editarAlumno('${a.id}')" class="text-amber-600 hover:text-amber-800 mr-2">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button onclick="eliminarAlumno('${a.id}')" class="text-red-600 hover:text-red-800">
+              <i class="fas fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+      `).join('');
+      document.getElementById('tabla-alumnos').innerHTML = html || '<tr><td colspan="6" class="text-center py-4 text-gray-500">Sin alumnos</td></tr>';
+    }
+
+    async function validarCedula() {
+      const cedula = document.getElementById('alumno-cedula').value;
+      if (!cedula) return;
+      const existing = CACHE_DATOS.alumnos?.find(a => a.cedula === cedula && a.id !== document.getElementById('alumno-id').value);
+      if (existing) {
+        document.getElementById('cedula-error').classList.remove('hidden');
+        document.getElementById('alumno-cedula').classList.add('border-red-500');
+      } else {
+        document.getElementById('cedula-error').classList.add('hidden');
+        document.getElementById('alumno-cedula').classList.remove('border-red-500');
+      }
+    }
+
+    function toggleHermano() {
+      const esHermano = document.getElementById('alumno-es-hermano').checked;
+      document.getElementById('campo-monto-especial').classList.toggle('hidden', !esHermano);
+    }
+
+    async function guardarAlumno(e) {
+      e.preventDefault();
+      const id = document.getElementById('alumno-id').value;
+      const data = {
+        ano_lectivo_id: ANO_LECTIVO_ACTUAL,
+        nombre: document.getElementById('alumno-nombre').value.toUpperCase(),
+        cedula: document.getElementById('alumno-cedula').value,
+        email: document.getElementById('alumno-email').value,
+        telefono: document.getElementById('alumno-telefono').value,
+        telefono_alt: document.getElementById('alumno-telefono-alt').value,
+        tutor_nombre: document.getElementById('alumno-tutor').value,
+        tutor_telefono: document.getElementById('alumno-tutor-tel').value,
+        fecha_nacimiento: document.getElementById('alumno-nacimiento').value,
+        direccion: document.getElementById('alumno-direccion').value,
+        nivel_id: document.getElementById('alumno-nivel').value,
+        es_hermano: document.getElementById('alumno-es-hermano').checked,
+        monto_especial: document.getElementById('alumno-monto-especial').value || null,
+        cuota_base: 1500,
+        fecha_inscripcion: Utils.fecha()
+      };
+      
+      if (id) {
+        await Utils.fetch('alumnos', { method: 'PUT', body: JSON.stringify({ ...data, id }) });
+        Utils.toast('Alumno actualizado');
+      } else {
+        await Utils.fetch('alumnos', { method: 'POST', body: JSON.stringify(data) });
+        Utils.toast('Alumno registrado');
+      }
+      
+      resetFormAlumno();
+      cargarAlumnos();
+    }
+
+    function resetFormAlumno() {
+      document.getElementById('form-alumno').reset();
+      document.getElementById('alumno-id').value = '';
+    }
+
+    function editarAlumno(id) {
+      const a = CACHE_DATOS.alumnos.find(x => x.id === id);
+      if (!a) return;
+      document.getElementById('alumno-id').value = a.id;
+      document.getElementById('alumno-nombre').value = a.nombre;
+      document.getElementById('alumno-cedula').value = a.cedula;
+      document.getElementById('alumno-email').value = a.email || '';
+      document.getElementById('alumno-telefono').value = a.telefono || '';
+      document.getElementById('alumno-telefono-alt').value = a.telefono_alt || '';
+      document.getElementById('alumno-tutor').value = a.tutor_nombre || '';
+      document.getElementById('alumno-tutor-tel').value = a.tutor_telefono || '';
+      document.getElementById('alumno-nacimiento').value = a.fecha_nacimiento ? a.fecha_nacimiento.split('T')[0] : '';
+      document.getElementById('alumno-direccion').value = a.direccion || '';
+      document.getElementById('alumno-nivel').value = a.nivel_id || '';
+      document.getElementById('alumno-es-hermano').checked = a.es_hermano;
+      document.getElementById('alumno-monto-especial').value = a.monto_especial || '';
+      toggleHermano();
+      window.scrollTo(0, 0);
+    }
+
+    async function eliminarAlumno(id) {
+      if (!confirm('¿Eliminar permanentemente?')) return;
+      await Utils.fetch('alumnos', { method: 'DELETE', body: JSON.stringify({ id }) });
+      Utils.toast('Alumno eliminado');
+      cargarAlumnos();
+    }
+
+    function filtrarAlumnos() {
+      const term = document.getElementById('buscar-alumno').value.toLowerCase();
+      const filtrados = CACHE_DATOS.alumnos.filter(a => a.nombre.toLowerCase().includes(term) || (a.cedula && a.cedula.includes(term)));
+      renderizarTablaAlumnos(filtrados);
+    }
+
+    async function verFichaAlumno(id) {
+      const data = await Utils.fetch(`alumno/ficha?id=${id}`);
+      const a = data.alumno;
+      
+      let html = `
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div>
+            <h4 class="font-bold text-lg text-primary mb-2">Datos Personales</h4>
+            <p><strong>Nombre:</strong> ${a.nombre}</p>
+            <p><strong>Cédula:</strong> ${a.cedula || '-'}</p>
+            <p><strong>Fecha Nac.:</strong> ${a.fecha_nacimiento ? new Date(a.fecha_nacimiento).toLocaleDateString() : '-'}</p>
+            <p><strong>Dirección:</strong> ${a.direccion || '-'}</p>
+          </div>
+          <div>
+            <h4 class="font-bold text-lg text-primary mb-2">Contacto</h4>
+            <p><strong>Alumno:</strong> ${a.telefono || '-'} ${a.email ? `| ${a.email}` : ''}</p>
+            <p><strong>Tutor:</strong> ${a.tutor_nombre || '-'} ${a.tutor_telefono ? `(${a.tutor_telefono})` : ''}</p>
+            <p><strong>Nivel:</strong> ${a.nivel_nombre || '-'}</p>
+            <p><strong>Tipo:</strong> ${a.es_hermano ? `Herman@ - Cuota fija: $${a.monto_especial}` : 'Regular'}</p>
+          </div>
+        </div>
+        
+        <div class="mb-6">
+          <h4 class="font-bold text-lg text-primary mb-2">Historial de Pagos</h4>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-gray-50">
+                <tr><th class="px-3 py-2">Fecha</th><th>Concepto</th><th>Monto</th><th>Estado</th></tr>
+              </thead>
+              <tbody>
+                ${data.pagos.map(p => `
+                  <tr class="border-b">
+                    <td class="px-3 py-2">${new Date(p.fecha).toLocaleDateString()}</td>
+                    <td>${p.concepto} ${p.mes ? '- Mes ' + p.mes : ''}</td>
+                    <td>${Utils.money(p.monto)} ${p.descuento ? `<span class="text-green-600 text-xs">(-${p.descuento})</span>` : ''} ${p.recargo ? `<span class="text-red-600 text-xs">(+${p.recargo})</span>` : ''}</td>
+                    <td><span class="text-green-600"><i class="fas fa-check"></i></span></td>
+                  </tr>
+                `).join('') || '<tr><td colspan="4" class="text-center py-2 text-gray-500">Sin pagos</td></tr>'}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <div>
+          <h4 class="font-bold text-lg text-primary mb-2">Libros</h4>
+          <div class="space-y-2">
+            ${data.libros.map(l => `
+              <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                <div>
+                  <div class="font-medium">${l.titulo}</div>
+                  <div class="text-sm text-gray-500">${Utils.money(l.pagado)} de ${Utils.money(l.costo_total)}</div>
+                </div>
+                <div class="${l.saldo > 0 ? 'text-amber-600' : 'text-green-600'} font-bold">
+                  ${l.saldo > 0 ? 'Saldo: ' + Utils.money(l.saldo) : 'Pagado'}
+                </div>
+              </div>
+            `).join('') || '<p class="text-gray-500">Sin libros asignados</p>'}
+          </div>
+        </div>
+      `;
+      
+      document.getElementById('contenido-ficha').innerHTML = html;
+      document.getElementById('modal-ficha').classList.add('active');
+    }
+
+    // === CAJA RÁPIDA ===
+    async function cargarSelectCaja() {
+      const alumnos = await Utils.fetch(`alumnos?ano_lectivo_id=${ANO_LECTIVO_ACTUAL}`);
+      const opts = alumnos.map(a => `<option value="${a.id}">${a.nombre}</option>`).join('');
+      document.getElementById('caja-alumno').innerHTML = '<option value="">Seleccionar...</option>' + opts;
+    }
+
+    async function ajustarMontoCaja() {
+      const alumnoId = document.getElementById('caja-alumno').value;
+      const concepto = document.getElementById('caja-concepto').value;
+      const mes = document.getElementById('caja-mes').value;
+      const fecha = document.getElementById('caja-fecha').value;
+      
+      if (!alumnoId || concepto !== 'mensualidad') {
+        document.getElementById('caja-leyenda-recargo').classList.add('hidden');
+        return;
+      }
+      
+      const alumno = (await Utils.fetch(`alumnos?ano_lectivo_id=${ANO_LECTIVO_ACTUAL}`)).find(a => a.id === alumnoId);
+      if (alumno.es_hermano && alumno.monto_especial) {
+        document.getElementById('caja-monto').value = alumno.monto_especial;
+        document.getElementById('caja-leyenda-recargo').classList.add('hidden');
+        return;
+      }
+      
+      // Calcular recargos/descuentos
+      let monto = 1500;
+      const dia = new Date(fecha).getDate();
+      const mesPago = new Date(fecha).getMonth() + 1;
+      const mesPagado = parseInt(mes);
+      
+      let descuento = 0, recargo = 0;
+      
+      if (mesPago < mesPagado || dia <= 10) {
+        descuento = 150;
+        monto -= 150;
+      } else if (mesPago > mesPagado || dia >= 16) {
+        recargo = 150;
+        monto += 150;
+      }
+      
+      document.getElementById('caja-monto').value = monto;
+      document.getElementById('caja-descuento').textContent = descuento ? `Descuento: $${descuento}` : '';
+      document.getElementById('caja-recargo').textContent = recargo ? `Recargo: $${recargo}` : '';
+      document.getElementById('caja-leyenda-recargo').classList.remove('hidden');
+    }
+
+    async function procesarCajaRapida(e) {
+      e.preventDefault();
+      const data = {
+        ano_lectivo_id: ANO_LECTIVO_ACTUAL,
+        alumno_id: document.getElementById('caja-alumno').value,
+        concepto: document.getElementById('caja-concepto').value,
+        mes: document.getElementById('caja-mes').value,
+        monto: parseInt(document.getElementById('caja-monto').value),
+        fecha: document.getElementById('caja-fecha').value,
+        comentarios: document.getElementById('caja-comentarios').value,
+        user_ip: 'web-user'
+      };
+      
+      await Utils.fetch('pagos', { method: 'POST', body: JSON.stringify(data) });
+      Utils.toast('Pago registrado correctamente');
+      document.getElementById('form-caja-rapida').reset();
+      document.getElementById('caja-leyenda-recargo').classList.add('hidden');
+    }
+
+    // === MENSUALIDADES ===
+    async function cargarMensualidades() {
+      const mes = document.getElementById('mensualidad-mes').value;
+      const nivelId = document.getElementById('mensualidad-nivel').value;
+      
+      const [alumnos, pagos] = await Promise.all([
+        Utils.fetch(`alumnos?ano_lectivo_id=${ANO_LECTIVO_ACTUAL}`),
+        Utils.fetch(`pagos?ano_lectivo_id=${ANO_LECTIVO_ACTUAL}`)
+      ]);
+      
+      // Filtrar por nivel si aplica
+      let lista = alumnos;
+      if (nivelId) lista = lista.filter(a => a.nivel_id === nivelId);
+      
+      const html = lista.map(a => {
+        const pagoMes = pagos.find(p => p.alumno_id === a.id && p.concepto === 'mensualidad' && p.mes == mes);
+        const estaPagado = !!pagoMes;
+        const monto = pagoMes ? pagoMes.monto : (a.es_hermano ? a.monto_especial : 1500);
+        
+        return `
+          <tr class="${estaPagado ? 'bg-green-50' : 'bg-red-50'}">
+            <td class="px-4 py-3 font-medium">${a.nombre}</td>
+            <td class="px-4 py-3">${Utils.money(monto)}</td>
+            <td class="px-4 py-3">
+              <span class="px-2 py-1 rounded-full text-xs font-bold ${estaPagado ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                ${estaPagado ? 'PAGADO' : 'PENDIENTE'}
+              </span>
+            </td>
+            <td class="px-4 py-3 text-sm">${estaPagado ? new Date(pagoMes.fecha).toLocaleDateString() : '-'}</td>
+            <td class="px-4 py-3">
+              ${!estaPagado ? `<button onclick="marcarPagado('${a.id}', ${mes})" class="text-green-600 hover:text-green-800">Marcar Pagado</button>` : ''}
+            </td>
+          </tr>
+        `;
+      }).join('');
+      
+      document.getElementById('tabla-mensualidades').innerHTML = html || '<tr><td colspan="5" class="text-center py-4">Sin datos</td></tr>';
+    }
+
+    async function marcarPagado(alumnoId, mes) {
+      const data = {
+        ano_lectivo_id: ANO_LECTIVO_ACTUAL,
+        alumno_id: alumnoId,
+        concepto: 'mensualidad',
+        mes: mes,
+        monto: 1500,
+        fecha: Utils.fecha(),
+        user_ip: 'web-user'
+      };
+      await Utils.fetch('pagos', { method: 'POST', body: JSON.stringify(data) });
+      cargarMensualidades();
+      Utils.toast('Mensualidad registrada');
+    }
+
+    // === LIBROS ===
+    async function cargarLibros() {
+      const [libros, alumnos] = await Promise.all([
+        Utils.fetch(`libros?ano_lectivo_id=${ANO_LECTIVO_ACTUAL}`),
+        Utils.fetch(`alumnos?ano_lectivo_id=${ANO_LECTIVO_ACTUAL}`)
+      ]);
+      
+      // Stats
+      const total = libros.length;
+      const pagados = libros.filter(l => l.saldo === 0).length;
+      const pendientes = total - pagados;
+      const deuda = libros.reduce((a, b) => a + b.saldo, 0);
+      
+      document.getElementById('stat-total-libros').textContent = total;
+      document.getElementById('stat-libros-pagados').textContent = pagados;
+      document.getElementById('stat-libros-pendientes').textContent = pendientes;
+      document.getElementById('stat-deuda-libros').textContent = Utils.money(deuda);
+      
+      // Select
+      const opts = alumnos.map(a => `<option value="${a.id}">${a.nombre}</option>`).join('');
+      document.getElementById('libro-alumno-id').innerHTML = '<option value="">Seleccionar...</option>' + opts;
+      
+      // Tabla
+      const html = libros.map(l => {
+        const alumno = alumnos.find(a => a.id === l.alumno_id);
+        return `
+          <tr>
+            <td class="px-4 py-3 font-medium">${alumno?.nombre || 'N/A'}</td>
+            <td class="px-4 py-3">${l.titulo}</td>
+            <td class="px-4 py-3 font-bold ${l.saldo > 0 ? 'text-amber-600' : 'text-green-600'}">${Utils.money(l.saldo)}</td>
+            <td class="px-4 py-3">
+              ${l.saldo > 0 ? `<button onclick="abrirAbonoLibro('${l.id}', ${l.saldo}, '${l.titulo}')" class="text-blue-600 hover:text-blue-800 mr-2">Abonar</button>` : ''}
+              <button onclick="eliminarLibro('${l.id}')" class="text-red-600 hover:text-red-800"><i class="fas fa-trash"></i></button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+      document.getElementById('tabla-libros').innerHTML = html || '<tr><td colspan="4" class="text-center py-4">Sin libros</td></tr>';
+    }
+
+    function calcularSaldoLibro() {
+      const costo = parseInt(document.getElementById('libro-costo').value) || 0;
+      const abono = parseInt(document.getElementById('libro-abono').value) || 0;
+      document.getElementById('libro-saldo').textContent = Utils.money(costo - abono);
+    }
+
+    async function asignarLibro(e) {
+      e.preventDefault();
+      const data = {
+        alumno_id: document.getElementById('libro-alumno-id').value,
+        titulo: document.getElementById('libro-titulo').value,
+        costo_total: parseInt(document.getElementById('libro-costo').value),
+        abono_inicial: parseInt(document.getElementById('libro-abono').value) || 0,
+        observaciones: ''
+      };
+      await Utils.fetch('libros', { method: 'POST', body: JSON.stringify(data) });
+      Utils.toast('Libro asignado');
+      document.getElementById('form-libro').reset();
+      cargarLibros();
+    }
+
+    function abrirAbonoLibro(id, saldo, titulo) {
+      document.getElementById('abono-libro-id').value = id;
+      document.getElementById('abono-monto').value = saldo;
+      document.getElementById('abono-monto').max = saldo;
+      document.getElementById('info-abono-libro').innerHTML = `<strong>${titulo}</strong><br>Saldo pendiente: ${Utils.money(saldo)}`;
+      document.getElementById('modal-abono').classList.add('active');
+    }
+
+    async function registrarAbonoLibro(e) {
+      e.preventDefault();
+      const libroId = document.getElementById('abono-libro-id').value;
+      const monto = parseInt(document.getElementById('abono-monto').value);
+      
+      // Crear pago asociado
+      await Utils.fetch('pagos', {
+        method: 'POST',
+        body: JSON.stringify({
+          ano_lectivo_id: ANO_LECTIVO_ACTUAL,
+          alumno_id: document.getElementById('libro-alumno-id').value, // Esto fallará, necesitamos el alumno_id del libro
+          concepto: 'libro',
+          libro_id: libroId,
+          monto: monto,
+          fecha: Utils.fecha(),
+          comentarios: document.getElementById('abono-comentarios').value,
+          user_ip: 'web-user'
+        })
+      });
+      
+      Utils.toast('Abono registrado');
+      cerrarModal('modal-abono');
+      cargarLibros();
+    }
+
+    async function eliminarLibro(id) {
+      if (!confirm('¿Eliminar libro?')) return;
+      await Utils.fetch(`libros?id=${id}`, { method: 'DELETE' });
+      cargarLibros();
+    }
+
+    // === GASTOS ===
+    function toggleCuotas() {
+      document.getElementById('campo-cuotas').classList.toggle('hidden', !document.getElementById('gasto-es-cuota').checked);
+    }
+
+    async function cargarGastos() {
+      const gastos = await Utils.fetch(`gastos?ano_lectivo_id=${ANO_LECTIVO_ACTUAL}`);
+      const html = gastos.map(g => `
+        <tr>
+          <td class="px-4 py-3 text-sm">${new Date(g.fecha).toLocaleDateString()}</td>
+          <td class="px-4 py-3">
+            ${g.concepto}
+            ${g.es_cuota ? `<span class="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded ml-2">Cuota ${g.cuota_actual}/${g.numero_cuotas}</span>` : ''}
+          </td>
+          <td class="px-4 py-3">${Utils.money(g.monto_total)}</td>
+          <td class="px-4 py-3"><span class="text-xs ${g.es_cuota ? 'text-amber-600' : 'text-red-600'} font-medium">${g.es_cuota ? 'En cuotas' : 'Contado'}</span></td>
+        </tr>
+      `).join('');
+      document.getElementById('tabla-gastos').innerHTML = html || '<tr><td colspan="4" class="text-center py-4">Sin gastos</td></tr>';
+    }
+
+    async function guardarGasto(e) {
+      e.preventDefault();
+      const data = {
+        ano_lectivo_id: ANO_LECTIVO_ACTUAL,
+        concepto: document.getElementById('gasto-concepto').value,
+        proveedor: document.getElementById('gasto-proveedor').value,
+        monto_total: parseInt(document.getElementById('gasto-monto').value),
+        fecha: document.getElementById('gasto-fecha').value,
+        categoria: document.getElementById('gasto-categoria').value,
+        es_cuota: document.getElementById('gasto-es-cuota').checked,
+        numero_cuotas: document.getElementById('gasto-es-cuota').checked ? parseInt(document.getElementById('gasto-cuotas').value) : 1
+      };
+      await Utils.fetch('gastos', { method: 'POST', body: JSON.stringify(data) });
+      Utils.toast('Gasto registrado');
+      document.getElementById('form-gasto').reset();
+      cargarGastos();
+    }
+
+    // === LISTA ESPERA ===
+    async function cargarEspera() {
+      const [lista, niveles, alumnos] = await Promise.all([
+        Utils.fetch(`waitlist?ano_lectivo_id=${ANO_LECTIVO_ACTUAL}`),
+        Utils.fetch(`niveles?ano_lectivo_id=${ANO_LECTIVO_ACTUAL}`),
+        Utils.fetch(`alumnos?ano_lectivo_id=${ANO_LECTIVO_ACTUAL}`)
+      ]);
+      
+      // Stats de conversión
+      const convertidos = lista.filter(l => l.estado === 'convertido').length;
+      const total = lista.length;
+      const tasa = total ? Math.round((convertidos / total) * 100) : 0;
+      
+      document.getElementById('stat-total-espera').textContent = total;
+      document.getElementById('stat-convertidos').textContent = convertidos;
+      document.getElementById('tasa-conversion').textContent = tasa + '%';
+      document.getElementById('barra-conversion').style.width = tasa + '%';
+      
+      // Select
+      const opts = niveles.map(n => `<option value="${n.id}">${n.nombre}</option>`).join('');
+      document.getElementById('espera-nivel').innerHTML = '<option value="">Sin preferencia</option>' + opts;
+      
+      // Tabla
+      const html = lista.map(l => {
+        const nivel = niveles.find(n => n.id === l.nivel_interes_id);
+        return `
+          <tr>
+            <td class="px-4 py-3 font-medium">${l.nombre}</td>
+            <td class="px-4 py-3 text-sm">${l.telefono || '-'}<br>${l.email || ''}</td>
+            <td class="px-4 py-3 text-sm">${nivel?.nombre || '-'}</td>
+            <td class="px-4 py-3"><span class="px-2 py-1 rounded-full text-xs ${l.estado === 'pendiente' ? 'bg-amber-100 text-amber-800' : l.estado === 'convertido' ? 'bg-green-100 text-green-800' : 'bg-gray-100'}">${l.estado}</span></td>
+            <td class="px-4 py-3">
+              ${l.estado === 'pendiente' ? `
+                <button onclick="convertirEspera('${l.id}')" class="text-green-600 hover:text-green-800 mr-2" title="Convertir a alumno">Convertir</button>
+                <button onclick="contactarEspera('${l.id}')" class="text-blue-600 hover:text-blue-800">Contactar</button>
+              ` : ''}
+            </td>
+          </tr>
+        `;
+      }).join('');
+      document.getElementById('tabla-espera').innerHTML = html || '<tr><td colspan="5" class="text-center py-4">Lista vacía</td></tr>';
+    }
+
+    async function guardarEspera(e) {
+      e.preventDefault();
+      const data = {
+        ano_lectivo_id: ANO_LECTIVO_ACTUAL,
+        nombre: document.getElementById('espera-nombre').value,
+        telefono: document.getElementById('espera-telefono').value,
+        email: document.getElementById('espera-email').value,
+        nivel_interes_id: document.getElementById('espera-nivel').value || null,
+        notas: document.getElementById('espera-notas').value
+      };
+      await Utils.fetch('waitlist', { method: 'POST', body: JSON.stringify(data) });
+      Utils.toast('Agregado a lista de espera');
+      document.getElementById('form-espera').reset();
+      cargarEspera();
+    }
+
+    async function convertirEspera(id) {
+      // Cambiar estado
+      await Utils.fetch('waitlist', { method: 'PUT', body: JSON.stringify({ id, estado: 'convertido' }) });
+      // Redirigir a formulario de alumno con datos precargados (simplificado)
+      mostrarSeccion('alumnos');
+      Utils.toast('Convertido. Complete los datos del alumno.');
+      cargarEspera();
+    }
+
+    // === WHATSAPP ===
+    function enviarWhatsApp(telefono, nombre) {
+      if (!telefono) {
+        Utils.toast('Sin número de teléfono', 'error');
+        return;
+      }
+      const mensaje = `Hola! Le escribimos del Instituto ALEI para recordarle que ${nombre} tiene pendiente el pago de la mensualidad. Quedamos atentos. Saludos!`;
+      const url = `https://wa.me/598${telefono.replace(/\D/g, '')}?text=${encodeURIComponent(mensaje)}`;
+      window.open(url, '_blank');
+    }
+
+    function generarMensajesWhatsApp() {
+      // Obtener todos los deudores visibles y generar mensajes
+      const deudores = document.querySelectorAll('#dash-deudores > div');
+      let texto = 'MENSAJES PARA COPIAR:\n\n';
+      deudores.forEach(d => {
+        const nombre = d.querySelector('.font-semibold').textContent;
+        const tel = d.querySelector('button[onclick^="enviarWhatsApp"]').getAttribute('onclick').match(/'([^']+)'/)[1];
+        texto += `📱 ${tel} - ${nombre}\n`;
+      });
+      alert(texto);
+    }
+
+    // === IMPORTACIÓN ===
+    function toggleImportarJSON() {
+      document.getElementById('panel-importar').classList.toggle('hidden');
+    }
+
+    function modoImportar(tipo) {
+      document.getElementById('import-file-container').classList.toggle('hidden', tipo !== 'file');
+      document.getElementById('import-text-container').classList.toggle('hidden', tipo !== 'text');
+    }
+
+    async function procesarArchivoJSON(input) {
+      const file = input.files[0];
+      if (!file) return;
+      const text = await file.text();
+      importarAlumnosJSON(text);
+    }
+
+    async function procesarTextoJSON() {
+      const text = document.getElementById('import-textarea').value;
+      importarAlumnosJSON(text);
+    }
+
+    async function importarAlumnosJSON(text) {
+      try {
+        const datos = JSON.parse(text);
+        if (!Array.isArray(datos)) throw new Error('Debe ser un array JSON');
+        
+        const resultado = await Utils.fetch('import', {
+          method: 'POST',
+          body: JSON.stringify({
+            tabla: 'alumnos',
+            datos: datos,
+            ano_lectivo_id: ANO_LECTIVO_ACTUAL
+          })
+        });
+        
+        Utils.toast(`Importados ${resultado.insertados} alumnos`);
+        cargarAlumnos();
+      } catch(e) {
+        Utils.toast('Error: ' + e.message, 'error');
+      }
+    }
+
+    // === CONFIG ===
+    function modoImportarConfig(tipo) {
+      document.getElementById('config-import-file').classList.toggle('hidden', tipo !== 'file');
+      document.getElementById('config-import-text').classList.toggle('hidden', tipo !== 'text');
+    }
+
+    function procesarImportConfig(input) {
+      const file = input.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = e => document.getElementById('config-import-text').value = e.target.result;
+        reader.readAsText(file);
+      }
+    }
+
+    async function ejecutarImportacion() {
+      const tabla = document.getElementById('import-tabla').value;
+      const texto = document.getElementById('config-import-text').value;
+      try {
+        const datos = JSON.parse(texto);
+        await Utils.fetch('import', {
+          method: 'POST',
+          body: JSON.stringify({ tabla, datos, ano_lectivo_id: ANO_LECTIVO_ACTUAL })
+        });
+        Utils.toast('Importación completada');
+      } catch(e) {
+        Utils.toast('Error: ' + e.message, 'error');
+      }
+    }
+
+    async function exportarTodo() {
+      const [alumnos, pagos, libros, gastos] = await Promise.all([
+        Utils.fetch(`alumnos?ano_lectivo_id=${ANO_LECTIVO_ACTUAL}`),
+        Utils.fetch(`pagos?ano_lectivo_id=${ANO_LECTIVO_ACTUAL}`),
+        Utils.fetch(`libros?ano_lectivo_id=${ANO_LECTIVO_ACTUAL}`),
+        Utils.fetch(`gastos?ano_lectivo_id=${ANO_LECTIVO_ACTUAL}`)
+      ]);
+      
+      const backup = {
+        version: '3.0',
+        fecha: new Date().toISOString(),
+        ano_lectivo: ANO_LECTIVO_ACTUAL,
+        alumnos, pagos, libros, gastos
+      };
+      
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `alei_backup_${ANO_LECTIVO_ACTUAL}_${Utils.fecha()}.json`;
+      a.click();
+    }
+
+    // === UTILIDADES UI ===
+    function cerrarModal(id) {
+      document.getElementById(id).classList.remove('active');
+    }
+
+    function toggleAlertas() {
+      document.getElementById('panel-alertas').classList.toggle('hidden');
+    }
+
+    async function cargarAlertas() {
+      // Simular alertas basadas en datos
+      const alertas = await Utils.fetch(`alertas?ano_lectivo_id=${ANO_LECTIVO_ACTUAL}`);
+      const badge = document.getElementById('badge-alertas');
+      if (alertas.length > 0) {
+        badge.textContent = alertas.length;
+        badge.classList.remove('hidden');
+        document.getElementById('lista-alertas').innerHTML = alertas.map(a => `
+          <div class="p-3 ${a.tipo === 'cumpleanos' ? 'bg-purple-50' : 'bg-red-50'} rounded-lg border-l-4 ${a.tipo === 'cumpleanos' ? 'border-purple-500' : 'border-red-500'}">
+            <div class="font-medium text-sm">${a.mensaje}</div>
+          </div>
+        `).join('');
+      }
+    }
+
+    function busquedaGlobal(e) {
+      if (e.key === 'Enter') {
+        const term = e.target.value;
+        // Redirigir a alumnos con filtro
+        mostrarSeccion('alumnos');
+        document.getElementById('buscar-alumno').value = term;
+        filtrarAlumnos();
+      }
+    }
+
+    // Cerrar modales al click fuera
+    document.querySelectorAll('.modal').forEach(m => {
+      m.addEventListener('click', e => { if (e.target === m) m.classList.remove('active'); });
+    });
+  </script>
+</body>
+</html>
