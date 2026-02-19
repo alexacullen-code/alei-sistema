@@ -1,0 +1,8 @@
+{
+  "name": "alei-gestion",
+  "version": "3.0.0",
+  "dependencies": {
+    "@neondatabase/serverless": "^0.7.0",
+    "micro": "^10.0.1"
+  }
+}
