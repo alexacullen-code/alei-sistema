@@ -1,0 +1,1546 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ALEI – Sistema de Gestión Integral</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; background: #f3f4f6; }
+    .gradient-bg { background: linear-gradient(135deg, #00247D 0%, #1a3a8a 100%); }
+    .gradient-red { background: linear-gradient(135deg, #CF142B 0%, #a00f21 100%); }
+    .card { background: white; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e5e7eb; }
+    .btn-primary { background: #00247D; color: white; padding: 10px 20px; border-radius: 8px; font-weight: 600; transition: all 0.3s; border: none; cursor: pointer; }
+    .btn-primary:hover { background: #001a5c; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,36,125,0.3); }
+    .btn-secondary { background: #CF142B; color: white; padding: 10px 20px; border-radius: 8px; font-weight: 600; border: none; cursor: pointer; }
+    .btn-success { background: #059669; color: white; padding: 10px 20px; border-radius: 8px; font-weight: 600; border: none; cursor: pointer; }
+    .btn-warning { background: #d97706; color: white; padding: 10px 20px; border-radius: 8px; font-weight: 600; border: none; cursor: pointer; }
+    .tab { padding: 12px 24px; background: transparent; border: none; border-bottom: 3px solid transparent; cursor: pointer; font-weight: 500; color: #6b7280; transition: all 0.3s; }
+    .tab.active { color: #00247D; border-bottom-color: #CF142B; background: #f0f4ff; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; animation: fadeIn 0.3s; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .status-paid { background: #d1fae5; color: #065f46; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .status-pending { background: #fef3c7; color: #92400e; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .status-overdue { background: #fee2e2; color: #991b1b; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .status-partial { background: #dbeafe; color: #1e40af; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+    .modal.active { display: flex; }
+    .input-field { width: 100%; padding: 10px 14px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px; transition: all 0.3s; }
+    .input-field:focus { outline: none; border-color: #00247D; box-shadow: 0 0 0 3px rgba(0,36,125,0.1); }
+    .debt-card { background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); border-left: 4px solid #dc2626; }
+    .paid-card { background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); border-left: 4px solid #059669; }
+    .partial-card { background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); border-left: 4px solid #2563eb; }
+    .toast { position: fixed; bottom: 20px; right: 20px; padding: 16px 24px; background: #00247D; color: white; border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); display: none; z-index: 2000; animation: slideIn 0.3s; }
+    @keyframes slideIn { from { transform: translateX(400px); } to { transform: translateX(0); } }
+    .progress-bar { width: 100%; height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden; }
+    .progress-fill { height: 100%; background: #00247D; transition: width 0.3s; }
+    table { width: 100%; border-collapse: collapse; }
+    th { background: #00247D; color: white; padding: 12px; text-align: left; font-weight: 600; }
+    td { padding: 12px; border-bottom: 1px solid #e5e7eb; }
+    tr:hover { background: #f9fafb; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <!-- Header -->
+  <div class="gradient-bg text-white p-6 shadow-lg">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <svg class="w-12 h-8" viewBox="0 0 60 30" xmlns="http://www.w3.org/2000/svg">
+          <rect width="60" height="30" fill="#012169"/>
+          <path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" stroke-width="6"/>
+          <path d="M0,0 L60,30 M60,0 L0,30" stroke="#C8102E" stroke-width="4"/>
+          <path d="M30,0 V30 M0,15 H60" stroke="#fff" stroke-width="10"/>
+          <path d="M30,0 V30 M0,15 H60" stroke="#C8102E" stroke-width="6"/>
+        </svg>
+        <div>
+          <h1 class="text-2xl font-bold">ALEI – Instituto de Inglés</h1>
+          <p class="text-sm opacity-90">Sistema de Gestión Integral v2.0</p>
+        </div>
+      </div>
+      <div class="text-right">
+        <div id="current-date" class="text-sm font-medium"></div>
+        <div class="text-xs opacity-75">Usuario: Administrador</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navigation -->
+  <div class="bg-white shadow-sm sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto">
+      <div class="flex overflow-x-auto">
+        <button class="tab active" onclick="switchTab('dashboard')">📊 Dashboard</button>
+        <button class="tab" onclick="switchTab('config')">⚙️ Configuración</button>
+        <button class="tab" onclick="switchTab('alumnos')">👥 Alumnos</button>
+        <button class="tab" onclick="switchTab('pagos')">💳 Pagos</button>
+        <button class="tab" onclick="switchTab('materiales')">📚 Libros/Materiales</button>
+        <button class="tab" onclick="switchTab('deudas')">⚠️ Deudas</button>
+        <button class="tab" onclick="switchTab('reportes')">📈 Reportes</button>
+        <button class="tab" onclick="switchTab('backup')">💾 Backup</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="max-w-7xl mx-auto p-6 space-y-6">
+
+    <!-- DASHBOARD -->
+    <div id="tab-dashboard" class="tab-content active">
+      <h2 class="text-2xl font-bold text-gray-800 mb-6">Panel de Control</h2>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <div class="card p-6 gradient-bg text-white">
+          <div class="text-3xl font-bold" id="dash-total-alumnos">0</div>
+          <div class="text-sm opacity-90 mt-1">Alumnos Activos</div>
+        </div>
+        <div class="card p-6 bg-gradient-to-br from-green-500 to-green-600 text-white">
+          <div class="text-3xl font-bold" id="dash-ingresos-mes">$0</div>
+          <div class="text-sm opacity-90 mt-1">Ingresos Este Mes</div>
+        </div>
+        <div class="card p-6 bg-gradient-to-br from-red-500 to-red-600 text-white">
+          <div class="text-3xl font-bold" id="dash-deuda-total">$0</div>
+          <div class="text-sm opacity-90 mt-1">Deuda Total Pendiente</div>
+        </div>
+        <div class="card p-6 bg-gradient-to-br from-yellow-500 to-yellow-600 text-white">
+          <div class="text-3xl font-bold" id="dash-pagos-parciales">0</div>
+          <div class="text-sm opacity-90 mt-1">Pagos Parciales Activos</div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="card p-6">
+          <h3 class="text-lg font-bold text-gray-800 mb-4">⚠️ Alumnos con Deudas</h3>
+          <div id="dash-lista-deudores" class="space-y-3 max-h-96 overflow-y-auto">
+            <p class="text-gray-500 text-center py-8">No hay deudas registradas</p>
+          </div>
+        </div>
+        
+        <div class="card p-6">
+          <h3 class="text-lg font-bold text-gray-800 mb-4">📚 Libros con Saldo Pendiente</h3>
+          <div id="dash-lista-libros-pendientes" class="space-y-3 max-h-96 overflow-y-auto">
+            <p class="text-gray-500 text-center py-8">No hay libros pendientes</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONFIGURACIÓN -->
+    <div id="tab-config" class="tab-content">
+      <h2 class="text-2xl font-bold text-gray-800 mb-6">Configuración del Sistema</h2>
+      
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Tipos de Matrícula -->
+        <div class="card p-6">
+          <h3 class="text-lg font-bold text-blue-900 mb-4">🎓 Tipos de Matrícula</h3>
+          <p class="text-sm text-gray-600 mb-4">Configure los diferentes tipos de matrícula y sus costos (Regular, Beca 50%, Hermano, etc.)</p>
+          
+          <form id="form-tipo-matricula" onsubmit="guardarTipoMatricula(event)" class="space-y-4 mb-6">
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Nombre del Tipo</label>
+                <input type="text" id="tipo-mat-nombre" class="input-field" placeholder="Ej: Beca 50%" required>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Porcentaje a Pagar (%)</label>
+                <input type="number" id="tipo-mat-porcentaje" class="input-field" placeholder="Ej: 50" min="0" max="100" required>
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Descripción (opcional)</label>
+              <input type="text" id="tipo-mat-desc" class="input-field" placeholder="Ej: Descuento por hermano">
+            </div>
+            <button type="submit" class="btn-primary w-full">Agregar Tipo de Matrícula</button>
+          </form>
+          
+          <div id="lista-tipos-matricula" class="space-y-2">
+            <!-- Se llena dinámicamente -->
+          </div>
+        </div>
+
+        <!-- Costos Base -->
+        <div class="card p-6">
+          <h3 class="text-lg font-bold text-blue-900 mb-4">💰 Costos Base</h3>
+          
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Matrícula Regular (100%) $</label>
+              <input type="number" id="config-matricula-base" class="input-field" value="3000" onchange="actualizarCostosBase()">
+              <p class="text-xs text-gray-500 mt-1">Este es el costo base para el tipo "Regular"</p>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Mensualidad Regular $</label>
+              <input type="number" id="config-mensualidad-base" class="input-field" value="2500" onchange="actualizarCostosBase()">
+            </div>
+          </div>
+          
+          <div class="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <h4 class="font-semibold text-blue-900 mb-2">Vista Previa de Costos:</h4>
+            <div id="preview-costos" class="text-sm space-y-1">
+              <!-- Se llena dinámicamente -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Niveles -->
+        <div class="card p-6 lg:col-span-2">
+          <h3 class="text-lg font-bold text-blue-900 mb-4">📚 Niveles y Costos de Libros</h3>
+          
+          <form id="form-nivel" onsubmit="guardarNivel(event)" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <input type="text" id="nivel-nombre" class="input-field" placeholder="Nombre del Nivel (ej: 1st CH)" required>
+            <input type="number" id="nivel-costo-libro" class="input-field" placeholder="Costo Libro $" required>
+            <button type="submit" class="btn-primary">Agregar Nivel</button>
+          </form>
+          
+          <div class="overflow-x-auto">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nivel</th>
+                  <th>Costo Libro</th>
+                  <th>Alumnos</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="tabla-niveles"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ALUMNOS -->
+    <div id="tab-alumnos" class="tab-content">
+      <h2 class="text-2xl font-bold text-gray-800 mb-6">Gestión de Alumnos</h2>
+      
+      <div class="card p-6 mb-6">
+        <h3 class="text-lg font-bold text-blue-900 mb-4" id="titulo-form-alumno">Registrar Nuevo Alumno</h3>
+        
+        <form id="form-alumno" onsubmit="guardarAlumno(event)" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <input type="hidden" id="alumno-id">
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Nombre Completo</label>
+            <input type="text" id="alumno-nombre" class="input-field" required>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Cédula</label>
+            <input type="text" id="alumno-cedula" class="input-field" required>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
+            <input type="text" id="alumno-telefono" class="input-field">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Nivel</label>
+            <select id="alumno-nivel" class="input-field" required>
+              <option value="">Seleccione...</option>
+            </select>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Matrícula</label>
+            <select id="alumno-tipo-matricula" class="input-field" required>
+              <option value="">Seleccione...</option>
+            </select>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Fecha de Inscripción</label>
+            <input type="date" id="alumno-fecha" class="input-field" required>
+          </div>
+          
+          <div class="lg:col-span-3 flex gap-2">
+            <button type="submit" class="btn-primary" id="btn-guardar-alumno">Guardar Alumno</button>
+            <button type="button" class="hidden btn-secondary" id="btn-cancelar-alumno" onclick="cancelarEdicionAlumno()">Cancelar</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card p-6">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-bold text-blue-900">Lista de Alumnos</h3>
+          <input type="text" id="buscar-alumno" class="input-field max-w-xs" placeholder="Buscar alumno..." oninput="buscarAlumnos()">
+        </div>
+        
+        <div class="overflow-x-auto">
+          <table>
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Cédula</th>
+                <th>Nivel</th>
+                <th>Tipo Matrícula</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-alumnos"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGOS -->
+    <div id="tab-pagos" class="tab-content">
+      <h2 class="text-2xl font-bold text-gray-800 mb-6">Registro de Pagos</h2>
+      
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="card p-6">
+          <h3 class="text-lg font-bold text-blue-900 mb-4">Seleccionar Alumno</h3>
+          <input type="text" id="pago-buscar-alumno" class="input-field mb-4" placeholder="Buscar por nombre o cédula..." oninput="buscarAlumnoParaPago()">
+          <div id="pago-resultado-busqueda" class="space-y-2 max-h-64 overflow-y-auto"></div>
+        </div>
+
+        <div class="card p-6 hidden" id="panel-registro-pago">
+          <h3 class="text-lg font-bold text-blue-900 mb-4">Registrar Pago</h3>
+          
+          <div class="bg-blue-50 p-4 rounded-lg mb-4">
+            <div class="font-semibold text-blue-900" id="pago-info-alumno"></div>
+            <div class="text-sm text-blue-700" id="pago-info-tipo-mat"></div>
+          </div>
+
+          <form id="form-pago" onsubmit="guardarPago(event)" class="space-y-4">
+            <input type="hidden" id="pago-alumno-id">
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Concepto</label>
+              <select id="pago-concepto" class="input-field" onchange="cambiarConceptoPago()" required>
+                <option value="">Seleccione...</option>
+                <option value="matricula">🎓 Matrícula</option>
+                <option value="mensualidad">📅 Mensualidad</option>
+                <option value="libro">📚 Libro/Material</option>
+                <option value="otro">📝 Otro</option>
+              </select>
+            </div>
+
+            <div id="campo-mes" class="hidden">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Mes</label>
+              <select id="pago-mes" class="input-field">
+                <option value="1">Enero</option>
+                <option value="2">Febrero</option>
+                <option value="3">Marzo</option>
+                <option value="4">Abril</option>
+                <option value="5">Mayo</option>
+                <option value="6">Junio</option>
+                <option value="7">Julio</option>
+                <option value="8">Agosto</option>
+                <option value="9">Septiembre</option>
+                <option value="10">Octubre</option>
+                <option value="11">Noviembre</option>
+                <option value="12">Diciembre</option>
+              </select>
+            </div>
+
+            <div id="campo-libro-saldo" class="hidden bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+              <div class="flex justify-between text-sm mb-1">
+                <span>Total Libro:</span>
+                <span class="font-bold" id="libro-total">$0</span>
+              </div>
+              <div class="flex justify-between text-sm mb-1">
+                <span>Abonado:</span>
+                <span class="font-bold text-green-600" id="libro-abonado">$0</span>
+              </div>
+              <div class="flex justify-between text-sm font-bold text-red-600">
+                <span>Saldo Pendiente:</span>
+                <span id="libro-saldo">$0</span>
+              </div>
+              <div class="progress-bar mt-2">
+                <div class="progress-fill" id="libro-progress" style="width: 0%"></div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Monto a Pagar $</label>
+                <input type="number" id="pago-monto" class="input-field" required onchange="calcularSaldoRestante()">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
+                <input type="date" id="pago-fecha" class="input-field" required>
+              </div>
+            </div>
+
+            <div id="campo-saldo-calculado" class="hidden p-3 bg-gray-50 rounded-lg text-sm">
+              <div class="flex justify-between">
+                <span>Nuevo Saldo:</span>
+                <span class="font-bold" id="nuevo-saldo-libro"></span>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Comentarios/Observaciones</label>
+              <textarea id="pago-comentarios" class="input-field" rows="2" placeholder="Ej: Me entregó $500, falta el resto para el próximo mes. O: Pagó $100 de más, se le descontará después..."></textarea>
+            </div>
+
+            <div class="flex gap-2">
+              <button type="submit" class="btn-primary flex-1">Registrar Pago</button>
+              <button type="button" class="btn-secondary" onclick="cancelarPago()">Cancelar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Historial de Pagos -->
+      <div class="card p-6 mt-6">
+        <h3 class="text-lg font-bold text-blue-900 mb-4">Historial de Pagos Recientes</h3>
+        <div class="overflow-x-auto">
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Alumno</th>
+                <th>Concepto</th>
+                <th>Monto</th>
+                <th>Comentarios</th>
+                <th>Usuario</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-pagos-recientes"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- MATERIALES/LIBROS -->
+    <div id="tab-materiales" class="tab-content">
+      <h2 class="text-2xl font-bold text-gray-800 mb-6">Gestión de Libros y Materiales</h2>
+      
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 card p-6">
+          <h3 class="text-lg font-bold text-blue-900 mb-4">Asignar Libro a Alumno</h3>
+          
+          <div class="mb-4">
+            <input type="text" id="libro-buscar-alumno" class="input-field" placeholder="Buscar alumno..." oninput="buscarAlumnoParaLibro()">
+            <div id="libro-resultado-busqueda" class="mt-2 space-y-2 max-h-48 overflow-y-auto"></div>
+          </div>
+
+          <form id="form-asignar-libro" onsubmit="asignarLibro(event)" class="hidden space-y-4">
+            <input type="hidden" id="libro-alumno-id">
+            
+            <div class="bg-blue-50 p-3 rounded-lg">
+              <div class="font-semibold text-blue-900" id="libro-info-alumno"></div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Libro/Material</label>
+              <input type="text" id="libro-nombre" class="input-field" placeholder="Ej: Student's Book 1st CH" required>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Costo Total $</label>
+                <input type="number" id="libro-costo-total" class="input-field" required onchange="calcularCuotasLibro()">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Primer Abono $</label>
+                <input type="number" id="libro-primer-abono" class="input-field" required onchange="calcularCuotasLibro()">
+              </div>
+            </div>
+
+            <div class="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+              <div class="flex justify-between text-sm font-bold text-red-600">
+                <span>Saldo a Financiar:</span>
+                <span id="libro-saldo-inicial">$0</span>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Comentarios</label>
+              <textarea id="libro-comentarios" class="input-field" rows="2" placeholder="Observaciones sobre el libro o pago..."></textarea>
+            </div>
+
+            <button type="submit" class="btn-primary w-full">Asignar Libro y Registrar Primer Abono</button>
+          </form>
+        </div>
+
+        <div class="card p-6">
+          <h3 class="text-lg font-bold text-blue-900 mb-4">Resumen de Libros</h3>
+          <div class="space-y-4" id="resumen-libros">
+            <div class="text-center text-gray-500 py-8">Seleccione un alumno para ver resumen</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lista de Libros Activos -->
+      <div class="card p-6 mt-6">
+        <h3 class="text-lg font-bold text-blue-900 mb-4">Libros con Pagos Pendientes</h3>
+        <div class="overflow-x-auto">
+          <table>
+            <thead>
+              <tr>
+                <th>Alumno</th>
+                <th>Libro</th>
+                <th>Costo Total</th>
+                <th>Abonado</th>
+                <th>Saldo</th>
+                <th>Progreso</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-libros-pendientes"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- DEUDAS -->
+    <div id="tab-deudas" class="tab-content">
+      <h2 class="text-2xl font-bold text-gray-800 mb-6">Consulta de Deudas</h2>
+      
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div class="card p-4 debt-card">
+          <div class="text-2xl font-bold text-red-700" id="total-deuda-matriculas">$0</div>
+          <div class="text-sm text-red-600 font-medium">Deuda Total Matrículas</div>
+        </div>
+        <div class="card p-4 debt-card">
+          <div class="text-2xl font-bold text-red-700" id="total-deuda-libros">$0</div>
+          <div class="text-sm text-red-600 font-medium">Deuda Total Libros</div>
+        </div>
+        <div class="card p-4 bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+          <div class="text-2xl font-bold" id="total-deuda-general">$0</div>
+          <div class="text-sm opacity-90">Deuda General</div>
+        </div>
+      </div>
+
+      <div class="card p-6 mb-6">
+        <h3 class="text-lg font-bold text-blue-900 mb-4">Filtros</h3>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <select id="filtro-tipo-deuda" class="input-field" onchange="filtrarDeudas()">
+            <option value="todos">Todas las Deudas</option>
+            <option value="matricula">Solo Matrículas</option>
+            <option value="libro">Solo Libros</option>
+            <option value="mensualidad">Solo Mensualidades</option>
+          </select>
+          
+          <select id="filtro-nivel" class="input-field" onchange="filtrarDeudas()">
+            <option value="todos">Todos los Niveles</option>
+          </select>
+          
+          <input type="text" id="filtro-busqueda" class="input-field" placeholder="Buscar alumno..." oninput="filtrarDeudas()">
+          
+          <button class="btn-primary" onclick="exportarDeudas()">📥 Exportar</button>
+        </div>
+      </div>
+
+      <div class="card p-6">
+        <h3 class="text-lg font-bold text-blue-900 mb-4">Detalle de Deudas por Alumno</h3>
+        <div class="overflow-x-auto">
+          <table>
+            <thead>
+              <tr>
+                <th>Alumno</th>
+                <th>Nivel</th>
+                <th>Tipo Matrícula</th>
+                <th>Deuda Matrícula</th>
+                <th>Deuda Libros</th>
+                <th>Otras Deudas</th>
+                <th>Total</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-deudas-detalle"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- REPORTES -->
+    <div id="tab-reportes" class="tab-content">
+      <h2 class="text-2xl font-bold text-gray-800 mb-6">Reportes Financieros</h2>
+      
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div class="card p-6">
+          <h3 class="text-lg font-bold text-blue-900 mb-4">Reporte por Período</h3>
+          <div class="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Desde</label>
+              <input type="date" id="reporte-desde" class="input-field">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Hasta</label>
+              <input type="date" id="reporte-hasta" class="input-field">
+            </div>
+          </div>
+          <button class="btn-primary w-full" onclick="generarReportePeriodo()">Generar Reporte</button>
+          
+          <div id="resultado-reporte" class="mt-4 hidden space-y-3">
+            <!-- Se llena dinámicamente -->
+          </div>
+        </div>
+
+        <div class="card p-6">
+          <h3 class="text-lg font-bold text-blue-900 mb-4">Estadísticas Rápidas</h3>
+          <div class="space-y-4" id="stats-rapidas">
+            <!-- Se llena dinámicamente -->
+          </div>
+        </div>
+      </div>
+
+      <div class="card p-6">
+        <h3 class="text-lg font-bold text-blue-900 mb-4">Historial Completo de Movimientos</h3>
+        <div class="overflow-x-auto">
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Alumno</th>
+                <th>Concepto</th>
+                <th>Ingreso</th>
+                <th>Saldo Impactado</th>
+                <th>Comentarios</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-movimientos"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- BACKUP -->
+    <div id="tab-backup" class="tab-content">
+      <h2 class="text-2xl font-bold text-gray-800 mb-6">Backup y Restauración</h2>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="card p-6">
+          <h3 class="text-lg font-bold text-green-700 mb-4">💾 Exportar Datos</h3>
+          <p class="text-sm text-gray-600 mb-4">Descargue todos los datos del sistema para hacer un respaldo.</p>
+          <button class="btn-success w-full" onclick="exportarBackup()">Descargar Backup Completo (JSON)</button>
+        </div>
+
+        <div class="card p-6">
+          <h3 class="text-lg font-bold text-blue-700 mb-4">📥 Importar Datos</h3>
+          <p class="text-sm text-gray-600 mb-4">Restaure los datos desde un archivo de backup anterior.</p>
+          <input type="file" id="input-backup" class="input-field mb-4" accept=".json" onchange="importarBackup(this)">
+          <div class="p-3 bg-yellow-50 rounded-lg text-sm text-yellow-800 border border-yellow-200">
+            ⚠️ <strong>Advertencia:</strong> Al importar, se reemplazarán todos los datos actuales.
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Modal de Abono -->
+  <div class="modal" id="modal-abono">
+    <div class="card p-6 max-w-md w-full mx-4">
+      <h3 class="text-lg font-bold text-blue-900 mb-4">Registrar Abono</h3>
+      <div id="abono-info-libro" class="mb-4 p-3 bg-blue-50 rounded-lg"></div>
+      
+      <form id="form-abono" onsubmit="registrarAbono(event)" class="space-y-4">
+        <input type="hidden" id="abono-libro-id">
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Monto del Abono $</label>
+          <input type="number" id="abono-monto" class="input-field" required>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Comentarios</label>
+          <textarea id="abono-comentarios" class="input-field" rows="2"></textarea>
+        </div>
+
+        <div class="flex gap-2">
+          <button type="submit" class="btn-primary flex-1">Registrar Abono</button>
+          <button type="button" class="btn-secondary" onclick="cerrarModal('modal-abono')">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // === CONFIGURACIÓN INICIAL ===
+    const defaultData = {
+      tiposMatricula: [
+        { id: 1, nombre: 'Regular', porcentaje: 100, descripcion: 'Pago completo' },
+        { id: 2, nombre: 'Beca 50%', porcentaje: 50, descripcion: 'Media beca' },
+        { id: 3, nombre: 'Hermano', porcentaje: 75, descripcion: 'Descuento familiar' }
+      ],
+      costosBase: { matricula: 3000, mensualidad: 2500 },
+      niveles: [],
+      alumnos: [],
+      pagos: [],
+      libros: [] // { id, alumnoId, nombre, costoTotal, abonado, saldo, pagos: [] }
+    };
+
+    // === UTILIDADES ===
+    const storage = {
+      get: (key) => {
+        const data = localStorage.getItem(`alei_${key}`);
+        return data ? JSON.parse(data) : null;
+      },
+      set: (key, value) => localStorage.setItem(`alei_${key}`, JSON.stringify(value))
+    };
+
+    function initStorage() {
+      if (!storage.get('tiposMatricula')) storage.set('tiposMatricula', defaultData.tiposMatricula);
+      if (!storage.get('costosBase')) storage.set('costosBase', defaultData.costosBase);
+      if (!storage.get('niveles')) storage.set('niveles', defaultData.niveles);
+      if (!storage.get('alumnos')) storage.set('alumnos', defaultData.alumnos);
+      if (!storage.get('pagos')) storage.set('pagos', defaultData.pagos);
+      if (!storage.get('libros')) storage.set('libros', defaultData.libros);
+    }
+
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.style.background = type === 'error' ? '#dc2626' : '#00247D';
+      toast.style.display = 'block';
+      setTimeout(() => toast.style.display = 'none', 3000);
+    }
+
+    function formatMoney(amount) {
+      return '$' + amount.toLocaleString('es-UY');
+    }
+
+    function getToday() {
+      return new Date().toISOString().split('T')[0];
+    }
+
+    function generateId() {
+      return Date.now().toString(36) + Math.random().toString(36).substr(2);
+    }
+
+    // === NAVEGACIÓN ===
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+      document.getElementById(`tab-${tabName}`).classList.add('active');
+      event.target.classList.add('active');
+      
+      if (tabName === 'dashboard') actualizarDashboard();
+      if (tabName === 'config') cargarConfiguracion();
+      if (tabName === 'alumnos') cargarAlumnos();
+      if (tabName === 'pagos') cargarPagosRecientes();
+      if (tabName === 'materiales') cargarLibrosPendientes();
+      if (tabName === 'deudas') cargarDeudas();
+      if (tabName === 'reportes') cargarMovimientos();
+    }
+
+    // === CONFIGURACIÓN ===
+    function guardarTipoMatricula(e) {
+      e.preventDefault();
+      const tipos = storage.get('tiposMatricula');
+      const nuevo = {
+        id: generateId(),
+        nombre: document.getElementById('tipo-mat-nombre').value,
+        porcentaje: parseInt(document.getElementById('tipo-mat-porcentaje').value),
+        descripcion: document.getElementById('tipo-mat-desc').value
+      };
+      tipos.push(nuevo);
+      storage.set('tiposMatricula', tipos);
+      document.getElementById('form-tipo-matricula').reset();
+      cargarConfiguracion();
+      showToast('Tipo de matrícula guardado');
+    }
+
+    function eliminarTipoMatricula(id) {
+      const tipos = storage.get('tiposMatricula').filter(t => t.id != id);
+      storage.set('tiposMatricula', tipos);
+      cargarConfiguracion();
+      showToast('Tipo eliminado');
+    }
+
+    function actualizarCostosBase() {
+      const costos = {
+        matricula: parseInt(document.getElementById('config-matricula-base').value) || 3000,
+        mensualidad: parseInt(document.getElementById('config-mensualidad-base').value) || 2500
+      };
+      storage.set('costosBase', costos);
+      actualizarPreviewCostos();
+    }
+
+    function actualizarPreviewCostos() {
+      const costos = storage.get('costosBase');
+      const tipos = storage.get('tiposMatricula');
+      let html = '';
+      tipos.forEach(tipo => {
+        const costo = (costos.matricula * tipo.porcentaje / 100);
+        html += `<div class="flex justify-between"><span>${tipo.nombre}:</span><span class="font-bold">${formatMoney(costo)}</span></div>`;
+      });
+      document.getElementById('preview-costos').innerHTML = html;
+    }
+
+    function guardarNivel(e) {
+      e.preventDefault();
+      const niveles = storage.get('niveles');
+      niveles.push({
+        id: generateId(),
+        nombre: document.getElementById('nivel-nombre').value,
+        costoLibro: parseInt(document.getElementById('nivel-costo-libro').value)
+      });
+      storage.set('niveles', niveles);
+      document.getElementById('form-nivel').reset();
+      cargarConfiguracion();
+      showToast('Nivel agregado');
+    }
+
+    function eliminarNivel(id) {
+      const niveles = storage.get('niveles').filter(n => n.id != id);
+      storage.set('niveles', niveles);
+      cargarConfiguracion();
+      showToast('Nivel eliminado');
+    }
+
+    function cargarConfiguracion() {
+      // Tipos de matrícula
+      const tipos = storage.get('tiposMatricula');
+      let html = '';
+      tipos.forEach(t => {
+        html += `<div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+          <div>
+            <div class="font-semibold">${t.nombre}</div>
+            <div class="text-xs text-gray-500">${t.descripcion || ''} - ${t.porcentaje}%</div>
+          </div>
+          <button onclick="eliminarTipoMatricula('${t.id}')" class="text-red-600 hover:text-red-800">🗑️</button>
+        </div>`;
+      });
+      document.getElementById('lista-tipos-matricula').innerHTML = html || '<p class="text-gray-500 text-sm">No hay tipos configurados</p>';
+      
+      // Costos base
+      const costos = storage.get('costosBase');
+      document.getElementById('config-matricula-base').value = costos.matricula;
+      document.getElementById('config-mensualidad-base').value = costos.mensualidad;
+      actualizarPreviewCostos();
+      
+      // Niveles
+      const niveles = storage.get('niveles');
+      let htmlNiveles = '';
+      niveles.forEach(n => {
+        const count = storage.get('alumnos').filter(a => a.nivelId == n.id).length;
+        htmlNiveles += `<tr>
+          <td>${n.nombre}</td>
+          <td>${formatMoney(n.costoLibro)}</td>
+          <td>${count}</td>
+          <td><button onclick="eliminarNivel('${n.id}')" class="text-red-600">Eliminar</button></td>
+        </tr>`;
+      });
+      document.getElementById('tabla-niveles').innerHTML = htmlNiveles || '<tr><td colspan="4" class="text-center text-gray-500">No hay niveles</td></tr>';
+      
+      // Actualizar selects
+      const optsNiveles = niveles.map(n => `<option value="${n.id}">${n.nombre}</option>`).join('');
+      document.getElementById('alumno-nivel').innerHTML = '<option value="">Seleccione...</option>' + optsNiveles;
+      document.getElementById('filtro-nivel').innerHTML = '<option value="todos">Todos los Niveles</option>' + optsNiveles;
+      
+      const optsTipos = tipos.map(t => `<option value="${t.id}">${t.nombre} (${t.porcentaje}%)</option>`).join('');
+      document.getElementById('alumno-tipo-matricula').innerHTML = '<option value="">Seleccione...</option>' + optsTipos;
+    }
+
+    // === ALUMNOS ===
+    function guardarAlumno(e) {
+      e.preventDefault();
+      const alumnos = storage.get('alumnos');
+      const id = document.getElementById('alumno-id').value;
+      
+      const alumnoData = {
+        id: id || generateId(),
+        nombre: document.getElementById('alumno-nombre').value,
+        cedula: document.getElementById('alumno-cedula').value,
+        telefono: document.getElementById('alumno-telefono').value,
+        nivelId: document.getElementById('alumno-nivel').value,
+        tipoMatriculaId: document.getElementById('alumno-tipo-matricula').value,
+        fechaInscripcion: document.getElementById('alumno-fecha').value,
+        activo: true
+      };
+      
+      if (id) {
+        const idx = alumnos.findIndex(a => a.id == id);
+        alumnos[idx] = alumnoData;
+        showToast('Alumno actualizado');
+      } else {
+        alumnos.push(alumnoData);
+        showToast('Alumno registrado');
+      }
+      
+      storage.set('alumnos', alumnos);
+      document.getElementById('form-alumno').reset();
+      document.getElementById('alumno-id').value = '';
+      document.getElementById('alumno-fecha').value = getToday();
+      document.getElementById('btn-cancelar-alumno').classList.add('hidden');
+      document.getElementById('titulo-form-alumno').textContent = 'Registrar Nuevo Alumno';
+      cargarAlumnos();
+    }
+
+    function editarAlumno(id) {
+      const alumno = storage.get('alumnos').find(a => a.id == id);
+      if (!alumno) return;
+      
+      document.getElementById('alumno-id').value = alumno.id;
+      document.getElementById('alumno-nombre').value = alumno.nombre;
+      document.getElementById('alumno-cedula').value = alumno.cedula;
+      document.getElementById('alumno-telefono').value = alumno.telefono;
+      document.getElementById('alumno-nivel').value = alumno.nivelId;
+      document.getElementById('alumno-tipo-matricula').value = alumno.tipoMatriculaId;
+      document.getElementById('alumno-fecha').value = alumno.fechaInscripcion;
+      
+      document.getElementById('titulo-form-alumno').textContent = 'Editar Alumno';
+      document.getElementById('btn-cancelar-alumno').classList.remove('hidden');
+      window.scrollTo(0, 0);
+    }
+
+    function cancelarEdicionAlumno() {
+      document.getElementById('form-alumno').reset();
+      document.getElementById('alumno-id').value = '';
+      document.getElementById('alumno-fecha').value = getToday();
+      document.getElementById('btn-cancelar-alumno').classList.add('hidden');
+      document.getElementById('titulo-form-alumno').textContent = 'Registrar Nuevo Alumno';
+    }
+
+    function getDeudaMatricula(alumno) {
+      const tipo = storage.get('tiposMatricula').find(t => t.id == alumno.tipoMatriculaId);
+      const costos = storage.get('costosBase');
+      const pagos = storage.get('pagos').filter(p => p.alumnoId == alumno.id && p.concepto == 'matricula');
+      const totalPagado = pagos.reduce((sum, p) => sum + p.monto, 0);
+      const debe = (costos.matricula * (tipo?.porcentaje || 100) / 100);
+      return Math.max(0, debe - totalPagado);
+    }
+
+    function cargarAlumnos() {
+      const alumnos = storage.get('alumnos');
+      const niveles = storage.get('niveles');
+      const tipos = storage.get('tiposMatricula');
+      
+      let html = '';
+      alumnos.forEach(a => {
+        const nivel = niveles.find(n => n.id == a.nivelId)?.nombre || 'Sin nivel';
+        const tipo = tipos.find(t => t.id == a.tipoMatriculaId)?.nombre || 'Regular';
+        const deudaMat = getDeudaMatricula(a);
+        const estado = deudaMat > 0 ? '<span class="status-overdue">Debe Matrícula</span>' : '<span class="status-paid">Al Día</span>';
+        
+        html += `<tr>
+          <td class="font-medium">${a.nombre}</td>
+          <td>${a.cedula}</td>
+          <td>${nivel}</td>
+          <td>${tipo}</td>
+          <td>${estado}</td>
+          <td>
+            <button onclick="editarAlumno('${a.id}')" class="text-blue-600 hover:text-blue-800 mr-2">Editar</button>
+            <button onclick="verDetalleAlumno('${a.id}')" class="text-green-600 hover:text-green-800">Ver</button>
+          </td>
+        </tr>`;
+      });
+      
+      document.getElementById('tabla-alumnos').innerHTML = html || '<tr><td colspan="6" class="text-center text-gray-500">No hay alumnos</td></tr>';
+    }
+
+    function buscarAlumnos() {
+      const term = document.getElementById('buscar-alumno').value.toLowerCase();
+      const rows = document.querySelectorAll('#tabla-alumnos tr');
+      rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(term) ? '' : 'none';
+      });
+    }
+
+    function verDetalleAlumno(id) {
+      // Implementar vista detalle si es necesario
+      showToast('Detalle en desarrollo');
+    }
+
+    // === PAGOS ===
+    let libroSeleccionadoParaPago = null;
+
+    function buscarAlumnoParaPago() {
+      const term = document.getElementById('pago-buscar-alumno').value.toLowerCase();
+      const alumnos = storage.get('alumnos');
+      const div = document.getElementById('pago-resultado-busqueda');
+      
+      if (term.length < 2) {
+        div.innerHTML = '';
+        return;
+      }
+      
+      const filtrados = alumnos.filter(a => 
+        a.nombre.toLowerCase().includes(term) || 
+        a.cedula.includes(term)
+      );
+      
+      div.innerHTML = filtrados.map(a => `
+        <div class="p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-blue-50 transition" onclick="seleccionarAlumnoPago('${a.id}')">
+          <div class="font-medium">${a.nombre}</div>
+          <div class="text-sm text-gray-500">${a.cedula}</div>
+        </div>
+      `).join('');
+    }
+
+    function seleccionarAlumnoPago(alumnoId) {
+      const alumno = storage.get('alumnos').find(a => a.id == alumnoId);
+      const tipo = storage.get('tiposMatricula').find(t => t.id == alumno.tipoMatriculaId);
+      
+      document.getElementById('pago-alumno-id').value = alumnoId;
+      document.getElementById('pago-info-alumno').textContent = `${alumno.nombre} - ${alumno.cedula}`;
+      document.getElementById('pago-info-tipo-mat').textContent = `Tipo: ${tipo?.nombre || 'Regular'} (${tipo?.porcentaje || 100}%)`;
+      document.getElementById('pago-fecha').value = getToday();
+      
+      document.getElementById('panel-registro-pago').classList.remove('hidden');
+      document.getElementById('pago-resultado-busqueda').innerHTML = '';
+      document.getElementById('pago-buscar-alumno').value = '';
+      
+      // Verificar si tiene libros pendientes
+      const libros = storage.get('libros').filter(l => l.alumnoId == alumnoId && l.saldo > 0);
+      if (libros.length > 0) {
+        libroSeleccionadoParaPago = libros[0];
+        document.getElementById('pago-concepto').value = 'libro';
+        cambiarConceptoPago();
+      }
+    }
+
+    function cambiarConceptoPago() {
+      const concepto = document.getElementById('pago-concepto').value;
+      const campoMes = document.getElementById('campo-mes');
+      const campoLibro = document.getElementById('campo-libro-saldo');
+      const campoSaldo = document.getElementById('campo-saldo-calculado');
+      
+      campoMes.classList.add('hidden');
+      campoLibro.classList.add('hidden');
+      campoSaldo.classList.add('hidden');
+      
+      if (concepto === 'mensualidad') {
+        campoMes.classList.remove('hidden');
+        document.getElementById('pago-monto').value = storage.get('costosBase').mensualidad;
+      } else if (concepto === 'matricula') {
+        const alumnoId = document.getElementById('pago-alumno-id').value;
+        const alumno = storage.get('alumnos').find(a => a.id == alumnoId);
+        const deuda = getDeudaMatricula(alumno);
+        document.getElementById('pago-monto').value = deuda;
+      } else if (concepto === 'libro') {
+        campoLibro.classList.remove('hidden');
+        campoSaldo.classList.remove('hidden');
+        mostrarInfoLibro();
+      }
+    }
+
+    function mostrarInfoLibro() {
+      if (!libroSeleccionadoParaPago) {
+        // Buscar libros del alumno
+        const alumnoId = document.getElementById('pago-alumno-id').value;
+        const libros = storage.get('libros').filter(l => l.alumnoId == alumnoId && l.saldo > 0);
+        if (libros.length > 0) {
+          libroSeleccionadoParaPago = libros[0];
+        } else {
+          document.getElementById('campo-libro-saldo').innerHTML = '<p class="text-red-600">El alumno no tiene libros con saldo pendiente</p>';
+          return;
+        }
+      }
+      
+      const l = libroSeleccionadoParaPago;
+      document.getElementById('libro-total').textContent = formatMoney(l.costoTotal);
+      document.getElementById('libro-abonado').textContent = formatMoney(l.abonado);
+      document.getElementById('libro-saldo').textContent = formatMoney(l.saldo);
+      document.getElementById('libro-progress').style.width = ((l.abonado / l.costoTotal) * 100) + '%';
+      document.getElementById('pago-monto').value = l.saldo;
+    }
+
+    function calcularSaldoRestante() {
+      const concepto = document.getElementById('pago-concepto').value;
+      if (concepto === 'libro' && libroSeleccionadoParaPago) {
+        const monto = parseInt(document.getElementById('pago-monto').value) || 0;
+        const nuevoSaldo = libroSeleccionadoParaPago.saldo - monto;
+        document.getElementById('nuevo-saldo-libro').textContent = formatMoney(nuevoSaldo);
+      }
+    }
+
+    function guardarPago(e) {
+      e.preventDefault();
+      const pagos = storage.get('pagos');
+      const alumnoId = document.getElementById('pago-alumno-id').value;
+      const concepto = document.getElementById('pago-concepto').value;
+      const monto = parseInt(document.getElementById('pago-monto').value);
+      const fecha = document.getElementById('pago-fecha').value;
+      const comentarios = document.getElementById('pago-comentarios').value;
+      
+      const pago = {
+        id: generateId(),
+        alumnoId,
+        concepto,
+        monto,
+        fecha,
+        comentarios,
+        mes: concepto === 'mensualidad' ? document.getElementById('pago-mes').value : null,
+        libroId: concepto === 'libro' ? libroSeleccionadoParaPago?.id : null,
+        timestamp: new Date().toISOString()
+      };
+      
+      pagos.push(pago);
+      storage.set('pagos', pagos);
+      
+      // Si es pago de libro, actualizar saldo
+      if (concepto === 'libro' && libroSeleccionadoParaPago) {
+        const libros = storage.get('libros');
+        const libro = libros.find(l => l.id == libroSeleccionadoParaPago.id);
+        libro.abonado += monto;
+        libro.saldo -= monto;
+        libro.pagos.push({ fecha, monto, comentarios });
+        storage.set('libros', libros);
+        libroSeleccionadoParaPago = null;
+      }
+      
+      showToast('Pago registrado correctamente');
+      cancelarPago();
+      cargarPagosRecientes();
+      actualizarDashboard();
+    }
+
+    function cancelarPago() {
+      document.getElementById('form-pago').reset();
+      document.getElementById('panel-registro-pago').classList.add('hidden');
+      libroSeleccionadoParaPago = null;
+    }
+
+    function cargarPagosRecientes() {
+      const pagos = storage.get('pagos').sort((a, b) => new Date(b.fecha) - new Date(a.fecha)).slice(0, 20);
+      const alumnos = storage.get('alumnos');
+      
+      let html = '';
+      pagos.forEach(p => {
+        const alumno = alumnos.find(a => a.id == p.alumnoId);
+        html += `<tr>
+          <td>${p.fecha}</td>
+          <td>${alumno?.nombre || 'N/A'}</td>
+          <td class="capitalize">${p.concepto}${p.mes ? ' (' + p.mes + ')' : ''}</td>
+          <td class="font-bold text-green-600">${formatMoney(p.monto)}</td>
+          <td class="text-sm text-gray-600 max-w-xs truncate">${p.comentarios || '-'}</td>
+          <td class="text-xs text-gray-400">Admin</td>
+        </tr>`;
+      });
+      
+      document.getElementById('tabla-pagos-recientes').innerHTML = html || '<tr><td colspan="6" class="text-center text-gray-500">No hay pagos registrados</td></tr>';
+    }
+
+    // === LIBROS/MATERIALES ===
+    function buscarAlumnoParaLibro() {
+      const term = document.getElementById('libro-buscar-alumno').value.toLowerCase();
+      const alumnos = storage.get('alumnos');
+      const div = document.getElementById('libro-resultado-busqueda');
+      
+      if (term.length < 2) {
+        div.innerHTML = '';
+        return;
+      }
+      
+      const filtrados = alumnos.filter(a => a.nombre.toLowerCase().includes(term));
+      div.innerHTML = filtrados.map(a => `
+        <div class="p-2 bg-gray-50 rounded cursor-pointer hover:bg-blue-50" onclick="seleccionarAlumnoLibro('${a.id}')">
+          <div class="font-medium">${a.nombre}</div>
+          <div class="text-xs text-gray-500">${a.cedula}</div>
+        </div>
+      `).join('');
+    }
+
+    function seleccionarAlumnoLibro(alumnoId) {
+      const alumno = storage.get('alumnos').find(a => a.id == alumnoId);
+      document.getElementById('libro-alumno-id').value = alumnoId;
+      document.getElementById('libro-info-alumno').textContent = `${alumno.nombre} - ${alumno.cedula}`;
+      document.getElementById('form-asignar-libro').classList.remove('hidden');
+      document.getElementById('libro-resultado-busqueda').innerHTML = '';
+      document.getElementById('libro-buscar-alumno').value = '';
+      
+      // Mostrar resumen de libros del alumno
+      mostrarResumenLibros(alumnoId);
+    }
+
+    function calcularCuotasLibro() {
+      const total = parseInt(document.getElementById('libro-costo-total').value) || 0;
+      const abono = parseInt(document.getElementById('libro-primer-abono').value) || 0;
+      const saldo = total - abono;
+      document.getElementById('libro-saldo-inicial').textContent = formatMoney(saldo);
+    }
+
+    function asignarLibro(e) {
+      e.preventDefault();
+      const libros = storage.get('libros');
+      const alumnoId = document.getElementById('libro-alumno-id').value;
+      const costoTotal = parseInt(document.getElementById('libro-costo-total').value);
+      const primerAbono = parseInt(document.getElementById('libro-primer-abono').value);
+      
+      const libro = {
+        id: generateId(),
+        alumnoId,
+        nombre: document.getElementById('libro-nombre').value,
+        costoTotal,
+        abonado: primerAbono,
+        saldo: costoTotal - primerAbono,
+        fechaAsignacion: getToday(),
+        comentarios: document.getElementById('libro-comentarios').value,
+        pagos: [{
+          fecha: getToday(),
+          monto: primerAbono,
+          comentarios: 'Primer abono al asignar'
+        }]
+      };
+      
+      libros.push(libro);
+      storage.set('libros', libros);
+      
+      // Registrar también como pago
+      const pagos = storage.get('pagos');
+      pagos.push({
+        id: generateId(),
+        alumnoId,
+        concepto: 'libro',
+        monto: primerAbono,
+        fecha: getToday(),
+        comentarios: `Abono inicial libro: ${libro.nombre}`,
+        libroId: libro.id,
+        timestamp: new Date().toISOString()
+      });
+      storage.set('pagos', pagos);
+      
+      showToast('Libro asignado y primer abono registrado');
+      document.getElementById('form-asignar-libro').reset();
+      document.getElementById('form-asignar-libro').classList.add('hidden');
+      cargarLibrosPendientes();
+      actualizarDashboard();
+    }
+
+    function mostrarResumenLibros(alumnoId) {
+      const libros = storage.get('libros').filter(l => l.alumnoId == alumnoId);
+      const alumno = storage.get('alumnos').find(a => a.id == alumnoId);
+      
+      if (libros.length === 0) {
+        document.getElementById('resumen-libros').innerHTML = '<p class="text-gray-500 text-center">No tiene libros asignados</p>';
+        return;
+      }
+      
+      let html = `<div class="font-semibold mb-2 text-blue-900">${alumno.nombre}</div>`;
+      libros.forEach(l => {
+        const porcentaje = (l.abonado / l.costoTotal) * 100;
+        const estado = l.saldo === 0 ? 'Pagado' : `Debe: ${formatMoney(l.saldo)}`;
+        const color = l.saldo === 0 ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800';
+        
+        html += `<div class="p-3 rounded-lg ${color} mb-2">
+          <div class="flex justify-between font-medium">
+            <span>${l.nombre}</span>
+            <span>${formatMoney(l.costoTotal)}</span>
+          </div>
+          <div class="progress-bar mt-2">
+            <div class="progress-fill" style="width: ${porcentaje}%"></div>
+          </div>
+          <div class="text-xs mt-1 flex justify-between">
+            <span>Abonado: ${formatMoney(l.abonado)}</span>
+            <span>${estado}</span>
+          </div>
+        </div>`;
+      });
+      
+      document.getElementById('resumen-libros').innerHTML = html;
+    }
+
+    function cargarLibrosPendientes() {
+      const libros = storage.get('libros').filter(l => l.saldo > 0);
+      const alumnos = storage.get('alumnos');
+      
+      let html = '';
+      libros.forEach(l => {
+        const alumno = alumnos.find(a => a.id == l.alumnoId);
+        const porcentaje = (l.abonado / l.costoTotal) * 100;
+        
+        html += `<tr>
+          <td>${alumno?.nombre || 'N/A'}</td>
+          <td>${l.nombre}</td>
+          <td>${formatMoney(l.costoTotal)}</td>
+          <td class="text-green-600">${formatMoney(l.abonado)}</td>
+          <td class="text-red-600 font-bold">${formatMoney(l.saldo)}</td>
+          <td>
+            <div class="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div class="h-full bg-blue-600" style="width: ${porcentaje}%"></div>
+            </div>
+            <span class="text-xs">${Math.round(porcentaje)}%</span>
+          </td>
+          <td>
+            <button onclick="abrirModalAbono('${l.id}')" class="btn-primary text-xs py-1 px-2">Abonar</button>
+          </td>
+        </tr>`;
+      });
+      
+      document.getElementById('tabla-libros-pendientes').innerHTML = html || '<tr><td colspan="7" class="text-center text-gray-500">No hay libros pendientes</td></tr>';
+    }
+
+    function abrirModalAbono(libroId) {
+      const libro = storage.get('libros').find(l => l.id == libroId);
+      document.getElementById('abono-libro-id').value = libroId;
+      document.getElementById('abono-info-libro').innerHTML = `
+        <div class="font-semibold">${libro.nombre}</div>
+        <div class="text-sm">Saldo actual: <span class="font-bold text-red-600">${formatMoney(libro.saldo)}</span></div>
+      `;
+      document.getElementById('abono-monto').value = libro.saldo;
+      document.getElementById('modal-abono').classList.add('active');
+    }
+
+    function registrarAbono(e) {
+      e.preventDefault();
+      const libros = storage.get('libros');
+      const libroId = document.getElementById('abono-libro-id').value;
+      const libro = libros.find(l => l.id == libroId);
+      const monto = parseInt(document.getElementById('abono-monto').value);
+      const comentarios = document.getElementById('abono-comentarios').value;
+      
+      libro.abonado += monto;
+      libro.saldo -= monto;
+      libro.pagos.push({ fecha: getToday(), monto, comentarios });
+      
+      storage.set('libros', libros);
+      
+      // Registrar pago
+      const pagos = storage.get('pagos');
+      pagos.push({
+        id: generateId(),
+        alumnoId: libro.alumnoId,
+        concepto: 'libro',
+        monto,
+        fecha: getToday(),
+        comentarios: `Abono libro: ${libro.nombre}. ${comentarios}`,
+        libroId: libro.id
+      });
+      storage.set('pagos', pagos);
+      
+      cerrarModal('modal-abono');
+      showToast('Abono registrado');
+      cargarLibrosPendientes();
+      actualizarDashboard();
+    }
+
+    function cerrarModal(modalId) {
+      document.getElementById(modalId).classList.remove('active');
+    }
+
+    // === DEUDAS ===
+    function cargarDeudas() {
+      const alumnos = storage.get('alumnos');
+      const libros = storage.get('libros');
+      const pagos = storage.get('pagos');
+      
+      let totalMatriculas = 0;
+      let totalLibros = 0;
+      let html = '';
+      
+      alumnos.forEach(a => {
+        const deudaMat = getDeudaMatricula(a);
+        const librosAlumno = libros.filter(l => l.alumnoId == a.id && l.saldo > 0);
+        const deudaLibros = librosAlumno.reduce((sum, l) => sum + l.saldo, 0);
+        
+        // Verificar mensualidades pendientes (lógica simple: si no pagó este mes)
+        const mesActual = new Date().getMonth() + 1;
+        const pagoMensualidad = pagos.find(p => p.alumnoId == a.id && p.concepto == 'mensualidad' && p.mes == mesActual);
+        const deudaMensual = pagoMensualidad ? 0 : storage.get('costosBase').mensualidad;
+        
+        totalMatriculas += deudaMat;
+        totalLibros += deudaLibros;
+        
+        const totalDeuda = deudaMat + deudaLibros + deudaMensual;
+        if (totalDeuda > 0) {
+          const nivel = storage.get('niveles').find(n => n.id == a.nivelId)?.nombre || '-';
+          const tipo = storage.get('tiposMatricula').find(t => t.id == a.tipoMatriculaId)?.nombre || 'Regular';
+          
+          html += `<tr>
+            <td class="font-medium">${a.nombre}</td>
+            <td>${nivel}</td>
+            <td>${tipo}</td>
+            <td class="text-red-600">${deudaMat > 0 ? formatMoney(deudaMat) : '-'}</td>
+            <td class="text-red-600">${deudaLibros > 0 ? formatMoney(deudaLibros) : '-'}</td>
+            <td class="text-red-600">${deudaMensual > 0 ? formatMoney(deudaMensual) : '-'}</td>
+            <td class="font-bold text-red-700">${formatMoney(totalDeuda)}</td>
+            <td><span class="status-overdue">Deudor</span></td>
+          </tr>`;
+        }
+      });
+      
+      document.getElementById('tabla-deudas-detalle').innerHTML = html || '<tr><td colspan="8" class="text-center text-gray-500">No hay deudores</td></tr>';
+      document.getElementById('total-deuda-matriculas').textContent = formatMoney(totalMatriculas);
+      document.getElementById('total-deuda-libros').textContent = formatMoney(totalLibros);
+      document.getElementById('total-deuda-general').textContent = formatMoney(totalMatriculas + totalLibros);
+    }
+
+    function filtrarDeudas() {
+      // Implementar filtros avanzados si es necesario
+      cargarDeudas();
+    }
+
+    function exportarDeudas() {
+      showToast('Exportando... (función en desarrollo)');
+    }
+
+    // === DASHBOARD ===
+    function actualizarDashboard() {
+      const alumnos = storage.get('alumnos');
+      const pagos = storage.get('pagos');
+      const libros = storage.get('libros');
+      
+      // Stats
+      document.getElementById('dash-total-alumnos').textContent = alumnos.length;
+      
+      const mesActual = new Date().getMonth() + 1;
+      const ingresosMes = pagos
+        .filter(p => {
+          const fecha = new Date(p.fecha);
+          return fecha.getMonth() + 1 === mesActual;
+        })
+        .reduce((sum, p) => sum + p.monto, 0);
+      document.getElementById('dash-ingresos-mes').textContent = formatMoney(ingresosMes);
+      
+      const deudaTotal = alumnos.reduce((sum, a) => sum + getDeudaMatricula(a), 0) +
+                        libros.reduce((sum, l) => sum + l.saldo, 0);
+      document.getElementById('dash-deuda-total').textContent = formatMoney(deudaTotal);
+      
+      const pagosParciales = libros.filter(l => l.abonado > 0 && l.saldo > 0).length;
+      document.getElementById('dash-pagos-parciales').textContent = pagosParciales;
+      
+      // Lista de deudores
+      let htmlDeudores = '';
+      alumnos.forEach(a => {
+        const deudaMat = getDeudaMatricula(a);
+        const deudaLibros = libros.filter(l => l.alumnoId == a.id && l.saldo > 0)
+                                 .reduce((sum, l) => sum + l.saldo, 0);
+        if (deudaMat > 0 || deudaLibros > 0) {
+          htmlDeudores += `<div class="flex justify-between items-center p-3 bg-red-50 rounded-lg border-l-4 border-red-500">
+            <div>
+              <div class="font-medium">${a.nombre}</div>
+              <div class="text-xs text-gray-500">Mat: ${formatMoney(deudaMat)} | Lib: ${formatMoney(deudaLibros)}</div>
+            </div>
+            <span class="text-red-600 font-bold">${formatMoney(deudaMat + deudaLibros)}</span>
+          </div>`;
+        }
+      });
+      document.getElementById('dash-lista-deudores').innerHTML = htmlDeudores || '<p class="text-gray-500 text-center">Sin deudas</p>';
+      
+      // Libros pendientes
+      let htmlLibros = '';
+      libros.filter(l => l.saldo > 0).forEach(l => {
+        const alumno = alumnos.find(a => a.id == l.alumnoId);
+        htmlLibros += `<div class="flex justify-between items-center p-3 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+          <div>
+            <div class="font-medium">${l.nombre}</div>
+            <div class="text-xs text-gray-500">${alumno?.nombre || 'N/A'}</div>
+          </div>
+          <span class="text-blue-600 font-bold">${formatMoney(l.saldo)}</span>
+        </div>`;
+      });
+      document.getElementById('dash-lista-libros-pendientes').innerHTML = htmlLibros || '<p class="text-gray-500 text-center">Sin libros pendientes</p>';
+    }
+
+    // === REPORTES ===
+    function cargarMovimientos() {
+      const pagos = storage.get('pagos').sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+      const alumnos = storage.get('alumnos');
+      
+      let html = '';
+      pagos.forEach(p => {
+        const alumno = alumnos.find(a => a.id == p.alumnoId);
+        html += `<tr>
+          <td>${p.fecha}</td>
+          <td>${alumno?.nombre || 'N/A'}</td>
+          <td class="capitalize">${p.concepto}</td>
+          <td class="font-bold text-green-600">${formatMoney(p.monto)}</td>
+          <td>${p.libroId ? 'Saldo libro' : '-'}</td>
+          <td class="text-sm text-gray-600">${p.comentarios || '-'}</td>
+        </tr>`;
+      });
+      
+      document.getElementById('tabla-movimientos').innerHTML = html || '<tr><td colspan="6" class="text-center text-gray-500">Sin movimientos</td></tr>';
+    }
+
+    function generarReportePeriodo() {
+      const desde = document.getElementById('reporte-desde').value;
+      const hasta = document.getElementById('reporte-hasta').value;
+      if (!desde || !hasta) return;
+      
+      const pagos = storage.get('pagos').filter(p => p.fecha >= desde && p.fecha <= hasta);
+      const total = pagos.reduce((sum, p) => sum + p.monto, 0);
+      
+      const porConcepto = {};
+      pagos.forEach(p => {
+        porConcepto[p.concepto] = (porConcepto[p.concepto] || 0) + p.monto;
+      });
+      
+      let html = `<div class="p-4 bg-green-50 rounded-lg border border-green-200">
+        <div class="text-2xl font-bold text-green-800 mb-2">${formatMoney(total)}</div>
+        <div class="text-sm text-green-700">Total recaudado en el período</div>
+      </div>`;
+      
+      Object.entries(porConcepto).forEach(([concepto, monto]) => {
+        html += `<div class="flex justify-between p-3 bg-gray-50 rounded-lg">
+          <span class="capitalize">${concepto}</span>
+          <span class="font-bold">${formatMoney(monto)}</span>
+        </div>`;
+      });
+      
+      document.getElementById('resultado-reporte').innerHTML = html;
+      document.getElementById('resultado-reporte').classList.remove('hidden');
+    }
+
+    // === BACKUP ===
+    function exportarBackup() {
+      const data = {
+        tiposMatricula: storage.get('tiposMatricula'),
+        costosBase: storage.get('costosBase'),
+        niveles: storage.get('niveles'),
+        alumnos: storage.get('alumnos'),
+        pagos: storage.get('pagos'),
+        libros: storage.get('libros'),
+        fechaExportacion: new Date().toISOString()
+      };
+      
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `alei_backup_${getToday()}.json`;
+      a.click();
+      showToast('Backup descargado');
+    }
+
+    function importarBackup(input) {
+      const file = input.files[0];
+      if (!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = JSON.parse(e.target.result);
+          if (data.tiposMatricula) storage.set('tiposMatricula', data.tiposMatricula);
+          if (data.costosBase) storage.set('costosBase', data.costosBase);
+          if (data.niveles) storage.set('niveles', data.niveles);
+          if (data.alumnos) storage.set('alumnos', data.alumnos);
+          if (data.pagos) storage.set('pagos', data.pagos);
+          if (data.libros) storage.set('libros', data.libros);
+          
+          showToast('Backup restaurado correctamente');
+          actualizarDashboard();
+          cargarConfiguracion();
+        } catch (err) {
+          showToast('Error al importar: ' + err.message, 'error');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // === INICIALIZACIÓN ===
+    document.addEventListener('DOMContentLoaded', () => {
+      initStorage();
+      document.getElementById('current-date').textContent = new Date().toLocaleDateString('es-UY');
+      document.getElementById('alumno-fecha').value = getToday();
+      document.getElementById('pago-fecha').value = getToday();
+      document.getElementById('reporte-desde').value = getToday();
+      document.getElementById('reporte-hasta').value = getToday();
+      
+      actualizarDashboard();
+      cargarConfiguracion();
+      
+      // Cerrar modales al hacer click fuera
+      document.querySelectorAll('.modal').forEach(modal => {
+        modal.addEventListener('click', (e) => {
+          if (e.target === modal) modal.classList.remove('active');
+        });
+      });
+    });
+  </script>
+</body>
+</html>
