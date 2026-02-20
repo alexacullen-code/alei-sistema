@@ -1,1670 +1,2103 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ALEI 2026 - Gestión Integral</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            primary: '#012169',
-            secondary: '#C8102E',
-            accent: '#1e40af'
-          }
-        }
-      }
-    }
-  </script>
-  <style>
-    body { font-family: 'Inter', sans-serif; background: #f8fafc; }
-    .glass { background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); }
-    .card { @apply bg-white rounded-xl shadow-lg border border-gray-100 transition-all hover:shadow-xl; }
-    .btn-primary { @apply bg-primary hover:bg-blue-800 text-white font-semibold py-2 px-4 rounded-lg transition shadow-lg; }
-    .btn-secondary { @apply bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded-lg transition; }
-    .btn-success { @apply bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition; }
-    .btn-danger { @apply bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition; }
-    .input { @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition; }
-    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 50; backdrop-filter: blur(4px); }
-    .modal.active { display: flex; align-items: center; justify-content: center; }
-    .section { display: none; animation: fadeIn 0.3s; }
-    .section.active { display: block; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    .toast { position: fixed; bottom: 20px; right: 20px; padding: 16px 24px; border-radius: 12px; color: white; font-weight: 500; z-index: 100; transform: translateX(400px); transition: transform 0.3s; }
-    .toast.show { transform: translateX(0); }
-    .search-highlight { background: yellow; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ALEI - Sistema Integral de Gestión 2026</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #f1f5f9; }
+        .gradient-bg { background: linear-gradient(135deg, #00247D 0%, #1e40af 100%); }
+        .card { background: white; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }
+        .btn-primary { background: #00247D; color: white; padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: 500; transition: all 0.2s; border: none; cursor: pointer; }
+        .btn-primary:hover { background: #1e3a8a; transform: translateY(-1px); box-shadow: 0 4px 6px rgba(0,36,125,0.2); }
+        .btn-success { background: #059669; color: white; padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: 500; border: none; cursor: pointer; }
+        .btn-warning { background: #d97706; color: white; padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: 500; border: none; cursor: pointer; }
+        .btn-danger { background: #dc2626; color: white; padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: 500; border: none; cursor: pointer; }
+        .input-field { width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #d1d5db; border-radius: 0.5rem; font-size: 0.875rem; transition: all 0.2s; }
+        .input-field:focus { outline: none; border-color: #00247D; ring: 2px solid rgba(0,36,125,0.1); }
+        .tab { padding: 0.75rem 1.5rem; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; white-space: nowrap; }
+        .tab.active { color: #00247D; border-bottom-color: #00247D; font-weight: 600; }
+        .tab-content { display: none; animation: fadeIn 0.3s; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .status-badge { padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
+        .status-paid { background: #d1fae5; color: #065f46; }
+        .status-pending { background: #fef3c7; color: #92400e; }
+        .status-overdue { background: #fee2e2; color: #991b1b; }
+        .status-partial { background: #dbeafe; color: #1e40af; }
+        .status-waitlist { background: #e0e7ff; color: #3730a3; }
+        .status-pre { background: #f3e8ff; color: #6b21a8; }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 50; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+        .modal.active { display: flex; }
+        .modal-content { background: white; border-radius: 1rem; max-width: 800px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
+        .toast { position: fixed; bottom: 1rem; right: 1rem; padding: 1rem 1.5rem; border-radius: 0.5rem; color: white; font-weight: 500; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); display: none; z-index: 100; animation: slideIn 0.3s; }
+        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+        .alert-box { background: #fee2e2; border-left: 4px solid #dc2626; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem; }
+        .success-box { background: #d1fae5; border-left: 4px solid #059669; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem; }
+        .info-box { background: #dbeafe; border-left: 4px solid #2563eb; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem; }
+        .progress-bar { height: 0.5rem; background: #e5e7eb; border-radius: 0.25rem; overflow: hidden; }
+        .progress-fill { height: 100%; background: #00247D; transition: width 0.3s; }
+        .search-highlight { background: yellow; font-weight: bold; }
+        .grid-cols-7 { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+        .sticky-col { position: sticky; left: 0; background: white; z-index: 10; }
+    </style>
 </head>
-<body class="text-gray-800">
+<body class="min-h-screen">
 
-  <!-- Header -->
-  <header class="bg-gradient-to-r from-primary to-blue-800 text-white shadow-2xl sticky top-0 z-40">
-    <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-      <div class="flex items-center gap-4">
-        <div class="flex items-center gap-2">
-          <i class="fas fa-graduation-cap text-2xl"></i>
-          <div>
-            <h1 class="text-xl font-bold tracking-tight">ALEI Gestión</h1>
-            <p class="text-blue-200 text-xs">Sistema Integral 2026</p>
-          </div>
-        </div>
-        
-        <!-- Selector de Año Lectivo -->
-        <select id="selector-ano" onchange="cambiarAnoLectivo()" class="bg-white/20 text-white border border-white/30 rounded-lg px-3 py-1 text-sm focus:outline-none">
-          <!-- Se llena dinámicamente -->
-        </select>
-      </div>
-      
-      <div class="flex items-center gap-4">
-        <!-- Búsqueda Global -->
-        <div class="relative hidden md:block">
-          <input type="text" id="global-search" placeholder="Buscar alumno, libro, pago..." 
-                 class="pl-10 pr-4 py-2 rounded-full bg-white/20 text-white placeholder-blue-200 border border-white/30 focus:bg-white focus:text-gray-800 transition w-64"
-                 onkeyup="busquedaGlobal(event)">
-          <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-blue-200"></i>
-        </div>
-        
-        <!-- Notificaciones -->
-        <button onclick="toggleAlertas()" class="relative p-2 hover:bg-white/10 rounded-full transition">
-          <i class="fas fa-bell text-xl"></i>
-          <span id="badge-alertas" class="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hidden">0</span>
-        </button>
-        
-        <div class="text-right hidden md:block text-sm">
-          <div id="current-date" class="font-semibold"></div>
-          <div id="current-time" class="text-blue-200"></div>
-        </div>
-      </div>
-    </div>
-  </header>
-
-  <!-- Alertas Dropdown -->
-  <div id="panel-alertas" class="hidden fixed top-16 right-4 w-80 bg-white rounded-xl shadow-2xl z-50 max-h-96 overflow-y-auto border border-gray-200">
-    <div class="p-4 border-b bg-gray-50 rounded-t-xl">
-      <h3 class="font-bold text-gray-800">Notificaciones</h3>
-    </div>
-    <div id="lista-alertas" class="p-2 space-y-2">
-      <p class="text-gray-500 text-center py-4">Sin notificaciones</p>
-    </div>
-  </div>
-
-  <!-- Navigation -->
-  <nav class="bg-white shadow-md sticky top-[65px] z-30">
-    <div class="max-w-7xl mx-auto px-4">
-      <div class="flex space-x-1 overflow-x-auto py-2 no-scrollbar">
-        <button onclick="mostrarSeccion('dashboard')" class="nav-btn active px-4 py-2 rounded-lg font-medium text-gray-600 hover:bg-blue-50 hover:text-primary transition whitespace-nowrap" data-section="dashboard">
-          <i class="fas fa-chart-line mr-2"></i>Dashboard
-        </button>
-        <button onclick="mostrarSeccion('caja-rapida')" class="nav-btn px-4 py-2 rounded-lg font-medium text-gray-600 hover:bg-green-50 hover:text-green-700 transition whitespace-nowrap" data-section="caja-rapida">
-          <i class="fas fa-cash-register mr-2"></i>Caja Rápida
-        </button>
-        <button onclick="mostrarSeccion('alumnos')" class="nav-btn px-4 py-2 rounded-lg font-medium text-gray-600 hover:bg-blue-50 hover:text-primary transition whitespace-nowrap" data-section="alumnos">
-          <i class="fas fa-users mr-2"></i>Alumnos
-        </button>
-        <button onclick="mostrarSeccion('mensualidades')" class="nav-btn px-4 py-2 rounded-lg font-medium text-gray-600 hover:bg-blue-50 hover:text-primary transition whitespace-nowrap" data-section="mensualidades">
-          <i class="fas fa-calendar-check mr-2"></i>Mensualidades
-        </button>
-        <button onclick="mostrarSeccion('libros')" class="nav-btn px-4 py-2 rounded-lg font-medium text-gray-600 hover:bg-blue-50 hover:text-primary transition whitespace-nowrap" data-section="libros">
-          <i class="fas fa-book mr-2"></i>Libros
-        </button>
-        <button onclick="mostrarSeccion('gastos')" class="nav-btn px-4 py-2 rounded-lg font-medium text-gray-600 hover:bg-blue-50 hover:text-primary transition whitespace-nowrap" data-section="gastos">
-          <i class="fas fa-wallet mr-2"></i>Gastos
-        </button>
-        <button onclick="mostrarSeccion('espera')" class="nav-btn px-4 py-2 rounded-lg font-medium text-gray-600 hover:bg-blue-50 hover:text-primary transition whitespace-nowrap" data-section="espera">
-          <i class="fas fa-user-clock mr-2"></i>Lista Espera
-        </button>
-        <button onclick="mostrarSeccion('reportes')" class="nav-btn px-4 py-2 rounded-lg font-medium text-gray-600 hover:bg-blue-50 hover:text-primary transition whitespace-nowrap" data-section="reportes">
-          <i class="fas fa-file-invoice-dollar mr-2"></i>Reportes
-        </button>
-        <button onclick="mostrarSeccion('config')" class="nav-btn px-4 py-2 rounded-lg font-medium text-gray-600 hover:bg-blue-50 hover:text-primary transition whitespace-nowrap" data-section="config">
-          <i class="fas fa-cog mr-2"></i>Config
-        </button>
-      </div>
-    </div>
-  </nav>
-
-  <main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
-
-    <!-- DASHBOARD -->
-    <section id="dashboard" class="section active">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div class="card p-6 border-l-4 border-primary">
-          <div class="flex justify-between items-start">
-            <div>
-              <p class="text-gray-500 text-sm font-medium">Alumnos Activos</p>
-              <p class="text-3xl font-bold text-gray-800 mt-1" id="dash-total">0</p>
-            </div>
-            <div class="bg-blue-100 p-3 rounded-lg"><i class="fas fa-users text-primary text-xl"></i></div>
-          </div>
-        </div>
-        
-        <div class="card p-6 border-l-4 border-green-500">
-          <div class="flex justify-between items-start">
-            <div>
-              <p class="text-gray-500 text-sm font-medium">Ingresos Mes</p>
-              <p class="text-3xl font-bold text-gray-800 mt-1" id="dash-ingresos">$0</p>
-            </div>
-            <div class="bg-green-100 p-3 rounded-lg"><i class="fas fa-arrow-up text-green-600 text-xl"></i></div>
-          </div>
-        </div>
-
-        <div class="card p-6 border-l-4 border-red-500">
-          <div class="flex justify-between items-start">
-            <div>
-              <p class="text-gray-500 text-sm font-medium">Deuda Libros</p>
-              <p class="text-3xl font-bold text-gray-800 mt-1" id="dash-deuda">$0</p>
-            </div>
-            <div class="bg-red-100 p-3 rounded-lg"><i class="fas fa-book text-red-600 text-xl"></i></div>
-          </div>
-        </div>
-
-        <div class="card p-6 border-l-4 border-amber-500">
-          <div class="flex justify-between items-start">
-            <div>
-              <p class="text-gray-500 text-sm font-medium">Pagos Hoy</p>
-              <p class="text-3xl font-bold text-gray-800 mt-1" id="dash-hoy">0</p>
-            </div>
-            <div class="bg-amber-100 p-3 rounded-lg"><i class="fas fa-clock text-amber-600 text-xl"></i></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Deudores del Mes -->
-        <div class="card p-6">
-          <div class="flex justify-between items-center mb-4">
-            <h3 class="text-lg font-bold text-gray-800 flex items-center">
-              <i class="fas fa-exclamation-circle text-red-500 mr-2"></i>
-              Pendientes de Mensualidad - <span id="mes-actual-texto"></span>
-            </h3>
-            <button onclick="generarMensajesWhatsApp()" class="btn-success text-sm">
-              <i class="fab fa-whatsapp mr-1"></i>Generar Mensajes
-            </button>
-          </div>
-          <div id="dash-deudores" class="space-y-2 max-h-96 overflow-y-auto">
-            <p class="text-gray-400 text-center py-8">Cargando...</p>
-          </div>
-        </div>
-
-        <!-- Flujo de Caja Simple -->
-        <div class="card p-6">
-          <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
-            <i class="fas fa-chart-pie text-blue-500 mr-2"></i>
-            Flujo de Caja - Mes Actual
-          </h3>
-          <div class="space-y-4">
-            <div class="flex justify-between items-center p-4 bg-green-50 rounded-lg">
-              <span class="font-medium text-green-800">Ingresos</span>
-              <span class="text-2xl font-bold text-green-600" id="flujo-ingresos">$0</span>
-            </div>
-            <div class="flex justify-between items-center p-4 bg-red-50 rounded-lg">
-              <span class="font-medium text-red-800">Gastos</span>
-              <span class="text-2xl font-bold text-red-600" id="flujo-gastos">$0</span>
-            </div>
-            <div class="h-4 bg-gray-200 rounded-full overflow-hidden">
-              <div id="barra-flujo" class="h-full bg-primary transition-all duration-1000" style="width: 50%"></div>
-            </div>
-            <div class="flex justify-between text-sm">
-              <span class="text-gray-600">Balance Neto</span>
-              <span class="font-bold text-xl" id="flujo-neto">$0</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- CAJA RÁPIDA (POS) -->
-    <section id="caja-rapida" class="section">
-      <div class="max-w-2xl mx-auto">
-        <div class="card p-8 border-2 border-primary border-opacity-20">
-          <div class="text-center mb-8">
-            <h2 class="text-2xl font-bold text-gray-800">Caja Rápida</h2>
-            <p class="text-gray-500">Registro express de pagos</p>
-          </div>
-
-          <form id="form-caja-rapida" onsubmit="procesarCajaRapida(event)" class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Alumno *</label>
-              <select id="caja-alumno" required class="input">
-                <option value="">Seleccionar alumno...</option>
-              </select>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Concepto *</label>
-                <select id="caja-concepto" required class="input" onchange="ajustarMontoCaja()">
-                  <option value="mensualidad">Mensualidad</option>
-                  <option value="matricula">Matrícula</option>
-                  <option value="libro">Libro</option>
-                  <option value="examen">Examen</option>
-                  <option value="otro">Otro</option>
-                </select>
-              </div>
-              
-              <div id="caja-mes-container">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Mes</label>
-                <select id="caja-mes" class="input">
-                  ${[...Array(12)].map((_,i) => `<option value="${i+1}" ${new Date().getMonth()+1 === i+1 ? 'selected' : ''}>${['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Set','Oct','Nov','Dic'][i]}</option>`).join('')}
-                </select>
-              </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Monto *</label>
-                <input type="number" id="caja-monto" required class="input" min="1">
-                <div id="caja-leyenda-recargo" class="text-xs mt-1 hidden">
-                  <span class="text-green-600 font-medium" id="caja-descuento">Descuento: $0</span>
-                  <span class="text-red-600 font-medium ml-2" id="caja-recargo">Recargo: $0</span>
+    <!-- Header -->
+    <div class="gradient-bg text-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-6 bg-white rounded flex items-center justify-center overflow-hidden">
+                    <div class="w-full h-full bg-blue-900 relative">
+                        <div class="absolute inset-0 flex items-center justify-center text-white text-xs font-bold">UK</div>
+                    </div>
                 </div>
-              </div>
-              
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
-                <input type="date" id="caja-fecha" required class="input" value="${new Date().toISOString().split('T')[0]}">
-              </div>
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Comentarios</label>
-              <input type="text" id="caja-comentarios" class="input" placeholder="Opcional">
-            </div>
-
-            <button type="submit" class="w-full btn-primary py-4 text-lg font-bold shadow-xl">
-              <i class="fas fa-check-circle mr-2"></i>REGISTRAR PAGO
-            </button>
-          </form>
-        </div>
-      </div>
-    </section>
-
-    <!-- ALUMNOS -->
-    <section id="alumnos" class="section">
-      <div class="card p-6 mb-6">
-        <div class="flex justify-between items-center mb-6">
-          <h2 class="text-xl font-bold text-gray-800" id="titulo-form-alumno">Nuevo Alumno</h2>
-          <div class="flex gap-2">
-            <button onclick="toggleImportarJSON()" class="btn-secondary">
-              <i class="fas fa-file-import mr-1"></i>Importar JSON
-            </button>
-          </div>
-        </div>
-
-        <!-- Importar JSON -->
-        <div id="panel-importar" class="hidden mb-6 p-4 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-          <div class="flex gap-4 mb-4">
-            <button onclick="modoImportar('file')" class="flex-1 py-2 bg-white border rounded-lg hover:bg-gray-50" id="btn-import-file">Subir Archivo</button>
-            <button onclick="modoImportar('text')" class="flex-1 py-2 bg-white border rounded-lg hover:bg-gray-50" id="btn-import-text">Pegar Texto</button>
-          </div>
-          
-          <div id="import-file-container">
-            <input type="file" accept=".json" onchange="procesarArchivoJSON(this)" class="w-full p-2 border rounded">
-          </div>
-          
-          <div id="import-text-container" class="hidden">
-            <textarea id="import-textarea" rows="6" class="input font-mono text-sm" placeholder="Pega aquí el array JSON..."></textarea>
-            <button onclick="procesarTextoJSON()" class="btn-primary mt-2 w-full">Procesar JSON</button>
-          </div>
-        </div>
-
-        <form id="form-alumno" onsubmit="guardarAlumno(event)" class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <input type="hidden" id="alumno-id">
-          
-          <div class="md:col-span-2">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Nombre Completo *</label>
-            <input type="text" id="alumno-nombre" required class="input" placeholder="Apellido Nombre">
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Cédula *</label>
-            <input type="text" id="alumno-cedula" required class="input" placeholder="X.XXX.XXX-X" onblur="validarCedula()">
-            <span id="cedula-error" class="text-red-500 text-xs hidden">Cédula ya registrada</span>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-            <input type="email" id="alumno-email" class="input" placeholder="alumno@email.com">
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
-            <input type="text" id="alumno-telefono" class="input" placeholder="09X XXX XXX">
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Tel. Alternativo</label>
-            <input type="text" id="alumno-telefono-alt" class="input" placeholder="Otro contacto">
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Fecha Nacimiento</label>
-            <input type="date" id="alumno-nacimiento" class="input">
-          </div>
-
-          <div class="md:col-span-2">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Nombre Padre/Madre/Tutor</label>
-            <input type="text" id="alumno-tutor" class="input" placeholder="Nombre completo del responsable">
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Tel. Tutor</label>
-            <input type="text" id="alumno-tutor-tel" class="input" placeholder="Contacto principal">
-          </div>
-
-          <div class="md:col-span-2">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
-            <input type="text" id="alumno-direccion" class="input" placeholder="Calle, número, barrio">
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Nivel *</label>
-            <select id="alumno-nivel" required class="input">
-              <option value="">Seleccionar...</option>
-            </select>
-          </div>
-
-          <div class="md:col-span-3 flex items-center gap-4 p-4 bg-amber-50 rounded-lg border border-amber-200">
-            <input type="checkbox" id="alumno-es-hermano" class="w-5 h-5 text-primary rounded" onchange="toggleHermano()">
-            <div class="flex-1">
-              <label class="font-medium text-amber-900">Es Hermano (tiene descuento especial)</label>
-              <p class="text-sm text-amber-700">No aplica recargos/descuentos automáticos. Precio fijo.</p>
-            </div>
-            <div id="campo-monto-especial" class="hidden">
-              <input type="number" id="alumno-monto-especial" class="input" placeholder="Monto especial $" min="1">
-            </div>
-          </div>
-
-          <div class="md:col-span-3 flex gap-3">
-            <button type="submit" class="btn-primary flex-1">
-              <i class="fas fa-save mr-2"></i>Guardar Alumno
-            </button>
-            <button type="button" onclick="resetFormAlumno()" class="btn-secondary">
-              Limpiar
-            </button>
-          </div>
-        </form>
-      </div>
-
-      <div class="card p-6">
-        <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
-          <h3 class="text-lg font-bold text-gray-800">Lista de Alumnos</h3>
-          <input type="text" id="buscar-alumno" oninput="filtrarAlumnos()" placeholder="Buscar..." class="input md:w-64">
-        </div>
-
-        <div class="overflow-x-auto">
-          <table class="w-full">
-            <thead class="bg-gray-50">
-              <tr>
-                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">N°</th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Alumno</th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Contacto</th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Nivel</th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Estado</th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Acciones</th>
-              </tr>
-            </thead>
-            <tbody id="tabla-alumnos" class="divide-y divide-gray-100"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <!-- MENSUALIDADES -->
-    <section id="mensualidades" class="section">
-      <div class="card p-6 mb-6">
-        <h3 class="text-lg font-bold text-gray-800 mb-4">Control de Mensualidades</h3>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-          <select id="mensualidad-mes" class="input" onchange="cargarMensualidades()">
-            ${[...Array(12)].map((_,i) => `<option value="${i+1}" ${new Date().getMonth()+1 === i+1 ? 'selected' : ''}>${['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Setiembre','Octubre','Noviembre','Diciembre'][i]}</option>`).join('')}
-          </select>
-          <select id="mensualidad-nivel" class="input" onchange="cargarMensualidades()">
-            <option value="">Todos los niveles</option>
-          </select>
-          <button onclick="exportarEstadoCuenta()" class="btn-success">
-            <i class="fas fa-download mr-2"></i>Exportar Estado de Cuenta
-          </button>
-        </div>
-        
-        <div class="overflow-x-auto">
-          <table class="w-full">
-            <thead class="bg-gray-50">
-              <tr>
-                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Alumno</th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Monto Base</th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Estado</th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Fecha Pago</th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Acciones</th>
-              </tr>
-            </thead>
-            <tbody id="tabla-mensualidades" class="divide-y divide-gray-100"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <!-- LIBROS -->
-    <section id="libros" class="section">
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <div class="card p-6">
-          <h3 class="text-lg font-bold text-gray-800 mb-4">Asignar Libro</h3>
-          <form id="form-libro" onsubmit="asignarLibro(event)" class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Alumno *</label>
-              <select id="libro-alumno-id" required class="input"></select>
-            </div>
-            
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Título del Libro *</label>
-              <input type="text" id="libro-titulo" required class="input" placeholder="Ej: Wider World 2">
-            </div>
-
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Costo Total *</label>
-                <input type="number" id="libro-costo" required min="1" class="input" onchange="calcularSaldoLibro()">
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Abono Inicial</label>
-                <input type="number" id="libro-abono" min="0" value="0" class="input" onchange="calcularSaldoLibro()">
-              </div>
-            </div>
-
-            <div class="p-3 bg-amber-50 rounded-lg border border-amber-200">
-              <div class="flex justify-between font-bold text-amber-800">
-                <span>Saldo a financiar:</span>
-                <span id="libro-saldo">$0</span>
-              </div>
-            </div>
-
-            <button type="submit" class="btn-primary w-full">Asignar Libro</button>
-          </form>
-        </div>
-
-        <div class="card p-6">
-          <h3 class="text-lg font-bold text-gray-800 mb-4">Resumen Libros</h3>
-          <div class="grid grid-cols-2 gap-4">
-            <div class="bg-blue-50 p-4 rounded-lg text-center">
-              <div class="text-2xl font-bold text-blue-700" id="stat-total-libros">0</div>
-              <div class="text-sm text-blue-600">Total Libros</div>
-            </div>
-            <div class="bg-green-50 p-4 rounded-lg text-center">
-              <div class="text-2xl font-bold text-green-700" id="stat-libros-pagados">0</div>
-              <div class="text-sm text-green-600">Pagados</div>
-            </div>
-            <div class="bg-amber-50 p-4 rounded-lg text-center">
-              <div class="text-2xl font-bold text-amber-700" id="stat-libros-pendientes">0</div>
-              <div class="text-sm text-amber-600">Con Saldo</div>
-            </div>
-            <div class="bg-red-50 p-4 rounded-lg text-center">
-              <div class="text-2xl font-bold text-red-700" id="stat-deuda-libros">$0</div>
-              <div class="text-sm text-red-600">Deuda Total</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="card p-6">
-        <h3 class="text-lg font-bold text-gray-800 mb-4">Libros Activos</h3>
-        <div class="overflow-x-auto">
-          <table class="w-full">
-            <thead class="bg-gray-50">
-              <tr>
-                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Alumno</th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Libro</th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Saldo</th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Acciones</th>
-              </tr>
-            </thead>
-            <tbody id="tabla-libros" class="divide-y divide-gray-100"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <!-- GASTOS -->
-    <section id="gastos" class="section">
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        <div class="card p-6 lg:col-span-1">
-          <h3 class="text-lg font-bold text-gray-800 mb-4">Registrar Gasto</h3>
-          <form id="form-gasto" onsubmit="guardarGasto(event)" class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Concepto *</label>
-              <input type="text" id="gasto-concepto" required class="input" placeholder="Ej: Sillas, Limpieza, Sueldos">
-            </div>
-            
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Proveedor</label>
-              <input type="text" id="gasto-proveedor" class="input" placeholder="Nombre del proveedor">
-            </div>
-
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Monto Total *</label>
-                <input type="number" id="gasto-monto" required min="1" class="input">
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Fecha *</label>
-                <input type="date" id="gasto-fecha" required class="input" value="${new Date().toISOString().split('T')[0]}">
-              </div>
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
-              <select id="gasto-categoria" class="input">
-                <option value="servicios">Servicios (Luz, Agua, Internet)</option>
-                <option value="mobiliario">Mobiliario/Equipamiento</option>
-                <option value="materiales">Materiales de Oficina</option>
-                <option value="sueldos">Sueldos</option>
-                <option value="mantenimiento">Mantenimiento</option>
-                <option value="otros">Otros</option>
-              </select>
-            </div>
-
-            <div class="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
-              <input type="checkbox" id="gasto-es-cuota" class="w-4 h-4" onchange="toggleCuotas()">
-              <label class="text-sm font-medium">Es compra en cuotas</label>
-            </div>
-
-            <div id="campo-cuotas" class="hidden">
-              <label class="block text-sm font-medium text-gray-700 mb-1">Número de Cuotas</label>
-              <input type="number" id="gasto-cuotas" min="2" value="3" class="input">
-            </div>
-
-            <button type="submit" class="btn-danger w-full">
-              <i class="fas fa-minus-circle mr-2"></i>Registrar Gasto
-            </button>
-          </form>
-        </div>
-
-        <div class="card p-6 lg:col-span-2">
-          <div class="flex justify-between items-center mb-4">
-            <h3 class="text-lg font-bold text-gray-800">Historial de Gastos</h3>
-            <div class="flex gap-2">
-              <button onclick="filtrarGastos('todos')" class="px-3 py-1 rounded-full bg-gray-100 hover:bg-gray-200 text-sm">Todos</button>
-              <button onclick="filtrarGastos('cuotas')" class="px-3 py-1 rounded-full bg-amber-100 hover:bg-amber-200 text-sm text-amber-800">En Cuotas</button>
-            </div>
-          </div>
-          <div class="overflow-x-auto">
-            <table class="w-full">
-              <thead class="bg-gray-50">
-                <tr>
-                  <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Fecha</th>
-                  <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Concepto</th>
-                  <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Monto</th>
-                  <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Estado</th>
-                </tr>
-              </thead>
-              <tbody id="tabla-gastos" class="divide-y divide-gray-100"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- LISTA DE ESPERA -->
-    <section id="espera" class="section">
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <div class="card p-6">
-          <h3 class="text-lg font-bold text-gray-800 mb-4">Nueva Pre-inscripción</h3>
-          <form id="form-espera" onsubmit="guardarEspera(event)" class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Nombre Interesado *</label>
-              <input type="text" id="espera-nombre" required class="input">
-            </div>
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
-                <input type="text" id="espera-telefono" class="input">
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                <input type="email" id="espera-email" class="input">
-              </div>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Nivel de Interés</label>
-              <select id="espera-nivel" class="input"></select>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Notas</label>
-              <textarea id="espera-notas" class="input" rows="2"></textarea>
-            </div>
-            <button type="submit" class="btn-primary w-full">Agregar a Lista</button>
-          </form>
-        </div>
-
-        <div class="card p-6">
-          <h3 class="text-lg font-bold text-gray-800 mb-4">Estadísticas de Conversión</h3>
-          <div class="space-y-4">
-            <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
-              <span>Total Pre-inscripciones</span>
-              <span class="font-bold text-xl" id="stat-total-espera">0</span>
-            </div>
-            <div class="flex justify-between items-center p-4 bg-green-50 rounded-lg">
-              <span>Convertidos a Alumnos</span>
-              <span class="font-bold text-xl text-green-700" id="stat-convertidos">0</span>
-            </div>
-            <div class="w-full bg-gray-200 rounded-full h-4">
-              <div id="barra-conversion" class="bg-green-500 h-4 rounded-full transition-all" style="width: 0%"></div>
-            </div>
-            <p class="text-center text-sm text-gray-600">Tasa de conversión: <span id="tasa-conversion">0%</span></p>
-          </div>
-        </div>
-      </div>
-
-      <div class="card p-6">
-        <h3 class="text-lg font-bold text-gray-800 mb-4">Lista de Espera</h3>
-        <div class="overflow-x-auto">
-          <table class="w-full">
-            <thead class="bg-gray-50">
-              <tr>
-                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Nombre</th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Contacto</th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Nivel</th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Estado</th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Acciones</th>
-              </tr>
-            </thead>
-            <tbody id="tabla-espera" class="divide-y divide-gray-100"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <!-- REPORTES -->
-    <section id="reportes" class="section">
-      <div class="card p-6 mb-6">
-        <h3 class="text-lg font-bold text-gray-800 mb-4">Generar Reportes</h3>
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Desde</label>
-            <input type="date" id="reporte-desde" class="input">
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Hasta</label>
-            <input type="date" id="reporte-hasta" class="input">
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Rubro</label>
-            <select id="reporte-rubro" class="input">
-              <option value="todos">Todos</option>
-              <option value="matricula">Matrículas</option>
-              <option value="mensualidad">Mensualidades</option>
-              <option value="libro">Libros/Materiales</option>
-              <option value="examen">Exámenes</option>
-              <option value="gastos">Gastos</option>
-            </select>
-          </div>
-          <div class="flex items-end">
-            <button onclick="generarReporte()" class="btn-primary w-full">
-              <i class="fas fa-search mr-2"></i>Generar
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div id="resultado-reporte" class="hidden space-y-6">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div class="card p-6 text-center">
-            <div class="text-3xl font-bold text-green-600" id="reporte-total">$0</div>
-            <div class="text-gray-500">Total</div>
-          </div>
-          <div class="card p-6 text-center">
-            <div class="text-3xl font-bold text-blue-600" id="reporte-cantidad">0</div>
-            <div class="text-gray-500">Cantidad</div>
-          </div>
-          <div class="card p-6 text-center">
-            <div class="text-3xl font-bold text-purple-600" id="reporte-promedio">$0</div>
-            <div class="text-gray-500">Promedio</div>
-          </div>
-        </div>
-
-        <div class="card p-6">
-          <div class="flex justify-between items-center mb-4">
-            <h4 class="font-bold text-gray-800">Detalle</h4>
-            <button onclick="exportarReporte()" class="btn-secondary text-sm">
-              <i class="fas fa-download mr-1"></i>Exportar CSV
-            </button>
-          </div>
-          <div class="overflow-x-auto">
-            <table class="w-full">
-              <thead class="bg-gray-50">
-                <tr>
-                  <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Fecha</th>
-                  <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Concepto/Alumno</th>
-                  <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Rubro</th>
-                  <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Monto</th>
-                </tr>
-              </thead>
-              <tbody id="tabla-reporte" class="divide-y divide-gray-100"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- CONFIGURACIÓN -->
-    <section id="config" class="section">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="card p-6 border-t-4 border-primary">
-          <h3 class="text-lg font-bold text-gray-800 mb-4">Año Lectivo</h3>
-          <div class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Crear Nuevo Año</label>
-              <input type="number" id="nuevo-ano" class="input" placeholder="2026" min="2020" max="2100">
-            </div>
-            <button onclick="crearAnoLectivo()" class="btn-primary w-full">Crear Año y Cambiar</button>
-          </div>
-        </div>
-
-        <div class="card p-6 border-t-4 border-green-500">
-          <h3 class="text-lg font-bold text-gray-800 mb-4">Exportar Datos</h3>
-          <p class="text-sm text-gray-600 mb-4">Descarga todos los datos del año actual en JSON</p>
-          <button onclick="exportarTodo()" class="btn-success w-full">
-            <i class="fas fa-database mr-2"></i>Backup Completo
-          </button>
-        </div>
-
-        <div class="card p-6 border-t-4 border-amber-500 md:col-span-2">
-          <h3 class="text-lg font-bold text-amber-600 mb-4">
-            <i class="fas fa-exclamation-triangle mr-2"></i>Importación Masiva
-          </h3>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Seleccionar Tabla</label>
-              <select id="import-tabla" class="input">
-                <option value="alumnos">Alumnos</option>
-                <option value="gastos">Gastos</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Modo</label>
-              <div class="flex gap-2">
-                <button onclick="modoImportarConfig('file')" class="flex-1 py-2 border rounded hover:bg-gray-50">Archivo</button>
-                <button onclick="modoImportarConfig('text')" class="flex-1 py-2 border rounded hover:bg-gray-50">Texto</button>
-              </div>
-            </div>
-          </div>
-          <div class="mt-4">
-            <textarea id="config-import-text" rows="6" class="input font-mono text-sm" placeholder="[{...}, {...}]"></textarea>
-            <input type="file" id="config-import-file" class="hidden" accept=".json" onchange="procesarImportConfig(this)">
-            <button onclick="ejecutarImportacion()" class="btn-primary w-full mt-2">Importar Datos</button>
-          </div>
-        </div>
-      </div>
-    </section>
-
-  </main>
-
-  <!-- MODAL FICHA ALUMNO -->
-  <div class="modal" id="modal-ficha">
-    <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
-      <div class="sticky top-0 bg-white border-b p-4 flex justify-between items-center">
-        <h3 class="text-2xl font-bold text-gray-800">Ficha del Alumno</h3>
-        <button onclick="cerrarModal('modal-ficha')" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
-      </div>
-      <div class="p-6" id="contenido-ficha">
-        <!-- Se llena dinámicamente -->
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL ABONO LIBRO -->
-  <div class="modal" id="modal-abono">
-    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 p-6">
-      <h3 class="text-xl font-bold text-gray-800 mb-4">Abonar a Libro</h3>
-      <div id="info-abono-libro" class="mb-4 p-4 bg-gray-50 rounded-lg"></div>
-      <form onsubmit="registrarAbonoLibro(event)" class="space-y-4">
-        <input type="hidden" id="abono-libro-id">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Monto</label>
-          <input type="number" id="abono-monto" required min="1" class="input">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Comentarios</label>
-          <textarea id="abono-comentarios" class="input" rows="2"></textarea>
-        </div>
-        <div class="flex gap-3">
-          <button type="submit" class="btn-primary flex-1">Registrar</button>
-          <button type="button" onclick="cerrarModal('modal-abono')" class="btn-secondary">Cancelar</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- TOAST -->
-  <div id="toast" class="toast"></div>
-
-  <script>
-    // === CONFIGURACIÓN GLOBAL ===
-    const API_URL = ''; // Vacío para mismo dominio en Vercel
-    let ANO_LECTIVO_ACTUAL = localStorage.getItem('alei_ano_activo') || new Date().getFullYear();
-    let CACHE_DATOS = {};
-
-    // === UTILIDADES ===
-    const Utils = {
-      id: () => crypto.randomUUID(),
-      fecha: () => new Date().toISOString().split('T')[0],
-      money: n => '$' + (n || 0).toLocaleString('es-UY'),
-      toast: (msg, type = 'success') => {
-        const t = document.getElementById('toast');
-        t.textContent = msg;
-        t.className = `toast ${type === 'error' ? 'bg-red-600' : 'bg-green-600'}`;
-        t.classList.add('show');
-        setTimeout(() => t.classList.remove('show'), 3000);
-      },
-      fetch: async (endpoint, options = {}) => {
-        try {
-          const res = await fetch(`${API_URL}/api/${endpoint}`, {
-            ...options,
-            headers: { 'Content-Type': 'application/json', ...options.headers }
-          });
-          if (!res.ok) throw new Error(await res.text());
-          return await res.json();
-        } catch(e) {
-          Utils.toast(e.message, 'error');
-          throw e;
-        }
-      }
-    };
-
-    // === INICIALIZACIÓN ===
-    document.addEventListener('DOMContentLoaded', async () => {
-      await cargarAnosLectivos();
-      await cargarSelectores();
-      setInterval(() => {
-        document.getElementById('current-time').textContent = new Date().toLocaleTimeString('es-UY');
-        document.getElementById('current-date').textContent = new Date().toLocaleDateString('es-UY', { weekday: 'long', day: 'numeric', month: 'long' });
-      }, 1000);
-      mostrarSeccion('dashboard');
-    });
-
-    async function cargarAnosLectivos() {
-      const anos = await Utils.fetch('anos');
-      const select = document.getElementById('selector-ano');
-      select.innerHTML = anos.map(a => `<option value="${a.id}" ${a.ano == ANO_LECTIVO_ACTUAL ? 'selected' : ''}>${a.ano}</option>`).join('');
-      if (anos.length === 0) {
-        // Crear año actual si no existe
-        await Utils.fetch('anos', { method: 'POST', body: JSON.stringify({ ano: new Date().getFullYear() }) });
-        cargarAnosLectivos();
-      }
-    }
-
-    function cambiarAnoLectivo() {
-      const select = document.getElementById('selector-ano');
-      ANO_LECTIVO_ACTUAL = select.value;
-      localStorage.setItem('alei_ano_activo', ANO_LECTIVO_ACTUAL);
-      location.reload();
-    }
-
-    async function crearAnoLectivo() {
-      const ano = document.getElementById('nuevo-ano').value;
-      if (!ano) return;
-      await Utils.fetch('anos', { method: 'POST', body: JSON.stringify({ ano: parseInt(ano) }) });
-      Utils.toast('Año creado');
-      cargarAnosLectivos();
-    }
-
-    // === NAVEGACIÓN ===
-    function mostrarSeccion(seccion) {
-      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-      document.getElementById(seccion).classList.add('active');
-      
-      document.querySelectorAll('.nav-btn').forEach(b => {
-        b.classList.remove('active', 'bg-blue-50', 'text-primary');
-        if (b.dataset.section === seccion) b.classList.add('active', 'bg-blue-50', 'text-primary');
-      });
-
-      if (seccion === 'dashboard') cargarDashboard();
-      if (seccion === 'alumnos') cargarAlumnos();
-      if (seccion === 'caja-rapida') cargarSelectCaja();
-      if (seccion === 'mensualidades') cargarMensualidades();
-      if (seccion === 'libros') cargarLibros();
-      if (seccion === 'gastos') cargarGastos();
-      if (seccion === 'espera') cargarEspera();
-      if (seccion === 'reportes') {
-        document.getElementById('reporte-desde').value = Utils.fecha();
-        document.getElementById('reporte-hasta').value = Utils.fecha();
-      }
-    }
-
-    // === DASHBOARD ===
-    async function cargarDashboard() {
-      const data = await Utils.fetch(`dashboard?ano_lectivo_id=${ANO_LECTIVO_ACTUAL}`);
-      document.getElementById('dash-total').textContent = data.totalAlumnos;
-      document.getElementById('dash-ingresos').textContent = Utils.money(data.ingresosMes);
-      document.getElementById('dash-deuda').textContent = Utils.money(data.deudaLibros);
-      document.getElementById('dash-hoy').textContent = data.pagosHoy;
-      
-      // Flujo de caja
-      document.getElementById('flujo-ingresos').textContent = Utils.money(data.ingresosMes);
-      const gastosMes = (await Utils.fetch(`gastos?ano_lectivo_id=${ANO_LECTIVO_ACTUAL}`))
-        .filter(g => new Date(g.fecha).getMonth() + 1 === new Date().getMonth() + 1)
-        .reduce((a, b) => a + b.monto_total, 0);
-      document.getElementById('flujo-gastos').textContent = Utils.money(gastosMes);
-      document.getElementById('flujo-neto').textContent = Utils.money(data.ingresosMes - gastosMes);
-      
-      // Deudores
-      const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Setiembre','Octubre','Noviembre','Diciembre'];
-      document.getElementById('mes-actual-texto').textContent = meses[new Date().getMonth()];
-      
-      const html = data.deudores.map(d => `
-        <div class="flex justify-between items-center p-3 bg-red-50 rounded-lg border-l-4 border-red-500">
-          <div>
-            <div class="font-semibold">${d.nombre}</div>
-            <div class="text-xs text-gray-500">${d.nivel} | Tutor: ${d.tutor_telefono || d.telefono || 'Sin teléfono'}</div>
-          </div>
-          <div class="flex gap-2">
-            <button onclick="enviarWhatsApp('${d.tutor_telefono || d.telefono}', '${d.nombre}')" class="text-green-600 hover:text-green-800" title="Enviar WhatsApp">
-              <i class="fab fa-whatsapp text-xl"></i>
-            </button>
-            <button onclick="verFichaAlumno('${d.id}')" class="text-blue-600 hover:text-blue-800" title="Ver ficha">
-              <i class="fas fa-eye"></i>
-            </button>
-          </div>
-        </div>
-      `).join('');
-      document.getElementById('dash-deudores').innerHTML = html || '<p class="text-gray-400 text-center py-4">¡Excelente! Todos al día</p>';
-      
-      // Cargar alertas
-      cargarAlertas();
-    }
-
-    // === ALUMNOS ===
-    async function cargarAlumnos() {
-      const [alumnos, niveles] = await Promise.all([
-        Utils.fetch(`alumnos?ano_lectivo_id=${ANO_LECTIVO_ACTUAL}`),
-        Utils.fetch(`niveles?ano_lectivo_id=${ANO_LECTIVO_ACTUAL}`)
-      ]);
-      
-      CACHE_DATOS.niveles = niveles;
-      CACHE_DATOS.alumnos = alumnos;
-      
-      // Llenar selectores
-      const opts = niveles.map(n => `<option value="${n.id}">${n.nombre}</option>`).join('');
-      document.getElementById('alumno-nivel').innerHTML = '<option value="">Seleccionar...</option>' + opts;
-      
-      // Tabla
-      renderizarTablaAlumnos(alumnos);
-    }
-
-    function renderizarTablaAlumnos(alumnos) {
-      const html = alumnos.map(a => `
-        <tr class="hover:bg-gray-50">
-          <td class="px-4 py-3 font-medium">${a.numero_anual || '-'}</td>
-          <td class="px-4 py-3">
-            <div class="font-semibold">${a.nombre}</div>
-            ${a.es_hermano ? '<span class="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded">Herman@</span>' : ''}
-          </td>
-          <td class="px-4 py-3 text-sm">
-            <div>${a.telefono || '-'}</div>
-            <div class="text-gray-500">${a.email || ''}</div>
-          </td>
-          <td class="px-4 py-3 text-sm">${a.nivel_nombre || '-'}</td>
-          <td class="px-4 py-3">
-            <span class="px-2 py-1 rounded-full text-xs font-bold ${a.estado === 'activo' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
-              ${a.estado}
-            </span>
-          </td>
-          <td class="px-4 py-3">
-            <button onclick="verFichaAlumno('${a.id}')" class="text-blue-600 hover:text-blue-800 mr-2" title="Ver ficha completa">
-              <i class="fas fa-id-card"></i>
-            </button>
-            <button onclick="editarAlumno('${a.id}')" class="text-amber-600 hover:text-amber-800 mr-2">
-              <i class="fas fa-edit"></i>
-            </button>
-            <button onclick="eliminarAlumno('${a.id}')" class="text-red-600 hover:text-red-800">
-              <i class="fas fa-trash"></i>
-            </button>
-          </td>
-        </tr>
-      `).join('');
-      document.getElementById('tabla-alumnos').innerHTML = html || '<tr><td colspan="6" class="text-center py-4 text-gray-500">Sin alumnos</td></tr>';
-    }
-
-    async function validarCedula() {
-      const cedula = document.getElementById('alumno-cedula').value;
-      if (!cedula) return;
-      const existing = CACHE_DATOS.alumnos?.find(a => a.cedula === cedula && a.id !== document.getElementById('alumno-id').value);
-      if (existing) {
-        document.getElementById('cedula-error').classList.remove('hidden');
-        document.getElementById('alumno-cedula').classList.add('border-red-500');
-      } else {
-        document.getElementById('cedula-error').classList.add('hidden');
-        document.getElementById('alumno-cedula').classList.remove('border-red-500');
-      }
-    }
-
-    function toggleHermano() {
-      const esHermano = document.getElementById('alumno-es-hermano').checked;
-      document.getElementById('campo-monto-especial').classList.toggle('hidden', !esHermano);
-    }
-
-    async function guardarAlumno(e) {
-      e.preventDefault();
-      const id = document.getElementById('alumno-id').value;
-      const data = {
-        ano_lectivo_id: ANO_LECTIVO_ACTUAL,
-        nombre: document.getElementById('alumno-nombre').value.toUpperCase(),
-        cedula: document.getElementById('alumno-cedula').value,
-        email: document.getElementById('alumno-email').value,
-        telefono: document.getElementById('alumno-telefono').value,
-        telefono_alt: document.getElementById('alumno-telefono-alt').value,
-        tutor_nombre: document.getElementById('alumno-tutor').value,
-        tutor_telefono: document.getElementById('alumno-tutor-tel').value,
-        fecha_nacimiento: document.getElementById('alumno-nacimiento').value,
-        direccion: document.getElementById('alumno-direccion').value,
-        nivel_id: document.getElementById('alumno-nivel').value,
-        es_hermano: document.getElementById('alumno-es-hermano').checked,
-        monto_especial: document.getElementById('alumno-monto-especial').value || null,
-        cuota_base: 1500,
-        fecha_inscripcion: Utils.fecha()
-      };
-      
-      if (id) {
-        await Utils.fetch('alumnos', { method: 'PUT', body: JSON.stringify({ ...data, id }) });
-        Utils.toast('Alumno actualizado');
-      } else {
-        await Utils.fetch('alumnos', { method: 'POST', body: JSON.stringify(data) });
-        Utils.toast('Alumno registrado');
-      }
-      
-      resetFormAlumno();
-      cargarAlumnos();
-    }
-
-    function resetFormAlumno() {
-      document.getElementById('form-alumno').reset();
-      document.getElementById('alumno-id').value = '';
-    }
-
-    function editarAlumno(id) {
-      const a = CACHE_DATOS.alumnos.find(x => x.id === id);
-      if (!a) return;
-      document.getElementById('alumno-id').value = a.id;
-      document.getElementById('alumno-nombre').value = a.nombre;
-      document.getElementById('alumno-cedula').value = a.cedula;
-      document.getElementById('alumno-email').value = a.email || '';
-      document.getElementById('alumno-telefono').value = a.telefono || '';
-      document.getElementById('alumno-telefono-alt').value = a.telefono_alt || '';
-      document.getElementById('alumno-tutor').value = a.tutor_nombre || '';
-      document.getElementById('alumno-tutor-tel').value = a.tutor_telefono || '';
-      document.getElementById('alumno-nacimiento').value = a.fecha_nacimiento ? a.fecha_nacimiento.split('T')[0] : '';
-      document.getElementById('alumno-direccion').value = a.direccion || '';
-      document.getElementById('alumno-nivel').value = a.nivel_id || '';
-      document.getElementById('alumno-es-hermano').checked = a.es_hermano;
-      document.getElementById('alumno-monto-especial').value = a.monto_especial || '';
-      toggleHermano();
-      window.scrollTo(0, 0);
-    }
-
-    async function eliminarAlumno(id) {
-      if (!confirm('¿Eliminar permanentemente?')) return;
-      await Utils.fetch('alumnos', { method: 'DELETE', body: JSON.stringify({ id }) });
-      Utils.toast('Alumno eliminado');
-      cargarAlumnos();
-    }
-
-    function filtrarAlumnos() {
-      const term = document.getElementById('buscar-alumno').value.toLowerCase();
-      const filtrados = CACHE_DATOS.alumnos.filter(a => a.nombre.toLowerCase().includes(term) || (a.cedula && a.cedula.includes(term)));
-      renderizarTablaAlumnos(filtrados);
-    }
-
-    async function verFichaAlumno(id) {
-      const data = await Utils.fetch(`alumno/ficha?id=${id}`);
-      const a = data.alumno;
-      
-      let html = `
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <div>
-            <h4 class="font-bold text-lg text-primary mb-2">Datos Personales</h4>
-            <p><strong>Nombre:</strong> ${a.nombre}</p>
-            <p><strong>Cédula:</strong> ${a.cedula || '-'}</p>
-            <p><strong>Fecha Nac.:</strong> ${a.fecha_nacimiento ? new Date(a.fecha_nacimiento).toLocaleDateString() : '-'}</p>
-            <p><strong>Dirección:</strong> ${a.direccion || '-'}</p>
-          </div>
-          <div>
-            <h4 class="font-bold text-lg text-primary mb-2">Contacto</h4>
-            <p><strong>Alumno:</strong> ${a.telefono || '-'} ${a.email ? `| ${a.email}` : ''}</p>
-            <p><strong>Tutor:</strong> ${a.tutor_nombre || '-'} ${a.tutor_telefono ? `(${a.tutor_telefono})` : ''}</p>
-            <p><strong>Nivel:</strong> ${a.nivel_nombre || '-'}</p>
-            <p><strong>Tipo:</strong> ${a.es_hermano ? `Herman@ - Cuota fija: $${a.monto_especial}` : 'Regular'}</p>
-          </div>
-        </div>
-        
-        <div class="mb-6">
-          <h4 class="font-bold text-lg text-primary mb-2">Historial de Pagos</h4>
-          <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-              <thead class="bg-gray-50">
-                <tr><th class="px-3 py-2">Fecha</th><th>Concepto</th><th>Monto</th><th>Estado</th></tr>
-              </thead>
-              <tbody>
-                ${data.pagos.map(p => `
-                  <tr class="border-b">
-                    <td class="px-3 py-2">${new Date(p.fecha).toLocaleDateString()}</td>
-                    <td>${p.concepto} ${p.mes ? '- Mes ' + p.mes : ''}</td>
-                    <td>${Utils.money(p.monto)} ${p.descuento ? `<span class="text-green-600 text-xs">(-${p.descuento})</span>` : ''} ${p.recargo ? `<span class="text-red-600 text-xs">(+${p.recargo})</span>` : ''}</td>
-                    <td><span class="text-green-600"><i class="fas fa-check"></i></span></td>
-                  </tr>
-                `).join('') || '<tr><td colspan="4" class="text-center py-2 text-gray-500">Sin pagos</td></tr>'}
-              </tbody>
-            </table>
-          </div>
-        </div>
-        
-        <div>
-          <h4 class="font-bold text-lg text-primary mb-2">Libros</h4>
-          <div class="space-y-2">
-            ${data.libros.map(l => `
-              <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                 <div>
-                  <div class="font-medium">${l.titulo}</div>
-                  <div class="text-sm text-gray-500">${Utils.money(l.pagado)} de ${Utils.money(l.costo_total)}</div>
+                    <h1 class="text-xl font-bold">ALEI - Sistema de Gestión</h1>
+                    <p class="text-xs opacity-90">Año Lectivo: <span id="anio-lectivo-activo" class="font-bold">2026</span></p>
                 </div>
-                <div class="${l.saldo > 0 ? 'text-amber-600' : 'text-green-600'} font-bold">
-                  ${l.saldo > 0 ? 'Saldo: ' + Utils.money(l.saldo) : 'Pagado'}
-                </div>
-              </div>
-            `).join('') || '<p class="text-gray-500">Sin libros asignados</p>'}
-          </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <select id="selector-anio-lectivo" class="bg-white/10 border border-white/20 rounded px-3 py-1 text-sm text-white" onchange="cambiarAnioLectivo()">
+                    <option value="2025" class="text-gray-800">2025</option>
+                    <option value="2026" class="text-gray-800" selected>2026</option>
+                    <option value="2027" class="text-gray-800">2027</option>
+                </select>
+                <button onclick="abrirModal('modal-alerts')" class="relative p-2 hover:bg-white/10 rounded-lg transition">
+                    <i class="fas fa-bell"></i>
+                    <span id="contador-alertas" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center hidden">0</span>
+                </button>
+            </div>
         </div>
-      `;
-      
-      document.getElementById('contenido-ficha').innerHTML = html;
-      document.getElementById('modal-ficha').classList.add('active');
-    }
+    </div>
 
-    // === CAJA RÁPIDA ===
-    async function cargarSelectCaja() {
-      const alumnos = await Utils.fetch(`alumnos?ano_lectivo_id=${ANO_LECTIVO_ACTUAL}`);
-      const opts = alumnos.map(a => `<option value="${a.id}">${a.nombre}</option>`).join('');
-      document.getElementById('caja-alumno').innerHTML = '<option value="">Seleccionar...</option>' + opts;
-    }
+    <!-- Navigation -->
+    <div class="bg-white border-b border-gray-200 sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex overflow-x-auto no-scrollbar">
+                <button class="tab active" onclick="switchTab('dashboard')"><i class="fas fa-chart-line mr-2"></i>Dashboard</button>
+                <button class="tab" onclick="switchTab('caja-rapida')"><i class="fas fa-cash-register mr-2"></i>Caja Rápida</button>
+                <button class="tab" onclick="switchTab('alumnos')"><i class="fas fa-users mr-2"></i>Alumnos</button>
+                <button class="tab" onclick="switchTab('pagos')"><i class="fas fa-money-bill-wave mr-2"></i>Pagos</button>
+                <button class="tab" onclick="switchTab('libros')"><i class="fas fa-book mr-2"></i>Libros</button>
+                <button class="tab" onclick="switchTab('gastos')"><i class="fas fa-wallet mr-2"></i>Gastos</button>
+                <button class="tab" onclick="switchTab('reportes')"><i class="fas fa-file-alt mr-2"></i>Reportes</button>
+                <button class="tab" onclick="switchTab('backup')"><i class="fas fa-database mr-2"></i>Backup</button>
+                <button class="tab" onclick="switchTab('config')"><i class="fas fa-cog mr-2"></i>Config</button>
+            </div>
+        </div>
+    </div>
 
-    async function ajustarMontoCaja() {
-      const alumnoId = document.getElementById('caja-alumno').value;
-      const concepto = document.getElementById('caja-concepto').value;
-      const mes = document.getElementById('caja-mes').value;
-      const fecha = document.getElementById('caja-fecha').value;
-      
-      if (!alumnoId || concepto !== 'mensualidad') {
-        document.getElementById('caja-leyenda-recargo').classList.add('hidden');
-        return;
-      }
-      
-      const alumno = (await Utils.fetch(`alumnos?ano_lectivo_id=${ANO_LECTIVO_ACTUAL}`)).find(a => a.id === alumnoId);
-      if (alumno.es_hermano && alumno.monto_especial) {
-        document.getElementById('caja-monto').value = alumno.monto_especial;
-        document.getElementById('caja-leyenda-recargo').classList.add('hidden');
-        return;
-      }
-      
-      // Calcular recargos/descuentos
-      let monto = 1500;
-      const dia = new Date(fecha).getDate();
-      const mesPago = new Date(fecha).getMonth() + 1;
-      const mesPagado = parseInt(mes);
-      
-      let descuento = 0, recargo = 0;
-      
-      if (mesPago < mesPagado || dia <= 10) {
-        descuento = 150;
-        monto -= 150;
-      } else if (mesPago > mesPagado || dia >= 16) {
-        recargo = 150;
-        monto += 150;
-      }
-      
-      document.getElementById('caja-monto').value = monto;
-      document.getElementById('caja-descuento').textContent = descuento ? `Descuento: $${descuento}` : '';
-      document.getElementById('caja-recargo').textContent = recargo ? `Recargo: $${recargo}` : '';
-      document.getElementById('caja-leyenda-recargo').classList.remove('hidden');
-    }
+    <div class="max-w-7xl mx-auto px-4 py-6 space-y-6">
 
-    async function procesarCajaRapida(e) {
-      e.preventDefault();
-      const data = {
-        ano_lectivo_id: ANO_LECTIVO_ACTUAL,
-        alumno_id: document.getElementById('caja-alumno').value,
-        concepto: document.getElementById('caja-concepto').value,
-        mes: document.getElementById('caja-mes').value,
-        monto: parseInt(document.getElementById('caja-monto').value),
-        fecha: document.getElementById('caja-fecha').value,
-        comentarios: document.getElementById('caja-comentarios').value,
-        user_ip: 'web-user'
-      };
-      
-      await Utils.fetch('pagos', { method: 'POST', body: JSON.stringify(data) });
-      Utils.toast('Pago registrado correctamente');
-      document.getElementById('form-caja-rapida').reset();
-      document.getElementById('caja-leyenda-recargo').classList.add('hidden');
-    }
+        <!-- DASHBOARD -->
+        <div id="tab-dashboard" class="tab-content active">
+            <!-- Alertas importantes -->
+            <div id="alertas-container" class="mb-6"></div>
 
-    // === MENSUALIDADES ===
-    async function cargarMensualidades() {
-      const mes = document.getElementById('mensualidad-mes').value;
-      const nivelId = document.getElementById('mensualidad-nivel').value;
-      
-      const [alumnos, pagos] = await Promise.all([
-        Utils.fetch(`alumnos?ano_lectivo_id=${ANO_LECTIVO_ACTUAL}`),
-        Utils.fetch(`pagos?ano_lectivo_id=${ANO_LECTIVO_ACTUAL}`)
-      ]);
-      
-      // Filtrar por nivel si aplica
-      let lista = alumnos;
-      if (nivelId) lista = lista.filter(a => a.nivel_id === nivelId);
-      
-      const html = lista.map(a => {
-        const pagoMes = pagos.find(p => p.alumno_id === a.id && p.concepto === 'mensualidad' && p.mes == mes);
-        const estaPagado = !!pagoMes;
-        const monto = pagoMes ? pagoMes.monto : (a.es_hermano ? a.monto_especial : 1500);
-        
-        return `
-          <tr class="${estaPagado ? 'bg-green-50' : 'bg-red-50'}">
-            <td class="px-4 py-3 font-medium">${a.nombre}</td>
-            <td class="px-4 py-3">${Utils.money(monto)}</td>
-            <td class="px-4 py-3">
-              <span class="px-2 py-1 rounded-full text-xs font-bold ${estaPagado ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
-                ${estaPagado ? 'PAGADO' : 'PENDIENTE'}
-              </span>
-            </td>
-            <td class="px-4 py-3 text-sm">${estaPagado ? new Date(pagoMes.fecha).toLocaleDateString() : '-'}</td>
-            <td class="px-4 py-3">
-              ${!estaPagado ? `<button onclick="marcarPagado('${a.id}', ${mes})" class="text-green-600 hover:text-green-800">Marcar Pagado</button>` : ''}
-            </td>
-          </tr>
-        `;
-      }).join('');
-      
-      document.getElementById('tabla-mensualidades').innerHTML = html || '<tr><td colspan="5" class="text-center py-4">Sin datos</td></tr>';
-    }
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div class="card p-5 bg-gradient-to-br from-blue-600 to-blue-700 text-white">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-blue-100 text-sm">Alumnos Activos</p>
+                            <h3 class="text-3xl font-bold mt-1" id="stat-alumnos-activos">0</h3>
+                        </div>
+                        <i class="fas fa-users text-blue-200 text-2xl"></i>
+                    </div>
+                    <p class="text-xs mt-2 text-blue-100"><span id="stat-lista-espera">0</span> en lista de espera</p>
+                </div>
+                
+                <div class="card p-5 bg-gradient-to-br from-green-500 to-green-600 text-white">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-green-100 text-sm">Ingresos Este Mes</p>
+                            <h3 class="text-3xl font-bold mt-1" id="stat-ingresos-mes">$0</h3>
+                        </div>
+                        <i class="fas fa-arrow-up text-green-200 text-2xl"></i>
+                    </div>
+                    <p class="text-xs mt-2 text-green-100">vs mes anterior</p>
+                </div>
 
-    async function marcarPagado(alumnoId, mes) {
-      const data = {
-        ano_lectivo_id: ANO_LECTIVO_ACTUAL,
-        alumno_id: alumnoId,
-        concepto: 'mensualidad',
-        mes: mes,
-        monto: 1500,
-        fecha: Utils.fecha(),
-        user_ip: 'web-user'
-      };
-      await Utils.fetch('pagos', { method: 'POST', body: JSON.stringify(data) });
-      cargarMensualidades();
-      Utils.toast('Mensualidad registrada');
-    }
+                <div class="card p-5 bg-gradient-to-br from-red-500 to-red-600 text-white">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-red-100 text-sm">Deuda Total</p>
+                            <h3 class="text-3xl font-bold mt-1" id="stat-deuda-total">$0</h3>
+                        </div>
+                        <i class="fas fa-exclamation-triangle text-red-200 text-2xl"></i>
+                    </div>
+                    <p class="text-xs mt-2 text-red-100">Matrículas, libros y cuotas</p>
+                </div>
 
-    // === LIBROS ===
-    async function cargarLibros() {
-      const [libros, alumnos] = await Promise.all([
-        Utils.fetch(`libros?ano_lectivo_id=${ANO_LECTIVO_ACTUAL}`),
-        Utils.fetch(`alumnos?ano_lectivo_id=${ANO_LECTIVO_ACTUAL}`)
-      ]);
-      
-      // Stats
-      const total = libros.length;
-      const pagados = libros.filter(l => l.saldo === 0).length;
-      const pendientes = total - pagados;
-      const deuda = libros.reduce((a, b) => a + b.saldo, 0);
-      
-      document.getElementById('stat-total-libros').textContent = total;
-      document.getElementById('stat-libros-pagados').textContent = pagados;
-      document.getElementById('stat-libros-pendientes').textContent = pendientes;
-      document.getElementById('stat-deuda-libros').textContent = Utils.money(deuda);
-      
-      // Select
-      const opts = alumnos.map(a => `<option value="${a.id}">${a.nombre}</option>`).join('');
-      document.getElementById('libro-alumno-id').innerHTML = '<option value="">Seleccionar...</option>' + opts;
-      
-      // Tabla
-      const html = libros.map(l => {
-        const alumno = alumnos.find(a => a.id === l.alumno_id);
-        return `
-          <tr>
-            <td class="px-4 py-3 font-medium">${alumno?.nombre || 'N/A'}</td>
-            <td class="px-4 py-3">${l.titulo}</td>
-            <td class="px-4 py-3 font-bold ${l.saldo > 0 ? 'text-amber-600' : 'text-green-600'}">${Utils.money(l.saldo)}</td>
-            <td class="px-4 py-3">
-              ${l.saldo > 0 ? `<button onclick="abrirAbonoLibro('${l.id}', ${l.saldo}, '${l.titulo}')" class="text-blue-600 hover:text-blue-800 mr-2">Abonar</button>` : ''}
-              <button onclick="eliminarLibro('${l.id}')" class="text-red-600 hover:text-red-800"><i class="fas fa-trash"></i></button>
-            </td>
-          </tr>
-        `;
-      }).join('');
-      document.getElementById('tabla-libros').innerHTML = html || '<tr><td colspan="4" class="text-center py-4">Sin libros</td></tr>';
-    }
+                <div class="card p-5 bg-gradient-to-br from-yellow-500 to-yellow-600 text-white">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-yellow-100 text-sm">Pagos Parciales</p>
+                            <h3 class="text-3xl font-bold mt-1" id="stat-pagos-parciales">0</h3>
+                        </div>
+                        <i class="fas fa-clock text-yellow-200 text-2xl"></i>
+                    </div>
+                    <p class="text-xs mt-2 text-yellow-100">Libros y matrículas</p>
+                </div>
+            </div>
 
-    function calcularSaldoLibro() {
-      const costo = parseInt(document.getElementById('libro-costo').value) || 0;
-      const abono = parseInt(document.getElementById('libro-abono').value) || 0;
-      document.getElementById('libro-saldo').textContent = Utils.money(costo - abono);
-    }
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Mensualidades del mes -->
+                <div class="card p-5 lg:col-span-2">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-bold text-gray-800">Estado de Mensualidades - <span id="mes-actual-nombre"></span></h3>
+                        <button onclick="generarMensajesCobranza()" class="btn-success text-sm"><i class="fab fa-whatsapp mr-2"></i>Generar Msj Cobranza</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="text-left p-3 font-semibold text-gray-600">Alumno</th>
+                                    <th class="text-left p-3 font-semibold text-gray-600">Nivel</th>
+                                    <th class="text-center p-3 font-semibold text-gray-600">Estado</th>
+                                    <th class="text-right p-3 font-semibold text-gray-600">Monto</th>
+                                    <th class="text-center p-3 font-semibold text-gray-600">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-mensualidades-mes"></tbody>
+                        </table>
+                    </div>
+                </div>
 
-    async function asignarLibro(e) {
-      e.preventDefault();
-      const data = {
-        alumno_id: document.getElementById('libro-alumno-id').value,
-        titulo: document.getElementById('libro-titulo').value,
-        costo_total: parseInt(document.getElementById('libro-costo').value),
-        abono_inicial: parseInt(document.getElementById('libro-abono').value) || 0,
-        observaciones: ''
-      };
-      await Utils.fetch('libros', { method: 'POST', body: JSON.stringify(data) });
-      Utils.toast('Libro asignado');
-      document.getElementById('form-libro').reset();
-      cargarLibros();
-    }
+                <!-- Flujo de caja rápido -->
+                <div class="card p-5">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">Resumen Financiero</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="text-gray-600">Ingresos (Mes)</span>
+                                <span class="font-bold text-green-600" id="resumen-ingresos">$0</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-green-500 h-2 rounded-full" style="width: 70%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="text-gray-600">Gastos (Mes)</span>
+                                <span class="font-bold text-red-600" id="resumen-gastos">$0</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-red-500 h-2 rounded-full" style="width: 30%"></div>
+                            </div>
+                        </div>
+                        <div class="border-t pt-3 mt-3">
+                            <div class="flex justify-between items-center">
+                                <span class="font-semibold">Balance</span>
+                                <span class="text-xl font-bold text-blue-600" id="resumen-balance">$0</span>
+                            </div>
+                        </div>
+                    </div>
 
-    function abrirAbonoLibro(id, saldo, titulo) {
-      document.getElementById('abono-libro-id').value = id;
-      document.getElementById('abono-monto').value = saldo;
-      document.getElementById('abono-monto').max = saldo;
-      document.getElementById('info-abono-libro').innerHTML = `<strong>${titulo}</strong><br>Saldo pendiente: ${Utils.money(saldo)}`;
-      document.getElementById('modal-abono').classList.add('active');
-    }
+                    <div class="mt-6 p-4 bg-blue-50 rounded-lg">
+                        <h4 class="font-semibold text-blue-900 mb-2 text-sm">Próximos Cumpleaños</h4>
+                        <div id="lista-cumpleanos" class="space-y-2 text-sm"></div>
+                    </div>
+                </div>
+            </div>
 
-    async function registrarAbonoLibro(e) {
-      e.preventDefault();
-      const libroId = document.getElementById('abono-libro-id').value;
-      const monto = parseInt(document.getElementById('abono-monto').value);
-      
-      // Crear pago asociado
-      await Utils.fetch('pagos', {
-        method: 'POST',
-        body: JSON.stringify({
-          ano_lectivo_id: ANO_LECTIVO_ACTUAL,
-          alumno_id: document.getElementById('libro-alumno-id').value, // Esto fallará, necesitamos el alumno_id del libro
-          concepto: 'libro',
-          libro_id: libroId,
-          monto: monto,
-          fecha: Utils.fecha(),
-          comentarios: document.getElementById('abono-comentarios').value,
-          user_ip: 'web-user'
-        })
-      });
-      
-      Utils.toast('Abono registrado');
-      cerrarModal('modal-abono');
-      cargarLibros();
-    }
+            <!-- Deudores destacados -->
+            <div class="card p-5 mt-6">
+                <h3 class="text-lg font-bold text-gray-800 mb-4">⚠️ Alumnos con Deudas (+30 días)</h3>
+                <div id="lista-deudores-atrasados" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+            </div>
+        </div>
 
-    async function eliminarLibro(id) {
-      if (!confirm('¿Eliminar libro?')) return;
-      await Utils.fetch(`libros?id=${id}`, { method: 'DELETE' });
-      cargarLibros();
-    }
+        <!-- CAJA RÁPIDA -->
+        <div id="tab-caja-rapida" class="tab-content">
+            <div class="max-w-2xl mx-auto">
+                <div class="card p-6">
+                    <div class="text-center mb-6">
+                        <h2 class="text-2xl font-bold text-gray-800">Caja Rápida</h2>
+                        <p class="text-gray-500 text-sm">Registro express de pagos (3 clicks)</p>
+                    </div>
 
-    // === GASTOS ===
-    function toggleCuotas() {
-      document.getElementById('campo-cuotas').classList.toggle('hidden', !document.getElementById('gasto-es-cuota').checked);
-    }
+                    <form id="form-caja-rapida" onsubmit="registrarCajaRapida(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Buscar Alumno</label>
+                            <input type="text" id="caja-buscar" class="input-field" placeholder="Escriba nombre o cédula..." autocomplete="off" oninput="buscarAlumnoCaja(this.value)">
+                            <div id="caja-resultados" class="mt-1 bg-white border rounded-lg shadow-lg max-h-48 overflow-y-auto hidden"></div>
+                            <input type="hidden" id="caja-alumno-id">
+                            <div id="caja-alumno-seleccionado" class="mt-2 p-2 bg-blue-50 rounded hidden"></div>
+                        </div>
 
-    async function cargarGastos() {
-      const gastos = await Utils.fetch(`gastos?ano_lectivo_id=${ANO_LECTIVO_ACTUAL}`);
-      const html = gastos.map(g => `
-        <tr>
-          <td class="px-4 py-3 text-sm">${new Date(g.fecha).toLocaleDateString()}</td>
-          <td class="px-4 py-3">
-            ${g.concepto}
-            ${g.es_cuota ? `<span class="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded ml-2">Cuota ${g.cuota_actual}/${g.numero_cuotas}</span>` : ''}
-          </td>
-          <td class="px-4 py-3">${Utils.money(g.monto_total)}</td>
-          <td class="px-4 py-3"><span class="text-xs ${g.es_cuota ? 'text-amber-600' : 'text-red-600'} font-medium">${g.es_cuota ? 'En cuotas' : 'Contado'}</span></td>
-        </tr>
-      `).join('');
-      document.getElementById('tabla-gastos').innerHTML = html || '<tr><td colspan="4" class="text-center py-4">Sin gastos</td></tr>';
-    }
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Concepto</label>
+                                <select id="caja-concepto" class="input-field" onchange="actualizarMontoCaja()" required>
+                                    <option value="">Seleccione...</option>
+                                    <option value="matricula">Matrícula</option>
+                                    <option value="mensualidad">Mensualidad</option>
+                                    <option value="libro">Libro/Material</option>
+                                    <option value="otro">Otro</option>
+                                </select>
+                            </div>
+                            <div id="caja-mes-container" class="hidden">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Mes</label>
+                                <select id="caja-mes" class="input-field" onchange="calcularRecargoDescuentoCaja()">
+                                    <option value="1">Enero</option>
+                                    <option value="2">Febrero</option>
+                                    <option value="3">Marzo</option>
+                                    <option value="4">Abril</option>
+                                    <option value="5">Mayo</option>
+                                    <option value="6">Junio</option>
+                                    <option value="7">Julio</option>
+                                    <option value="8">Agosto</option>
+                                    <option value="9">Septiembre</option>
+                                    <option value="10">Octubre</option>
+                                    <option value="11">Noviembre</option>
+                                    <option value="12">Diciembre</option>
+                                </select>
+                            </div>
+                        </div>
 
-    async function guardarGasto(e) {
-      e.preventDefault();
-      const data = {
-        ano_lectivo_id: ANO_LECTIVO_ACTUAL,
-        concepto: document.getElementById('gasto-concepto').value,
-        proveedor: document.getElementById('gasto-proveedor').value,
-        monto_total: parseInt(document.getElementById('gasto-monto').value),
-        fecha: document.getElementById('gasto-fecha').value,
-        categoria: document.getElementById('gasto-categoria').value,
-        es_cuota: document.getElementById('gasto-es-cuota').checked,
-        numero_cuotas: document.getElementById('gasto-es-cuota').checked ? parseInt(document.getElementById('gasto-cuotas').value) : 1
-      };
-      await Utils.fetch('gastos', { method: 'POST', body: JSON.stringify(data) });
-      Utils.toast('Gasto registrado');
-      document.getElementById('form-gasto').reset();
-      cargarGastos();
-    }
+                        <div id="caja-info-recargo" class="hidden p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm">
+                            <!-- Info dinámica -->
+                        </div>
 
-    // === LISTA ESPERA ===
-    async function cargarEspera() {
-      const [lista, niveles, alumnos] = await Promise.all([
-        Utils.fetch(`waitlist?ano_lectivo_id=${ANO_LECTIVO_ACTUAL}`),
-        Utils.fetch(`niveles?ano_lectivo_id=${ANO_LECTIVO_ACTUAL}`),
-        Utils.fetch(`alumnos?ano_lectivo_id=${ANO_LECTIVO_ACTUAL}`)
-      ]);
-      
-      // Stats de conversión
-      const convertidos = lista.filter(l => l.estado === 'convertido').length;
-      const total = lista.length;
-      const tasa = total ? Math.round((convertidos / total) * 100) : 0;
-      
-      document.getElementById('stat-total-espera').textContent = total;
-      document.getElementById('stat-convertidos').textContent = convertidos;
-      document.getElementById('tasa-conversion').textContent = tasa + '%';
-      document.getElementById('barra-conversion').style.width = tasa + '%';
-      
-      // Select
-      const opts = niveles.map(n => `<option value="${n.id}">${n.nombre}</option>`).join('');
-      document.getElementById('espera-nivel').innerHTML = '<option value="">Sin preferencia</option>' + opts;
-      
-      // Tabla
-      const html = lista.map(l => {
-        const nivel = niveles.find(n => n.id === l.nivel_interes_id);
-        return `
-          <tr>
-            <td class="px-4 py-3 font-medium">${l.nombre}</td>
-            <td class="px-4 py-3 text-sm">${l.telefono || '-'}<br>${l.email || ''}</td>
-            <td class="px-4 py-3 text-sm">${nivel?.nombre || '-'}</td>
-            <td class="px-4 py-3"><span class="px-2 py-1 rounded-full text-xs ${l.estado === 'pendiente' ? 'bg-amber-100 text-amber-800' : l.estado === 'convertido' ? 'bg-green-100 text-green-800' : 'bg-gray-100'}">${l.estado}</span></td>
-            <td class="px-4 py-3">
-              ${l.estado === 'pendiente' ? `
-                <button onclick="convertirEspera('${l.id}')" class="text-green-600 hover:text-green-800 mr-2" title="Convertir a alumno">Convertir</button>
-                <button onclick="contactarEspera('${l.id}')" class="text-blue-600 hover:text-blue-800">Contactar</button>
-              ` : ''}
-            </td>
-          </tr>
-        `;
-      }).join('');
-      document.getElementById('tabla-espera').innerHTML = html || '<tr><td colspan="5" class="text-center py-4">Lista vacía</td></tr>';
-    }
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Monto $</label>
+                                <input type="number" id="caja-monto" class="input-field text-lg font-bold" required onchange="verificarPagoParcial()">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
+                                <input type="date" id="caja-fecha" class="input-field" required>
+                            </div>
+                        </div>
 
-    async function guardarEspera(e) {
-      e.preventDefault();
-      const data = {
-        ano_lectivo_id: ANO_LECTIVO_ACTUAL,
-        nombre: document.getElementById('espera-nombre').value,
-        telefono: document.getElementById('espera-telefono').value,
-        email: document.getElementById('espera-email').value,
-        nivel_interes_id: document.getElementById('espera-nivel').value || null,
-        notas: document.getElementById('espera-notas').value
-      };
-      await Utils.fetch('waitlist', { method: 'POST', body: JSON.stringify(data) });
-      Utils.toast('Agregado a lista de espera');
-      document.getElementById('form-espera').reset();
-      cargarEspera();
-    }
+                        <div class="flex items-center gap-2">
+                            <input type="checkbox" id="caja-es-parcial" class="w-4 h-4 text-blue-600 rounded" onchange="togglePagoParcial()">
+                            <label for="caja-es-parcial" class="text-sm text-gray-700">Es pago parcial (deja saldo pendiente)</label>
+                        </div>
 
-    async function convertirEspera(id) {
-      // Cambiar estado
-      await Utils.fetch('waitlist', { method: 'PUT', body: JSON.stringify({ id, estado: 'convertido' }) });
-      // Redirigir a formulario de alumno con datos precargados (simplificado)
-      mostrarSeccion('alumnos');
-      Utils.toast('Convertido. Complete los datos del alumno.');
-      cargarEspera();
-    }
+                        <div id="caja-saldo-container" class="hidden p-3 bg-blue-50 rounded-lg">
+                            <div class="flex justify-between text-sm">
+                                <span>Saldo restante:</span>
+                                <span id="caja-saldo-restante" class="font-bold text-blue-900"></span>
+                            </div>
+                        </div>
 
-    // === WHATSAPP ===
-    function enviarWhatsApp(telefono, nombre) {
-      if (!telefono) {
-        Utils.toast('Sin número de teléfono', 'error');
-        return;
-      }
-      const mensaje = `Hola! Le escribimos del Instituto ALEI para recordarle que ${nombre} tiene pendiente el pago de la mensualidad. Quedamos atentos. Saludos!`;
-      const url = `https://wa.me/598${telefono.replace(/\D/g, '')}?text=${encodeURIComponent(mensaje)}`;
-      window.open(url, '_blank');
-    }
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Comentarios</label>
+                            <textarea id="caja-comentarios" class="input-field" rows="2" placeholder="Ej: Me entregó $500, falta el resto..."></textarea>
+                        </div>
 
-    function generarMensajesWhatsApp() {
-      // Obtener todos los deudores visibles y generar mensajes
-      const deudores = document.querySelectorAll('#dash-deudores > div');
-      let texto = 'MENSAJES PARA COPIAR:\n\n';
-      deudores.forEach(d => {
-        const nombre = d.querySelector('.font-semibold').textContent;
-        const tel = d.querySelector('button[onclick^="enviarWhatsApp"]').getAttribute('onclick').match(/'([^']+)'/)[1];
-        texto += `📱 ${tel} - ${nombre}\n`;
-      });
-      alert(texto);
-    }
+                        <button type="submit" class="btn-primary w-full py-3 text-lg font-bold">
+                            <i class="fas fa-check mr-2"></i>Registrar Pago
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
 
-    // === IMPORTACIÓN ===
-    function toggleImportarJSON() {
-      document.getElementById('panel-importar').classList.toggle('hidden');
-    }
+        <!-- ALUMNOS -->
+        <div id="tab-alumnos" class="tab-content">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold text-gray-800">Gestión de Alumnos</h2>
+                <div class="flex gap-2">
+                    <button onclick="abrirModal('modal-alumno')" class="btn-primary"><i class="fas fa-plus mr-2"></i>Nuevo Alumno</button>
+                    <button onclick="abrirModal('modal-preinscripcion')" class="btn-warning"><i class="fas fa-clipboard-list mr-2"></i>Pre-inscripción</button>
+                </div>
+            </div>
 
-    function modoImportar(tipo) {
-      document.getElementById('import-file-container').classList.toggle('hidden', tipo !== 'file');
-      document.getElementById('import-text-container').classList.toggle('hidden', tipo !== 'text');
-    }
+            <!-- Filtros -->
+            <div class="card p-4 mb-4">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <input type="text" id="filtro-alumno-texto" class="input-field" placeholder="Buscar nombre, cédula, tutor..." oninput="filtrarAlumnos()">
+                    <select id="filtro-alumno-nivel" class="input-field" onchange="filtrarAlumnos()">
+                        <option value="">Todos los niveles</option>
+                    </select>
+                    <select id="filtro-alumno-estado" class="input-field" onchange="filtrarAlumnos()">
+                        <option value="activo">Activos</option>
+                        <option value="pre-inscripcion">Pre-inscripciones</option>
+                        <option value="lista-espera">Lista de espera</option>
+                        <option value="todos">Todos</option>
+                    </select>
+                    <button onclick="exportarSeccion('alumnos')" class="btn-success"><i class="fas fa-download mr-2"></i>Exportar</button>
+                </div>
+            </div>
 
-    async function procesarArchivoJSON(input) {
-      const file = input.files[0];
-      if (!file) return;
-      const text = await file.text();
-      importarAlumnosJSON(text);
-    }
+            <div class="card overflow-hidden">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="text-left p-3 font-semibold">N°</th>
+                            <th class="text-left p-3 font-semibold">Nombre</th>
+                            <th class="text-left p-3 font-semibold">Cédula</th>
+                            <th class="text-left p-3 font-semibold">Nivel</th>
+                            <th class="text-left p-3 font-semibold">Contacto</th>
+                            <th class="text-center p-3 font-semibold">Tipo</th>
+                            <th class="text-center p-3 font-semibold">Estado</th>
+                            <th class="text-center p-3 font-semibold">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-alumnos"></tbody>
+                </table>
+            </div>
+        </div>
 
-    async function procesarTextoJSON() {
-      const text = document.getElementById('import-textarea').value;
-      importarAlumnosJSON(text);
-    }
+        <!-- PAGOS -->
+        <div id="tab-pagos" class="tab-content">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Historial de Pagos</h2>
+            
+            <div class="card p-4 mb-4">
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                    <input type="text" id="filtro-pago-alumno" class="input-field" placeholder="Alumno..." oninput="filtrarPagos()">
+                    <select id="filtro-pago-concepto" class="input-field" onchange="filtrarPagos()">
+                        <option value="">Todos los conceptos</option>
+                        <option value="matricula">Matrícula</option>
+                        <option value="mensualidad">Mensualidad</option>
+                        <option value="libro">Libro</option>
+                    </select>
+                    <input type="date" id="filtro-pago-desde" class="input-field" onchange="filtrarPagos()">
+                    <input type="date" id="filtro-pago-hasta" class="input-field" onchange="filtrarPagos()">
+                    <button onclick="exportarSeccion('pagos')" class="btn-success">Exportar</button>
+                </div>
+            </div>
 
-    async function importarAlumnosJSON(text) {
-      try {
-        const datos = JSON.parse(text);
-        if (!Array.isArray(datos)) throw new Error('Debe ser un array JSON');
-        
-        const resultado = await Utils.fetch('import', {
-          method: 'POST',
-          body: JSON.stringify({
-            tabla: 'alumnos',
-            datos: datos,
-            ano_lectivo_id: ANO_LECTIVO_ACTUAL
-          })
-        });
-        
-        Utils.toast(`Importados ${resultado.insertados} alumnos`);
-        cargarAlumnos();
-      } catch(e) {
-        Utils.toast('Error: ' + e.message, 'error');
-      }
-    }
+            <div class="card overflow-hidden">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="text-left p-3 font-semibold">Fecha</th>
+                            <th class="text-left p-3 font-semibold">Alumno</th>
+                            <th class="text-left p-3 font-semibold">Concepto</th>
+                            <th class="text-right p-3 font-semibold">Monto</th>
+                            <th class="text-center p-3 font-semibold">Estado</th>
+                            <th class="text-left p-3 font-semibold">Comentarios</th>
+                            <th class="text-center p-3 font-semibold">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-pagos"></tbody>
+                </table>
+            </div>
+        </div>
 
-    // === CONFIG ===
-    function modoImportarConfig(tipo) {
-      document.getElementById('config-import-file').classList.toggle('hidden', tipo !== 'file');
-      document.getElementById('config-import-text').classList.toggle('hidden', tipo !== 'text');
-    }
+        <!-- LIBROS -->
+        <div id="tab-libros" class="tab-content">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold text-gray-800">Gestión de Libros</h2>
+                <button onclick="abrirModal('modal-asignar-libro')" class="btn-primary">Asignar Libro</button>
+            </div>
 
-    function procesarImportConfig(input) {
-      const file = input.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = e => document.getElementById('config-import-text').value = e.target.result;
-        reader.readAsText(file);
-      }
-    }
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                <div class="card p-4 bg-blue-50 border-blue-200">
+                    <h4 class="font-bold text-blue-900">Total Libros Asignados</h4>
+                    <p class="text-2xl font-bold text-blue-700" id="stat-total-libros">0</p>
+                </div>
+                <div class="card p-4 bg-yellow-50 border-yellow-200">
+                    <h4 class="font-bold text-yellow-900">Con Saldo Pendiente</h4>
+                    <p class="text-2xl font-bold text-yellow-700" id="stat-libros-pendientes">0</p>
+                </div>
+                <div class="card p-4 bg-green-50 border-green-200">
+                    <h4 class="font-bold text-green-900">Pagados Completos</h4>
+                    <p class="text-2xl font-bold text-green-700" id="stat-libros-pagados">0</p>
+                </div>
+            </div>
 
-    async function ejecutarImportacion() {
-      const tabla = document.getElementById('import-tabla').value;
-      const texto = document.getElementById('config-import-text').value;
-      try {
-        const datos = JSON.parse(texto);
-        await Utils.fetch('import', {
-          method: 'POST',
-          body: JSON.stringify({ tabla, datos, ano_lectivo_id: ANO_LECTIVO_ACTUAL })
-        });
-        Utils.toast('Importación completada');
-      } catch(e) {
-        Utils.toast('Error: ' + e.message, 'error');
-      }
-    }
+            <div class="card overflow-hidden">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="text-left p-3 font-semibold">Alumno</th>
+                            <th class="text-left p-3 font-semibold">Libro</th>
+                            <th class="text-right p-3 font-semibold">Costo Total</th>
+                            <th class="text-right p-3 font-semibold">Abonado</th>
+                            <th class="text-right p-3 font-semibold">Saldo</th>
+                            <th class="text-center p-3 font-semibold">Progreso</th>
+                            <th class="text-center p-3 font-semibold">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-libros"></tbody>
+                </table>
+            </div>
+        </div>
 
-    async function exportarTodo() {
-      const [alumnos, pagos, libros, gastos] = await Promise.all([
-        Utils.fetch(`alumnos?ano_lectivo_id=${ANO_LECTIVO_ACTUAL}`),
-        Utils.fetch(`pagos?ano_lectivo_id=${ANO_LECTIVO_ACTUAL}`),
-        Utils.fetch(`libros?ano_lectivo_id=${ANO_LECTIVO_ACTUAL}`),
-        Utils.fetch(`gastos?ano_lectivo_id=${ANO_LECTIVO_ACTUAL}`)
-      ]);
-      
-      const backup = {
-        version: '3.0',
-        fecha: new Date().toISOString(),
-        ano_lectivo: ANO_LECTIVO_ACTUAL,
-        alumnos, pagos, libros, gastos
-      };
-      
-      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `alei_backup_${ANO_LECTIVO_ACTUAL}_${Utils.fecha()}.json`;
-      a.click();
-    }
+        <!-- GASTOS -->
+        <div id="tab-gastos" class="tab-content">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold text-gray-800">Control de Gastos</h2>
+                <button onclick="abrirModal('modal-gasto')" class="btn-primary">Registrar Gasto</button>
+            </div>
 
-    // === UTILIDADES UI ===
-    function cerrarModal(id) {
-      document.getElementById(id).classList.remove('active');
-    }
+            <div class="card p-4 mb-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <select id="filtro-gasto-categoria" class="input-field" onchange="filtrarGastos()">
+                        <option value="">Todas las categorías</option>
+                        <option value="materiales">Materiales</option>
+                        <option value="servicios">Servicios</option>
+                        <option value="personal">Personal</option>
+                        <option value="cuota">Compras en Cuotas</option>
+                        <option value="otro">Otros</option>
+                    </select>
+                    <input type="month" id="filtro-gasto-mes" class="input-field" onchange="filtrarGastos()">
+                    <button onclick="exportarSeccion('gastos')" class="btn-success">Exportar</button>
+                </div>
+            </div>
 
-    function toggleAlertas() {
-      document.getElementById('panel-alertas').classList.toggle('hidden');
-    }
+            <div class="card overflow-hidden">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="text-left p-3 font-semibold">Fecha</th>
+                            <th class="text-left p-3 font-semibold">Concepto</th>
+                            <th class="text-left p-3 font-semibold">Categoría</th>
+                            <th class="text-right p-3 font-semibold">Monto</th>
+                            <th class="text-center p-3 font-semibold">Cuotas</th>
+                            <th class="text-center p-3 font-semibold">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-gastos"></tbody>
+                </table>
+            </div>
+        </div>
 
-    async function cargarAlertas() {
-      // Simular alertas basadas en datos
-      const alertas = await Utils.fetch(`alertas?ano_lectivo_id=${ANO_LECTIVO_ACTUAL}`);
-      const badge = document.getElementById('badge-alertas');
-      if (alertas.length > 0) {
-        badge.textContent = alertas.length;
-        badge.classList.remove('hidden');
-        document.getElementById('lista-alertas').innerHTML = alertas.map(a => `
-          <div class="p-3 ${a.tipo === 'cumpleanos' ? 'bg-purple-50' : 'bg-red-50'} rounded-lg border-l-4 ${a.tipo === 'cumpleanos' ? 'border-purple-500' : 'border-red-500'}">
-            <div class="font-medium text-sm">${a.mensaje}</div>
-          </div>
-        `).join('');
-      }
-    }
+        <!-- REPORTES -->
+        <div id="tab-reportes" class="tab-content">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Reportes y Estados de Cuenta</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div class="card p-5">
+                    <h3 class="font-bold text-lg mb-4">Estado de Cuenta por Alumno</h3>
+                    <input type="text" id="reporte-buscar-alumno" class="input-field mb-3" placeholder="Buscar alumno..." oninput="buscarAlumnoReporte(this.value)">
+                    <div id="reporte-alumno-resultado"></div>
+                </div>
 
-    function busquedaGlobal(e) {
-      if (e.key === 'Enter') {
-        const term = e.target.value;
-        // Redirigir a alumnos con filtro
-        mostrarSeccion('alumnos');
-        document.getElementById('buscar-alumno').value = term;
-        filtrarAlumnos();
-      }
-    }
+                <div class="card p-5">
+                    <h3 class="font-bold text-lg mb-4">Reporte Mensual por Concepto</h3>
+                    <div class="space-y-3">
+                        <select id="reporte-mes" class="input-field">
+                            <option value="1">Enero</option>
+                            <option value="2">Febrero</option>
+                            <option value="3">Marzo</option>
+                            <option value="4">Abril</option>
+                            <option value="5">Mayo</option>
+                            <option value="6">Junio</option>
+                            <option value="7">Julio</option>
+                            <option value="8">Agosto</option>
+                            <option value="9">Septiembre</option>
+                            <option value="10">Octubre</option>
+                            <option value="11">Noviembre</option>
+                            <option value="12">Diciembre</option>
+                        </select>
+                        <button onclick="generarReporteMensual()" class="btn-primary w-full">Generar Reporte</button>
+                    </div>
+                    <div id="resultado-reporte-mensual" class="mt-4 hidden"></div>
+                </div>
+            </div>
+        </div>
 
-    // Cerrar modales al click fuera
-    document.querySelectorAll('.modal').forEach(m => {
-      m.addEventListener('click', e => { if (e.target === m) m.classList.remove('active'); });
-    });
-  </script>
+        <!-- BACKUP -->
+        <div id="tab-backup" class="tab-content">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Backup y Restauración</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Exportar -->
+                <div class="card p-5">
+                    <h3 class="font-bold text-lg mb-4 text-green-700">Exportar Datos</h3>
+                    <div class="space-y-3">
+                        <select id="backup-seccion-exportar" class="input-field">
+                            <option value="todo">Todo el sistema</option>
+                            <option value="alumnos">Solo Alumnos</option>
+                            <option value="pagos">Solo Pagos</option>
+                            <option value="libros">Solo Libros</option>
+                            <option value="niveles">Solo Niveles</option>
+                            <option value="gastos">Solo Gastos</option>
+                            <option value="config">Configuración</option>
+                        </select>
+                        <div class="flex gap-2">
+                            <button onclick="exportarBackupTexto()" class="btn-primary flex-1">Copiar como Texto</button>
+                            <button onclick="exportarBackupArchivo()" class="btn-success flex-1">Descargar Archivo</button>
+                        </div>
+                        <textarea id="backup-texto-exportar" class="input-field mt-2" rows="6" placeholder="El JSON aparecerá aquí..." readonly></textarea>
+                    </div>
+                </div>
+
+                <!-- Importar -->
+                <div class="card p-5">
+                    <h3 class="font-bold text-lg mb-4 text-blue-700">Importar Datos</h3>
+                    <div class="space-y-3">
+                        <select id="backup-seccion-importar" class="input-field">
+                            <option value="todo">Todo el sistema (Reemplaza todo)</option>
+                            <option value="alumnos">Solo Alumnos (Agrega/Actualiza)</option>
+                            <option value="pagos">Solo Pagos (Agrega)</option>
+                            <option value="libros">Solo Libros (Agrega/Actualiza)</option>
+                        </select>
+                        <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+                            <input type="file" id="backup-archivo-importar" class="hidden" accept=".json" onchange="procesarArchivoImportar(this)">
+                            <button onclick="document.getElementById('backup-archivo-importar').click()" class="btn-primary mb-2">Seleccionar Archivo</button>
+                            <p class="text-sm text-gray-500">o pegue el contenido abajo:</p>
+                        </div>
+                        <textarea id="backup-texto-importar" class="input-field" rows="6" placeholder="Pegue aquí el JSON..."></textarea>
+                        <button onclick="importarBackup()" class="btn-warning w-full">⚠️ Importar Datos</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONFIG -->
+        <div id="tab-config" class="tab-content">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Configuración del Sistema</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="card p-5">
+                    <h3 class="font-bold text-lg mb-4">Niveles y Precios</h3>
+                    <form onsubmit="agregarNivel(event)" class="flex gap-2 mb-4">
+                        <input type="text" name="nombre" class="input-field" placeholder="Nombre nivel" required>
+                        <input type="number" name="precio" class="input-field" placeholder="Precio" required>
+                        <button type="submit" class="btn-primary">Agregar</button>
+                    </form>
+                    <div id="lista-niveles-config" class="space-y-2"></div>
+                </div>
+
+                <div class="card p-5">
+                    <h3 class="font-bold text-lg mb-4">Tipos de Matrícula</h3>
+                    <form onsubmit="agregarTipoMatricula(event)" class="space-y-2 mb-4">
+                        <input type="text" name="nombre" class="input-field" placeholder="Nombre (ej: Hermano)" required>
+                        <div class="flex gap-2">
+                            <input type="number" name="costo" class="input-field" placeholder="Costo $" required>
+                            <input type="number" name="porcentaje" class="input-field" placeholder="%" value="100">
+                        </div>
+                        <label class="flex items-center gap-2 text-sm">
+                            <input type="checkbox" name="exento_recargos" class="rounded"> Exento de recargos/descuentos (Hermanos)
+                        </label>
+                        <button type="submit" class="btn-primary w-full">Agregar Tipo</button>
+                    </form>
+                    <div id="lista-tipos-mat-config" class="space-y-2"></div>
+                </div>
+
+                <div class="card p-5 md:col-span-2 border-red-200 bg-red-50">
+                    <h3 class="font-bold text-lg mb-4 text-red-800">⚠️ Zona Peligrosa</h3>
+                    <p class="text-sm text-red-600 mb-4">Al resetear el sistema se borrarán TODOS los datos. Haga backup antes.</p>
+                    <button onclick="resetearSistemaPaso1()" class="btn-danger w-full">Resetear Sistema para Nuevo Año</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- MODALES -->
+
+    <!-- Modal Alumno -->
+    <div id="modal-alumno" class="modal">
+        <div class="modal-content p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold" id="modal-alumno-titulo">Nuevo Alumno</h3>
+                <button onclick="cerrarModal('modal-alumno')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <form id="form-alumno" onsubmit="guardarAlumno(event)" class="space-y-4">
+                <input type="hidden" id="alumno-id">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Nombre Completo *</label>
+                        <input type="text" id="alumno-nombre" class="input-field" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Cédula *</label>
+                        <input type="text" id="alumno-cedula" class="input-field" required onblur="validarCedulaUnica(this.value)">
+                        <p id="cedula-error" class="text-red-500 text-xs hidden">Esta cédula ya está registrada</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Fecha Nacimiento</label>
+                        <input type="date" id="alumno-fecha-nac" class="input-field" onchange="calcularEdad()">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Edad</label>
+                        <input type="number" id="alumno-edad" class="input-field" readonly>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
+                        <input type="tel" id="alumno-telefono" class="input-field">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Teléfono Alternativo</label>
+                        <input type="tel" id="alumno-telefono-alt" class="input-field">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                        <input type="email" id="alumno-email" class="input-field">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Padre/Madre/Tutor</label>
+                        <input type="text" id="alumno-tutor" class="input-field">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
+                        <input type="text" id="alumno-direccion" class="input-field">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Nivel *</label>
+                        <select id="alumno-nivel" class="input-field" required></select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Tipo Matrícula *</label>
+                        <select id="alumno-tipo-mat" class="input-field" required></select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Fecha Inscripción</label>
+                        <input type="date" id="alumno-fecha-insc" class="input-field" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">N° Anual</label>
+                        <input type="number" id="alumno-numero" class="input-field">
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" id="alumno-es-hermano" class="rounded text-blue-600">
+                    <label class="text-sm text-gray-700">Es hermano (exento de recargos/descuentos automáticos)</label>
+                </div>
+                <div class="flex gap-2 pt-4">
+                    <button type="submit" class="btn-primary flex-1">Guardar</button>
+                    <button type="button" onclick="cerrarModal('modal-alumno')" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Ficha Alumno -->
+    <div id="modal-ficha" class="modal">
+        <div class="modal-content p-6 max-w-4xl">
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <h3 class="text-2xl font-bold" id="ficha-nombre"></h3>
+                    <p class="text-gray-500" id="ficha-subtitulo"></p>
+                </div>
+                <button onclick="cerrarModal('modal-ficha')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="ficha-contenido">
+                <!-- Se llena dinámicamente -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Asignar Libro -->
+    <div id="modal-asignar-libro" class="modal">
+        <div class="modal-content p-6">
+            <h3 class="text-xl font-bold mb-4">Asignar Libro a Alumno</h3>
+            <form onsubmit="asignarLibro(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Buscar Alumno</label>
+                    <input type="text" id="libro-buscar-alumno" class="input-field" oninput="buscarAlumnoLibro(this.value)" autocomplete="off">
+                    <div id="libro-resultados-alumno" class="mt-1 bg-white border rounded shadow max-h-32 overflow-y-auto hidden"></div>
+                    <input type="hidden" id="libro-alumno-id">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Título del Libro</label>
+                    <input type="text" id="libro-titulo" class="input-field" required>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Costo Total $</label>
+                        <input type="number" id="libro-costo" class="input-field" required onchange="calcularSaldoLibro()">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Primer Abono $</label>
+                        <input type="number" id="libro-abono" class="input-field" value="0" onchange="calcularSaldoLibro()">
+                    </div>
+                </div>
+                <div class="p-3 bg-blue-50 rounded-lg">
+                    <div class="flex justify-between font-bold text-blue-900">
+                        <span>Saldo a financiar:</span>
+                        <span id="libro-saldo-calculado">$0</span>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Comentarios</label>
+                    <textarea id="libro-comentarios" class="input-field" rows="2"></textarea>
+                </div>
+                <div class="flex gap-2">
+                    <button type="submit" class="btn-primary flex-1">Asignar y Registrar Abono</button>
+                    <button type="button" onclick="cerrarModal('modal-asignar-libro')" class="bg-gray-200 px-4 py-2 rounded-lg">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Abono Libro -->
+    <div id="modal-abono-libro" class="modal">
+        <div class="modal-content p-6">
+            <h3 class="text-xl font-bold mb-4">Registrar Abono</h3>
+            <div id="abono-info-libro" class="mb-4 p-3 bg-gray-50 rounded-lg"></div>
+            <form onsubmit="registrarAbonoLibro(event)" class="space-y-4">
+                <input type="hidden" id="abono-libro-id">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Monto $</label>
+                    <input type="number" id="abono-monto" class="input-field" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Comentarios</label>
+                    <textarea id="abono-comentarios" class="input-field" rows="2"></textarea>
+                </div>
+                <button type="submit" class="btn-primary w-full">Registrar Abono</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Gasto -->
+    <div id="modal-gasto" class="modal">
+        <div class="modal-content p-6">
+            <h3 class="text-xl font-bold mb-4">Registrar Gasto</h3>
+            <form onsubmit="guardarGasto(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Concepto</label>
+                    <input type="text" id="gasto-concepto" class="input-field" required>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Monto $</label>
+                        <input type="number" id="gasto-monto" class="input-field" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
+                        <input type="date" id="gasto-fecha" class="input-field" required>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
+                    <select id="gasto-categoria" class="input-field" onchange="toggleCuotasGasto()">
+                        <option value="materiales">Materiales</option>
+                        <option value="servicios">Servicios</option>
+                        <option value="personal">Personal</option>
+                        <option value="cuota">Compra en Cuotas</option>
+                        <option value="otro">Otro</option>
+                    </select>
+                </div>
+                <div id="gasto-cuotas-container" class="hidden">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">N° de Cuotas</label>
+                            <input type="number" id="gasto-cuotas-total" class="input-field" value="1" min="1">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Cuota Actual</label>
+                            <input type="number" id="gasto-cuota-actual" class="input-field" value="1" min="1">
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary w-full">Guardar Gasto</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Pre-inscripción -->
+    <div id="modal-preinscripcion" class="modal">
+        <div class="modal-content p-6">
+            <h3 class="text-xl font-bold mb-4">Nueva Pre-inscripción</h3>
+            <form onsubmit="guardarPreinscripcion(event)" class="space-y-4">
+                <input type="text" id="pre-nombre" class="input-field" placeholder="Nombre completo" required>
+                <input type="tel" id="pre-telefono" class="input-field" placeholder="Teléfono contacto" required>
+                <input type="email" id="pre-email" class="input-field" placeholder="Email">
+                <select id="pre-nivel" class="input-field" required>
+                    <option value="">Nivel de interés</option>
+                </select>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+                    <select id="pre-estado" class="input-field">
+                        <option value="pre-inscripcion">Pre-inscripción</option>
+                        <option value="lista-espera">Lista de espera</option>
+                    </select>
+                </div>
+                <textarea id="pre-notas" class="input-field" rows="2" placeholder="Notas adicionales..."></textarea>
+                <button type="submit" class="btn-primary w-full">Guardar</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Alertas -->
+    <div id="modal-alerts" class="modal">
+        <div class="modal-content p-6 max-w-2xl">
+            <h3 class="text-xl font-bold mb-4">Bandeja de Alertas</h3>
+            <div id="lista-alertas-detalle" class="space-y-3 max-h-96 overflow-y-auto"></div>
+        </div>
+    </div>
+
+    <!-- Modal Reset Confirmación -->
+    <div id="modal-reset" class="modal">
+        <div class="modal-content p-6 max-w-md">
+            <div class="text-center">
+                <i class="fas fa-exclamation-triangle text-red-500 text-4xl mb-4"></i>
+                <h3 class="text-xl font-bold mb-2">¿Está seguro?</h3>
+                <p class="text-gray-600 mb-4">Esta acción borrará TODOS los datos del año <span id="reset-anio-actual"></span>. Haga backup primero.</p>
+                <div class="space-y-2">
+                    <input type="text" id="reset-confirmacion" class="input-field text-center" placeholder='Escriba "BORRAR TODO" para confirmar'>
+                    <button onclick="resetearSistemaPaso2()" class="btn-danger w-full">Sí, Resetear Todo</button>
+                    <button onclick="cerrarModal('modal-reset')" class="bg-gray-200 w-full py-2 rounded">Cancelar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast"></div>
+
+    <script>
+        // === INICIALIZACIÓN Y UTILIDADES ===
+        const STORAGE_KEY = 'alei_sistema_v2';
+        let datos = {
+            anioLectivoActivo: new Date().getFullYear(),
+            alumnos: [],
+            pagos: [],
+            libros: [],
+            gastos: [],
+            niveles: [
+                {id: 1, nombre: '1st CH', precio: 1500},
+                {id: 2, nombre: '2nd CH', precio: 1600},
+                {id: 3, nombre: '3rd CH', precio: 1700},
+                {id: 4, nombre: '4th CH', precio: 1800},
+                {id: 5, nombre: '1st J', precio: 1600},
+                {id: 6, nombre: '2nd J', precio: 1700},
+                {id: 7, nombre: '3rd J', precio: 1900},
+                {id: 8, nombre: '4th J', precio: 2000},
+                {id: 9, nombre: '5th J', precio: 2100},
+                {id: 10, nombre: 'PET', precio: 2200},
+                {id: 11, nombre: 'FCE', precio: 2300},
+                {id: 12, nombre: 'CAE', precio: 2400}
+            ],
+            tiposMatricula: [
+                {id: 1, nombre: 'Regular', costo: 1500, porcentaje: 100, exento_recargos: false},
+                {id: 2, nombre: 'Matricula x 2', costo: 1250, porcentaje: 83, exento_recargos: false},
+                {id: 3, nombre: 'Matricula x 3', costo: 1300, porcentaje: 87, exento_recargos: false},
+                {id: 4, nombre: 'Hermano', costo: 1200, porcentaje: 80, exento_recargos: true}
+            ],
+            config: {
+                recargo_despues_16: 150,
+                descuento_antes_10: 150,
+                mensualidad_base: 2500
+            },
+            auditoria: []
+        };
+
+        function init() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                datos = {...datos, ...parsed};
+            }
+            
+            // Migrar datos del formato viejo si es necesario
+            migrarDatosViejos();
+            
+            document.getElementById('anio-lectivo-activo').textContent = datos.anioLectivoActivo;
+            document.getElementById('selector-anio-lectivo').value = datos.anioLectivoActivo;
+            document.getElementById('caja-fecha').valueAsDate = new Date();
+            document.getElementById('alumno-fecha-insc').valueAsDate = new Date();
+            document.getElementById('gasto-fecha').valueAsDate = new Date();
+            
+            actualizarSelects();
+            renderDashboard();
+            renderAlumnos();
+            renderPagos();
+            renderLibros();
+            renderGastos();
+            renderConfig();
+            verificarAlertas();
+            
+            const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+            document.getElementById('mes-actual-nombre').textContent = meses[new Date().getMonth()];
+        }
+
+        function save() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(datos));
+        }
+
+        function migrarDatosViejos() {
+            // Si viene del JSON antiguo, adaptar estructura
+            datos.alumnos.forEach(a => {
+                if (!a.estado) a.estado = 'activo';
+                if (!a.anio_lectivo) a.anio_lectivo = datos.anioLectivoActivo;
+            });
+        }
+
+        function generateId() {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        }
+
+        function formatMoney(amount) {
+            return '$' + Math.round(amount).toLocaleString('es-UY');
+        }
+
+        function showToast(msg, type = 'success') {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.style.background = type === 'error' ? '#dc2626' : type === 'warning' ? '#d97706' : '#00247D';
+            t.style.display = 'block';
+            setTimeout(() => t.style.display = 'none', 3000);
+        }
+
+        function abrirModal(id) {
+            document.getElementById(id).classList.add('active');
+            if (id === 'modal-alumno') {
+                document.getElementById('modal-alumno-titulo').textContent = document.getElementById('alumno-id').value ? 'Editar Alumno' : 'Nuevo Alumno';
+            }
+        }
+
+        function cerrarModal(id) {
+            document.getElementById(id).classList.remove('active');
+            // Limpiar formularios específicos
+            if (id === 'modal-alumno') {
+                document.getElementById('form-alumno').reset();
+                document.getElementById('alumno-id').value = '';
+                document.getElementById('cedula-error').classList.add('hidden');
+            }
+        }
+
+        // === NAVEGACIÓN ===
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+            document.getElementById('tab-' + tab).classList.add('active');
+            event.target.classList.add('active');
+            
+            if (tab === 'dashboard') renderDashboard();
+            if (tab === 'alumnos') renderAlumnos();
+            if (tab === 'pagos') renderPagos();
+            if (tab === 'libros') renderLibros();
+            if (tab === 'gastos') renderGastos();
+        }
+
+        function cambiarAnioLectivo() {
+            const nuevo = document.getElementById('selector-anio-lectivo').value;
+            datos.anioLectivoActivo = parseInt(nuevo);
+            save();
+            document.getElementById('anio-lectivo-activo').textContent = nuevo;
+            showToast('Año lectivo cambiado a ' + nuevo);
+            renderDashboard();
+            renderAlumnos();
+        }
+
+        function actualizarSelects() {
+            // Niveles
+            const optsNiveles = datos.niveles.map(n => `<option value="${n.id}">${n.nombre}</option>`).join('');
+            document.getElementById('alumno-nivel').innerHTML = '<option value="">Seleccione...</option>' + optsNiveles;
+            document.getElementById('filtro-alumno-nivel').innerHTML = '<option value="">Todos los niveles</option>' + optsNiveles;
+            document.getElementById('pre-nivel').innerHTML = '<option value="">Nivel de interés</option>' + optsNiveles;
+            
+            // Tipos matrícula
+            const optsTipos = datos.tiposMatricula.map(t => `<option value="${t.id}">${t.nombre} (${formatMoney(t.costo)})</option>`).join('');
+            document.getElementById('alumno-tipo-mat').innerHTML = optsTipos;
+            
+            // Meses para caja
+            const mesActual = new Date().getMonth() + 1;
+            document.getElementById('caja-mes').value = mesActual;
+        }
+
+        // === DASHBOARD Y ALERTAS ===
+        function renderDashboard() {
+            const alumnosActivos = datos.alumnos.filter(a => a.estado === 'activo' && a.anio_lectivo == datos.anioLectivoActivo);
+            const listaEspera = datos.alumnos.filter(a => a.estado === 'lista-espera');
+            const preinscripciones = datos.alumnos.filter(a => a.estado === 'pre-inscripcion');
+            
+            document.getElementById('stat-alumnos-activos').textContent = alumnosActivos.length;
+            document.getElementById('stat-lista-espera').textContent = listaEspera.length + preinscripciones.length;
+            
+            // Ingresos mes
+            const mesActual = new Date().getMonth() + 1;
+            const ingresosMes = datos.pagos
+                .filter(p => {
+                    const fecha = new Date(p.fecha);
+                    return fecha.getMonth() + 1 === mesActual && fecha.getFullYear() == datos.anioLectivoActivo;
+                })
+                .reduce((sum, p) => sum + p.monto, 0);
+            document.getElementById('stat-ingresos-mes').textContent = formatMoney(ingresosMes);
+            document.getElementById('resumen-ingresos').textContent = formatMoney(ingresosMes);
+            
+            // Deuda total
+            let deudaTotal = 0;
+            let pagosParciales = 0;
+            
+            alumnosActivos.forEach(a => {
+                deudaTotal += calcularDeudaMatricula(a);
+            });
+            
+            datos.libros.forEach(l => {
+                if (l.saldo > 0) {
+                    deudaTotal += parseFloat(l.saldo);
+                    if (l.pagado > 0) pagosParciales++;
+                }
+            });
+            
+            document.getElementById('stat-deuda-total').textContent = formatMoney(deudaTotal);
+            document.getElementById('stat-pagos-parciales').textContent = pagosParciales;
+            
+            // Gastos mes
+            const gastosMes = datos.gastos
+                .filter(g => {
+                    const fecha = new Date(g.fecha);
+                    return fecha.getMonth() + 1 === mesActual && fecha.getFullYear() == datos.anioLectivoActivo;
+                })
+                .reduce((sum, g) => sum + g.monto, 0);
+            document.getElementById('resumen-gastos').textContent = formatMoney(gastosMes);
+            document.getElementById('resumen-balance').textContent = formatMoney(ingresosMes - gastosMes);
+            
+            // Mensualidades del mes
+            renderMensualidadesMes(alumnosActivos, mesActual);
+            
+            // Cumpleaños
+            renderCumpleanos(alumnosActivos);
+            
+            // Deudores atrasados
+            renderDeudoresAtrasados(alumnosActivos);
+        }
+
+        function calcularDeudaMatricula(alumno) {
+            const tipo = datos.tiposMatricula.find(t => t.id == alumno.tipo_matricula_id);
+            if (!tipo) return 0;
+            
+            const pagosMat = datos.pagos.filter(p => 
+                p.alumno_id == alumno.id && 
+                p.concepto === 'matricula' &&
+                p.anio_lectivo == datos.anioLectivoActivo
+            );
+            const pagado = pagosMat.reduce((sum, p) => sum + p.monto, 0);
+            const debe = tipo.costo - pagado;
+            return debe > 0 ? debe : 0;
+        }
+
+        function renderMensualidadesMes(alumnos, mes) {
+            const tbody = document.getElementById('tabla-mensualidades-mes');
+            let html = '';
+            
+            alumnos.forEach(a => {
+                const pago = datos.pagos.find(p => 
+                    p.alumno_id == a.id && 
+                    p.concepto === 'mensualidad' && 
+                    p.mes == mes &&
+                    p.anio_lectivo == datos.anioLectivoActivo
+                );
+                
+                const nivel = datos.niveles.find(n => n.id == a.nivel_id);
+                const montoEsperado = nivel ? nivel.precio : 0;
+                
+                let estado, clase, accion;
+                if (pago) {
+                    estado = 'Pagado';
+                    clase = 'status-paid';
+                    accion = `<button onclick="verRecibo('${pago.id}')" class="text-blue-600 hover:underline text-xs">Ver</button>`;
+                } else {
+                    estado = 'Pendiente';
+                    clase = 'status-overdue';
+                    accion = `<button onclick="cobrarRapido('${a.id}')" class="text-green-600 hover:underline text-xs">Cobrar</button>`;
+                }
+                
+                html += `<tr class="border-b">
+                    <td class="p-3">${a.nombre}</td>
+                    <td class="p-3 text-sm text-gray-600">${nivel?.nombre || '-'}</td>
+                    <td class="p-3 text-center"><span class="status-badge ${clase}">${estado}</span></td>
+                    <td class="p-3 text-right">${formatMoney(montoEsperado)}</td>
+                    <td class="p-3 text-center">${accion}</td>
+                </tr>`;
+            });
+            
+            tbody.innerHTML = html;
+        }
+
+        function renderCumpleanos(alumnos) {
+            const hoy = new Date();
+            const proximos = alumnos
+                .filter(a => a.fecha_nacimiento)
+                .map(a => {
+                    const fnac = new Date(a.fecha_nacimiento);
+                    const esteAnio = new Date(hoy.getFullYear(), fnac.getMonth(), fnac.getDate());
+                    if (esteAnio < hoy) esteAnio.setFullYear(hoy.getFullYear() + 1);
+                    const dias = Math.ceil((esteAnio - hoy) / (1000 * 60 * 60 * 24));
+                    return {...a, dias, fecha: esteAnio};
+                })
+                .filter(a => a.dias <= 30)
+                .sort((a, b) => a.dias - b.dias)
+                .slice(0, 5);
+            
+            const div = document.getElementById('lista-cumpleanos');
+            if (proximos.length === 0) {
+                div.innerHTML = '<p class="text-gray-500 text-sm">No hay cumpleaños próximos</p>';
+                return;
+            }
+            
+            div.innerHTML = proximos.map(a => {
+                const fecha = a.fecha.toLocaleDateString('es-UY', {day: 'numeric', month: 'short'});
+                return `<div class="flex justify-between items-center p-2 bg-white rounded border">
+                    <span class="font-medium">${a.nombre}</span>
+                    <span class="text-sm text-blue-600">${fecha} (${a.dias} días)</span>
+                </div>`;
+            }).join('');
+        }
+
+        function renderDeudoresAtrasados(alumnos) {
+            const div = document.getElementById('lista-deudores-atrasados');
+            // Simulación: alumnos con deuda de matrícula > 30 días desde inscripción
+            const deudores = alumnos.filter(a => {
+                const deuda = calcularDeudaMatricula(a);
+                if (deuda === 0) return false;
+                const diasInscrito = Math.ceil((new Date() - new Date(a.fecha_inscripcion)) / (1000 * 60 * 60 * 24));
+                return diasInscrito > 30;
+            }).slice(0, 6);
+            
+            if (deudores.length === 0) {
+                div.innerHTML = '<p class="text-gray-500 col-span-3">No hay deudas atrasadas destacadas</p>';
+                return;
+            }
+            
+            div.innerHTML = deudores.map(a => {
+                const deuda = calcularDeudaMatricula(a);
+                return `<div class="p-4 bg-red-50 rounded-lg border border-red-200">
+                    <div class="font-bold text-red-900">${a.nombre}</div>
+                    <div class="text-sm text-red-700">Debe matrícula: ${formatMoney(deuda)}</div>
+                    <button onclick="generarMensajeWhatsApp('${a.id}', 'matricula')" class="mt-2 text-xs bg-green-600 text-white px-3 py-1 rounded">
+                        <i class="fab fa-whatsapp mr-1"></i>Enviar mensaje
+                    </button>
+                </div>`;
+            }).join('');
+        }
+
+        function verificarAlertas() {
+            let alertas = [];
+            const hoy = new Date();
+            
+            // Libros no retirados (asignados hace más de 7 días sin pago)
+            datos.libros.forEach(l => {
+                if (l.pagado == 0) {
+                    const dias = Math.ceil((hoy - new Date(l.created_at || hoy)) / (1000 * 60 * 60 * 24));
+                    if (dias > 7) {
+                        const alumno = datos.alumnos.find(a => a.id == l.alumno_id);
+                        alertas.push({
+                            tipo: 'warning',
+                            msg: `${alumno?.nombre || 'Alumno'} no ha retirado el libro "${l.titulo}" (${dias} días)`,
+                            accion: () => verFichaAlumno(l.alumno_id)
+                        });
+                    }
+                }
+            });
+            
+            const contador = document.getElementById('contador-alertas');
+            if (alertas.length > 0) {
+                contador.textContent = alertas.length;
+                contador.classList.remove('hidden');
+            }
+        }
+
+        // === ALUMNOS ===
+        function renderAlumnos() {
+            const filtroTexto = document.getElementById('filtro-alumno-texto').value.toLowerCase();
+            const filtroNivel = document.getElementById('filtro-alumno-nivel').value;
+            const filtroEstado = document.getElementById('filtro-alumno-estado').value;
+            
+            let lista = datos.alumnos.filter(a => a.anio_lectivo == datos.anioLectivoActivo || a.anio_lectivo === undefined);
+            
+            if (filtroEstado !== 'todos') {
+                lista = lista.filter(a => a.estado === filtroEstado || (filtroEstado === 'activo' && !a.estado));
+            }
+            if (filtroNivel) lista = lista.filter(a => a.nivel_id == filtroNivel);
+            if (filtroTexto) {
+                lista = lista.filter(a => 
+                    a.nombre.toLowerCase().includes(filtroTexto) || 
+                    a.cedula.includes(filtroTexto) ||
+                    (a.tutor && a.tutor.toLowerCase().includes(filtroTexto))
+                );
+            }
+            
+            const tbody = document.getElementById('tabla-alumnos');
+            tbody.innerHTML = lista.map(a => {
+                const nivel = datos.niveles.find(n => n.id == a.nivel_id);
+                const tipo = datos.tiposMatricula.find(t => t.id == a.tipo_matricula_id);
+                
+                let estadoClass = 'status-paid';
+                let estadoText = 'Activo';
+                if (a.estado === 'lista-espera') { estadoClass = 'status-waitlist'; estadoText = 'Lista Espera'; }
+                else if (a.estado === 'pre-inscripcion') { estadoClass = 'status-pre'; estadoText = 'Pre-inscripción'; }
+                
+                return `<tr class="border-b hover:bg-gray-50">
+                    <td class="p-3">${a.numero || '-'}</td>
+                    <td class="p-3 font-medium">${a.nombre}</td>
+                    <td class="p-3 text-sm">${a.cedula}</td>
+                    <td class="p-3 text-sm">${nivel?.nombre || '-'}</td>
+                    <td class="p-3 text-sm">
+                        <div>${a.telefono || '-'}</div>
+                        ${a.telefono_alt ? `<div class="text-xs text-gray-500">${a.telefono_alt}</div>` : ''}
+                    </td>
+                    <td class="p-3 text-center text-xs">
+                        <span class="${a.es_hermano ? 'text-purple-600 font-bold' : ''}">${tipo?.nombre || 'Regular'}</span>
+                    </td>
+                    <td class="p-3 text-center"><span class="status-badge ${estadoClass}">${estadoText}</span></td>
+                    <td class="p-3 text-center">
+                        <button onclick="editarAlumno('${a.id}')" class="text-blue-600 hover:text-blue-800 mr-2" title="Editar"><i class="fas fa-edit"></i></button>
+                        <button onclick="verFichaAlumno('${a.id}')" class="text-green-600 hover:text-green-800 mr-2" title="Ver ficha"><i class="fas fa-eye"></i></button>
+                        ${a.estado !== 'activo' ? `<button onclick="convertirAAlumno('${a.id}')" class="text-purple-600 hover:text-purple-800" title="Convertir a alumno"><i class="fas fa-user-check"></i></button>` : ''}
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        function filtrarAlumnos() { renderAlumnos(); }
+
+        function validarCedulaUnica(cedula) {
+            const existe = datos.alumnos.find(a => a.cedula === cedula && a.id !== document.getElementById('alumno-id').value);
+            document.getElementById('cedula-error').classList.toggle('hidden', !existe);
+            return !existe;
+        }
+
+        function calcularEdad() {
+            const fnac = document.getElementById('alumno-fecha-nac').value;
+            if (fnac) {
+                const hoy = new Date();
+                const nac = new Date(fnac);
+                let edad = hoy.getFullYear() - nac.getFullYear();
+                if (hoy.getMonth() < nac.getMonth() || (hoy.getMonth() === nac.getMonth() && hoy.getDate() < nac.getDate())) {
+                    edad--;
+                }
+                document.getElementById('alumno-edad').value = edad;
+            }
+        }
+
+        function guardarAlumno(e) {
+            e.preventDefault();
+            if (!validarCedulaUnica(document.getElementById('alumno-cedula').value)) return;
+            
+            const id = document.getElementById('alumno-id').value;
+            const alumno = {
+                id: id || generateId(),
+                nombre: document.getElementById('alumno-nombre').value,
+                cedula: document.getElementById('alumno-cedula').value,
+                fecha_nacimiento: document.getElementById('alumno-fecha-nac').value,
+                edad: parseInt(document.getElementById('alumno-edad').value) || 0,
+                telefono: document.getElementById('alumno-telefono').value,
+                telefono_alt: document.getElementById('alumno-telefono-alt').value,
+                email: document.getElementById('alumno-email').value,
+                tutor: document.getElementById('alumno-tutor').value,
+                direccion: document.getElementById('alumno-direccion').value,
+                nivel_id: document.getElementById('alumno-nivel').value,
+                tipo_matricula_id: document.getElementById('alumno-tipo-mat').value,
+                fecha_inscripcion: document.getElementById('alumno-fecha-insc').value,
+                numero: document.getElementById('alumno-numero').value || (datos.alumnos.length + 1),
+                es_hermano: document.getElementById('alumno-es-hermano').checked,
+                estado: 'activo',
+                anio_lectivo: datos.anioLectivoActivo,
+                created_at: id ? undefined : new Date().toISOString()
+            };
+            
+            if (id) {
+                const idx = datos.alumnos.findIndex(a => a.id === id);
+                datos.alumnos[idx] = {...datos.alumnos[idx], ...alumno};
+                // Auditoría
+                datos.auditoria.push({fecha: new Date().toISOString(), accion: 'edit_alumno', alumno_id: id, usuario: 'admin'});
+            } else {
+                datos.alumnos.push(alumno);
+            }
+            
+            save();
+            renderAlumnos();
+            cerrarModal('modal-alumno');
+            showToast(id ? 'Alumno actualizado' : 'Alumno registrado');
+        }
+
+        function editarAlumno(id) {
+            const a = datos.alumnos.find(x => x.id === id);
+            if (!a) return;
+            
+            document.getElementById('alumno-id').value = a.id;
+            document.getElementById('alumno-nombre').value = a.nombre;
+            document.getElementById('alumno-cedula').value = a.cedula;
+            document.getElementById('alumno-fecha-nac').value = a.fecha_nacimiento || '';
+            document.getElementById('alumno-edad').value = a.edad || '';
+            document.getElementById('alumno-telefono').value = a.telefono || '';
+            document.getElementById('alumno-telefono-alt').value = a.telefono_alt || '';
+            document.getElementById('alumno-email').value = a.email || '';
+            document.getElementById('alumno-tutor').value = a.tutor || '';
+            document.getElementById('alumno-direccion').value = a.direccion || '';
+            document.getElementById('alumno-nivel').value = a.nivel_id;
+            document.getElementById('alumno-tipo-mat').value = a.tipo_matricula_id;
+            document.getElementById('alumno-fecha-insc').value = a.fecha_inscripcion;
+            document.getElementById('alumno-numero').value = a.numero || '';
+            document.getElementById('alumno-es-hermano').checked = a.es_hermano || false;
+            
+            abrirModal('modal-alumno');
+        }
+
+        function verFichaAlumno(id) {
+            const a = datos.alumnos.find(x => x.id === id);
+            if (!a) return;
+            
+            document.getElementById('ficha-nombre').textContent = a.nombre;
+            document.getElementById('ficha-subtitulo').textContent = `Cédula: ${a.cedula} | N° ${a.numero || '-'}`;
+            
+            const nivel = datos.niveles.find(n => n.id == a.nivel_id);
+            const tipo = datos.tiposMatricula.find(t => t.id == a.tipo_matricula_id);
+            const deudaMat = calcularDeudaMatricula(a);
+            
+            // Libros
+            const libros = datos.libros.filter(l => l.alumno_id == id);
+            const deudaLibros = libros.reduce((sum, l) => sum + parseFloat(l.saldo || 0), 0);
+            
+            // Pagos recientes
+            const pagos = datos.pagos.filter(p => p.alumno_id == id).slice(-5);
+            
+            document.getElementById('ficha-contenido').innerHTML = `
+                <div class="space-y-3">
+                    <div class="bg-blue-50 p-4 rounded-lg">
+                        <h4 class="font-bold text-blue-900 mb-2">Información Personal</h4>
+                        <p class="text-sm"><strong>Tel:</strong> ${a.telefono || '-'} ${a.telefono_alt ? '/ ' + a.telefono_alt : ''}</p>
+                        <p class="text-sm"><strong>Email:</strong> ${a.email || '-'}</p>
+                        <p class="text-sm"><strong>Tutor:</strong> ${a.tutor || '-'}</p>
+                        <p class="text-sm"><strong>Dirección:</strong> ${a.direccion || '-'}</p>
+                        <p class="text-sm"><strong>Inscripción:</strong> ${a.fecha_inscripcion}</p>
+                    </div>
+                    <div class="bg-yellow-50 p-4 rounded-lg">
+                        <h4 class="font-bold text-yellow-900 mb-2">Deudas Pendientes</h4>
+                        <p class="text-sm flex justify-between"><span>Matrícula:</span> <span class="font-bold">${formatMoney(deudaMat)}</span></p>
+                        <p class="text-sm flex justify-between"><span>Libros:</span> <span class="font-bold">${formatMoney(deudaLibros)}</span></p>
+                        <p class="text-sm flex justify-between border-t pt-2 mt-2"><span>TOTAL:</span> <span class="font-bold text-lg">${formatMoney(deudaMat + deudaLibros)}</span></p>
+                    </div>
+                </div>
+                <div class="md:col-span-2 space-y-3">
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h4 class="font-bold text-gray-900 mb-2">Libros Asignados (${libros.length})</h4>
+                        ${libros.length ? libros.map(l => `
+                            <div class="flex justify-between items-center p-2 bg-white rounded mb-2 text-sm">
+                                <span>${l.titulo}</span>
+                                <span class="${l.saldo > 0 ? 'text-red-600' : 'text-green-600'} font-bold">
+                                    ${l.saldo > 0 ? 'Debe ' + formatMoney(l.saldo) : 'Pagado'}
+                                </span>
+                            </div>
+                        `).join('') : '<p class="text-sm text-gray-500">Sin libros asignados</p>'}
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h4 class="font-bold text-gray-900 mb-2">Últimos Pagos</h4>
+                        ${pagos.length ? pagos.map(p => `
+                            <div class="flex justify-between items-center p-2 bg-white rounded mb-2 text-sm">
+                                <span>${p.fecha} - ${p.concepto}</span>
+                                <span class="font-bold text-green-600">${formatMoney(p.monto)}</span>
+                            </div>
+                        `).join('') : '<p class="text-sm text-gray-500">Sin pagos registrados</p>'}
+                    </div>
+                </div>
+            `;
+            
+            abrirModal('modal-ficha');
+        }
+
+        function guardarPreinscripcion(e) {
+            e.preventDefault();
+            const alumno = {
+                id: generateId(),
+                nombre: document.getElementById('pre-nombre').value,
+                telefono: document.getElementById('pre-telefono').value,
+                email: document.getElementById('pre-email').value,
+                nivel_id: document.getElementById('pre-nivel').value,
+                estado: document.getElementById('pre-estado').value,
+                notas: document.getElementById('pre-notas').value,
+                anio_lectivo: datos.anioLectivoActivo,
+                fecha_inscripcion: new Date().toISOString().split('T')[0]
+            };
+            datos.alumnos.push(alumno);
+            save();
+            renderAlumnos();
+            cerrarModal('modal-preinscripcion');
+            showToast('Pre-inscripción guardada');
+        }
+
+        function convertirAAlumno(id) {
+            const a = datos.alumnos.find(x => x.id === id);
+            if (confirm(`¿Convertir a ${a.nombre} en alumno regular?`)) {
+                a.estado = 'activo';
+                a.fecha_inscripcion = new Date().toISOString().split('T')[0];
+                save();
+                renderAlumnos();
+                showToast('Convertido a alumno regular');
+            }
+        }
+
+        // === PAGOS ===
+        function renderPagos() {
+            const filtroAlumno = document.getElementById('filtro-pago-alumno').value.toLowerCase();
+            const filtroConcepto = document.getElementById('filtro-pago-concepto').value;
+            const desde = document.getElementById('filtro-pago-desde').value;
+            const hasta = document.getElementById('filtro-pago-hasta').value;
+            
+            let lista = datos.pagos.filter(p => p.anio_lectivo == datos.anioLectivoActivo);
+            
+            if (filtroConcepto) lista = lista.filter(p => p.concepto === filtroConcepto);
+            if (desde) lista = lista.filter(p => p.fecha >= desde);
+            if (hasta) lista = lista.filter(p => p.fecha <= hasta);
+            if (filtroAlumno) {
+                lista = lista.filter(p => {
+                    const a = datos.alumnos.find(x => x.id == p.alumno_id);
+                    return a && a.nombre.toLowerCase().includes(filtroAlumno);
+                });
+            }
+            
+            lista.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+            
+            const tbody = document.getElementById('tabla-pagos');
+            tbody.innerHTML = lista.map(p => {
+                const a = datos.alumnos.find(x => x.id == p.alumno_id);
+                const esParcial = p.es_parcial || p.saldo_restante > 0;
+                
+                return `<tr class="border-b hover:bg-gray-50">
+                    <td class="p-3">${p.fecha}</td>
+                    <td class="p-3">${a?.nombre || 'N/A'}</td>
+                    <td class="p-3 capitalize">${p.concepto} ${p.mes ? '(' + p.mes + ')' : ''}</td>
+                    <td class="p-3 text-right font-bold">${formatMoney(p.monto)}</td>
+                    <td class="p-3 text-center">
+                        ${esParcial ? '<span class="status-badge status-partial">Parcial</span>' : '<span class="status-badge status-paid">Completo</span>'}
+                    </td>
+                    <td class="p-3 text-sm text-gray-600 max-w-xs truncate" title="${p.comentarios || ''}">${p.comentarios || '-'}</td>
+                    <td class="p-3 text-center">
+                        <button onclick="editarPago('${p.id}')" class="text-blue-600 hover:text-blue-800" title="Editar"><i class="fas fa-edit"></i></button>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        function filtrarPagos() { renderPagos(); }
+
+        // === CAJA RÁPIDA ===
+        function buscarAlumnoCaja(texto) {
+            const div = document.getElementById('caja-resultados');
+            if (texto.length < 2) {
+                div.classList.add('hidden');
+                return;
+            }
+            
+            const filtrados = datos.alumnos.filter(a => 
+                (a.estado === 'activo' || !a.estado) &&
+                (a.nombre.toLowerCase().includes(texto.toLowerCase()) || a.cedula.includes(texto))
+            ).slice(0, 5);
+            
+            if (filtrados.length) {
+                div.innerHTML = filtrados.map(a => `
+                    <div class="p-3 hover:bg-blue-50 cursor-pointer border-b" onclick="seleccionarAlumnoCaja('${a.id}')">
+                        <div class="font-medium">${a.nombre}</div>
+                        <div class="text-xs text-gray-500">${a.cedula}</div>
+                    </div>
+                `).join('');
+                div.classList.remove('hidden');
+            }
+        }
+
+        function seleccionarAlumnoCaja(id) {
+            const a = datos.alumnos.find(x => x.id === id);
+            document.getElementById('caja-alumno-id').value = id;
+            document.getElementById('caja-alumno-seleccionado').innerHTML = `<strong>${a.nombre}</strong><br><small>${a.cedula}</small>`;
+            document.getElementById('caja-alumno-seleccionado').classList.remove('hidden');
+            document.getElementById('caja-resultados').classList.add('hidden');
+            document.getElementById('caja-buscar').value = '';
+        }
+
+        function actualizarMontoCaja() {
+            const concepto = document.getElementById('caja-concepto').value;
+            const alumnoId = document.getElementById('caja-alumno-id').value;
+            const containerMes = document.getElementById('caja-mes-container');
+            
+            containerMes.classList.toggle('hidden', concepto !== 'mensualidad');
+            
+            if (concepto === 'matricula' && alumnoId) {
+                const a = datos.alumnos.find(x => x.id === alumnoId);
+                const deuda = calcularDeudaMatricula(a);
+                document.getElementById('caja-monto').value = deuda;
+            } else if (concepto === 'mensualidad') {
+                const mes = document.getElementById('caja-mes').value;
+                calcularRecargoDescuentoCaja();
+            }
+        }
+
+        function calcularRecargoDescuentoCaja() {
+            const concepto = document.getElementById('caja-concepto').value;
+            if (concepto !== 'mensualidad') return;
+            
+            const alumnoId = document.getElementById('caja-alumno-id').value;
+            if (!alumnoId) return;
+            
+            const a = datos.alumnos.find(x => x.id === alumnoId);
+            if (a.es_hermano || datos.tiposMatricula.find(t => t.id == a.tipo_matricula_id)?.exento_recargos) {
+                document.getElementById('caja-info-recargo').classList.add('hidden');
+                return;
+            }
+            
+            const fechaPago = new Date(document.getElementById('caja-fecha').value);
+            const dia = fechaPago.getDate();
+            const mesPago = fechaPago.getMonth() + 1;
+            const mesCorresponde = parseInt(document.getElementById('caja-mes').value);
+            
+            let mensaje = '';
+            let monto = datos.config.mensualidad_base;
+            
+            // Lógica de recargos/descuentos
+            if (mesPago < mesCorresponde) {
+                // Paga adelantado (mes anterior o antes)
+                mensaje = `Paga adelantado (mes ${mesPago} para ${mesCorresponde}): Descuento ${formatMoney(datos.config.descuento_antes_10)}`;
+                monto -= datos.config.descuento_antes_10;
+            } else if (mesPago === mesCorresponde) {
+                if (dia <= 10) {
+                    mensaje = `Paga antes del 10: Descuento ${formatMoney(datos.config.descuento_antes_10)}`;
+                    monto -= datos.config.descuento_antes_10;
+                } else if (dia <= 15) {
+                    mensaje = `Paga entre 11-15: Precio normal`;
+                } else {
+                    mensaje = `Paga después del 16: Recargo ${formatMoney(datos.config.recargo_despues_16)}`;
+                    monto += datos.config.recargo_despues_16;
+                }
+            } else {
+                // Paga atrasado
+                mensaje = `Paga atrasado (mes ${mesPago} para ${mesCorresponde}): Recargo ${formatMoney(datos.config.recargo_despues_16)}`;
+                monto += datos.config.recargo_despues_16;
+            }
+            
+            document.getElementById('caja-monto').value = monto;
+            const infoDiv = document.getElementById('caja-info-recargo');
+            infoDiv.innerHTML = `<i class="fas fa-info-circle mr-2"></i>${mensaje}`;
+            infoDiv.classList.remove('hidden');
+        }
+
+        function togglePagoParcial() {
+            const esParcial = document.getElementById('caja-es-parcial').checked;
+            document.getElementById('caja-saldo-container').classList.toggle('hidden', !esParcial);
+            if (esParcial) verificarPagoParcial();
+        }
+
+        function verificarPagoParcial() {
+            if (!document.getElementById('caja-es-parcial').checked) return;
+            
+            const montoTotal = parseFloat(document.getElementById('caja-monto').getAttribute('data-total') || document.getElementById('caja-monto').value);
+            const montoPagado = parseFloat(document.getElementById('caja-monto').value) || 0;
+            const saldo = montoTotal - montoPagado;
+            
+            document.getElementById('caja-saldo-restante').textContent = formatMoney(saldo);
+        }
+
+        function registrarCajaRapida(e) {
+            e.preventDefault();
+            const alumnoId = document.getElementById('caja-alumno-id').value;
+            if (!alumnoId) { showToast('Seleccione un alumno', 'error'); return; }
+            
+            const concepto = document.getElementById('caja-concepto').value;
+            const monto = parseFloat(document.getElementById('caja-monto').value);
+            const esParcial = document.getElementById('caja-es-parcial').checked;
+            
+            const pago = {
+                id: generateId(),
+                alumno_id: alumnoId,
+                concepto: concepto,
+                monto: monto,
+                fecha: document.getElementById('caja-fecha').value,
+                mes: concepto === 'mensualidad' ? document.getElementById('caja-mes').value : null,
+                comentarios: document.getElementById('caja-comentarios').value,
+                es_parcial: esParcial,
+                saldo_restante: esParcial ? (parseFloat(document.getElementById('caja-saldo-restante').textContent.replace(/[^0-9]/g, '')) || 0) : 0,
+                anio_lectivo: datos.anioLectivoActivo,
+                created_at: new Date().toISOString(),
+                modificado_por: 'admin',
+                fecha_modificacion: new Date().toISOString()
+            };
+            
+            datos.pagos.push(pago);
+            save();
+            
+            document.getElementById('form-caja-rapida').reset();
+            document.getElementById('caja-alumno-seleccionado').classList.add('hidden');
+            document.getElementById('caja-fecha').valueAsDate = new Date();
+            document.getElementById('caja-saldo-container').classList.add('hidden');
+            document.getElementById('caja-info-recargo').classList.add('hidden');
+            
+            showToast('Pago registrado correctamente');
+            renderDashboard();
+            renderPagos();
+        }
+
+        // === LIBROS ===
+        function renderLibros() {
+            const stats = {total: 0, pendientes: 0, pagados: 0};
+            
+            const tbody = document.getElementById('tabla-libros');
+            tbody.innerHTML = datos.libros.map(l => {
+                stats.total++;
+                const alumno = datos.alumnos.find(a => a.id == l.alumno_id);
+                const costo = parseFloat(l.costo_total);
+                const pagado = parseFloat(l.pagado);
+                const saldo = parseFloat(l.saldo);
+                
+                if (saldo > 0) stats.pendientes++; else stats.pagados++;
+                
+                const porcentaje = (pagado / costo) * 100;
+                
+                return `<tr class="border-b hover:bg-gray-50">
+                    <td class="p-3">${alumno?.nombre || 'N/A'}</td>
+                    <td class="p-3">${l.titulo}</td>
+                    <td class="p-3 text-right">${formatMoney(costo)}</td>
+                    <td class="p-3 text-right text-green-600">${formatMoney(pagado)}</td>
+                    <td class="p-3 text-right text-red-600 font-bold">${formatMoney(saldo)}</td>
+                    <td class="p-3">
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-blue-600 h-2 rounded-full" style="width: ${porcentaje}%"></div>
+                        </div>
+                        <span class="text-xs">${Math.round(porcentaje)}%</span>
+                    </td>
+                    <td class="p-3 text-center">
+                        ${saldo > 0 ? `<button onclick="abrirAbonoLibro('${l.id}')" class="btn-primary text-xs py-1 px-2">Abonar</button>` : '<span class="text-green-600 text-xs">Pagado</span>'}
+                    </td>
+                </tr>`;
+            }).join('');
+            
+            document.getElementById('stat-total-libros').textContent = stats.total;
+            document.getElementById('stat-libros-pendientes').textContent = stats.pendientes;
+            document.getElementById('stat-libros-pagados').textContent = stats.pagados;
+        }
+
+        function buscarAlumnoLibro(texto) {
+            const div = document.getElementById('libro-resultados-alumno');
+            if (texto.length < 2) { div.classList.add('hidden'); return; }
+            
+            const filtrados = datos.alumnos.filter(a => a.nombre.toLowerCase().includes(texto.toLowerCase())).slice(0, 5);
+            div.innerHTML = filtrados.map(a => `<div class="p-2 hover:bg-blue-50 cursor-pointer" onclick="seleccionarAlumnoLibro('${a.id}', '${a.nombre}')">${a.nombre}</div>`).join('');
+            div.classList.remove('hidden');
+        }
+
+        function seleccionarAlumnoLibro(id, nombre) {
+            document.getElementById('libro-alumno-id').value = id;
+            document.getElementById('libro-buscar-alumno').value = nombre;
+            document.getElementById('libro-resultados-alumno').classList.add('hidden');
+        }
+
+        function calcularSaldoLibro() {
+            const total = parseFloat(document.getElementById('libro-costo').value) || 0;
+            const abono = parseFloat(document.getElementById('libro-abono').value) || 0;
+            document.getElementById('libro-saldo-calculado').textContent = formatMoney(total - abono);
+        }
+
+        function asignarLibro(e) {
+            e.preventDefault();
+            const libro = {
+                id: generateId(),
+                alumno_id: document.getElementById('libro-alumno-id').value,
+                titulo: document.getElementById('libro-titulo').value,
+                costo_total: parseFloat(document.getElementById('libro-costo').value),
+                pagado: parseFloat(document.getElementById('libro-abono').value) || 0,
+                saldo: parseFloat(document.getElementById('libro-costo').value) - (parseFloat(document.getElementById('libro-abono').value) || 0),
+                comentarios: document.getElementById('libro-comentarios').value,
+                pagos: [{
+                    fecha: new Date().toISOString().split('T')[0],
+                    monto: parseFloat(document.getElementById('libro-abono').value) || 0,
+                    comentarios: 'Asignación inicial'
+                }],
+                created_at: new Date().toISOString()
+            };
+            
+            datos.libros.push(libro);
+            
+            // Registrar pago también en tabla pagos
+            if (libro.pagado > 0) {
+                datos.pagos.push({
+                    id: generateId(),
+                    alumno_id: libro.alumno_id,
+                    concepto: 'libro',
+                    monto: libro.pagado,
+                    fecha: new Date().toISOString().split('T')[0],
+                    comentarios: `Abono inicial: ${libro.titulo}`,
+                    anio_lectivo: datos.anioLectivoActivo,
+                    libro_id: libro.id
+                });
+            }
+            
+            save();
+            renderLibros();
+            cerrarModal('modal-asignar-libro');
+            showToast('Libro asignado correctamente');
+        }
+
+        function abrirAbonoLibro(id) {
+            const l = datos.libros.find(x => x.id === id);
+            document.getElementById('abono-libro-id').value = id;
+            document.getElementById('abono-info-libro').innerHTML = `
+                <strong>${l.titulo}</strong><br>
+                Saldo pendiente: <span class="text-red-600 font-bold">${formatMoney(l.saldo)}</span>
+            `;
+            document.getElementById('abono-monto').value = l.saldo;
+            document.getElementById('abono-monto').max = l.saldo;
+            abrirModal('modal-abono-libro');
+        }
+
+        function registrarAbonoLibro(e) {
+            e.preventDefault();
+            const id = document.getElementById('abono-libro-id').value;
+            const monto = parseFloat(document.getElementById('abono-monto').value);
+            const libro = datos.libros.find(l => l.id === id);
+            
+            libro.pagado += monto;
+            libro.saldo -= monto;
+            libro.pagos.push({
+                fecha: new Date().toISOString().split('T')[0],
+                monto: monto,
+                comentarios: document.getElementById('abono-comentarios').value
+            });
+            
+            // Registrar en pagos general
+            datos.pagos.push({
+                id: generateId(),
+                alumno_id: libro.alumno_id,
+                concepto: 'libro',
+                monto: monto,
+                fecha: new Date().toISOString().split('T')[0],
+                comentarios: `Abono: ${libro.titulo}. ${document.getElementById('abono-comentarios').value}`,
+                anio_lectivo: datos.anioLectivoActivo,
+                libro_id: libro.id,
+                es_parcial: libro.saldo > 0,
+                saldo_restante: libro.saldo
+            });
+            
+            save();
+            renderLibros();
+            cerrarModal('modal-abono-libro');
+            showToast('Abono registrado');
+        }
+
+        // === GASTOS ===
+        function renderGastos() {
+            const categoria = document.getElementById('filtro-gasto-categoria').value;
+            const mes = document.getElementById('filtro-gasto-mes').value;
+            
+            let lista = datos.gastos;
+            if (categoria) lista = lista.filter(g => g.categoria === categoria);
+            if (mes) lista = lista.filter(g => g.fecha.startsWith(mes));
+            
+            lista.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+            
+            const tbody = document.getElementById('tabla-gastos');
+            tbody.innerHTML = lista.map(g => `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="p-3">${g.fecha}</td>
+                    <td class="p-3">${g.concepto}</td>
+                    <td class="p-3"><span class="px-2 py-1 bg-gray-100 rounded text-xs">${g.categoria}</span></td>
+                    <td class="p-3 text-right font-bold text-red-600">${formatMoney(g.monto)}</td>
+                    <td class="p-3 text-center">${g.cuotas_total ? `${g.cuota_actual}/${g.cuotas_total}` : '-'}</td>
+                    <td class="p-3 text-center">
+                        <button onclick="eliminarGasto('${g.id}')" class="text-red-600 hover:text-red-800"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function filtrarGastos() { renderGastos(); }
+
+        function toggleCuotasGasto() {
+            const esCuota = document.getElementById('gasto-categoria').value === 'cuota';
+            document.getElementById('gasto-cuotas-container').classList.toggle('hidden', !esCuota);
+        }
+
+        function guardarGasto(e) {
+            e.preventDefault();
+            const gasto = {
+                id: generateId(),
+                concepto: document.getElementById('gasto-concepto').value,
+                monto: parseFloat(document.getElementById('gasto-monto').value),
+                fecha: document.getElementById('gasto-fecha').value,
+                categoria: document.getElementById('gasto-categoria').value,
+                cuotas_total: document.getElementById('gasto-cuotas-total').value || null,
+                cuota_actual: document.getElementById('gasto-cuota-actual').value || null,
+                anio_lectivo: datos.anioLectivoActivo
+            };
+            datos.gastos.push(gasto);
+            save();
+            renderGastos();
+            cerrarModal('modal-gasto');
+            showToast('Gasto registrado');
+        }
+
+        function eliminarGasto(id) {
+            if (confirm('¿Eliminar este gasto?')) {
+                datos.gastos = datos.gastos.filter(g => g.id !== id);
+                save();
+                renderGastos();
+                showToast('Gasto eliminado');
+            }
+        }
+
+        // === BACKUP ===
+        function exportarBackupTexto() {
+            const seccion = document.getElementById('backup-seccion-exportar').value;
+            let data;
+            
+            if (seccion === 'todo') {
+                data = {...datos, fecha_exportacion: new Date().toISOString()};
+            } else {
+                data = {
+                    [seccion]: datos[seccion],
+                    fecha_exportacion: new Date().toISOString(),
+                    tipo: 'parcial',
+                    seccion: seccion
+                };
+            }
+            
+            const json = JSON.stringify(data, null, 2);
+            document.getElementById('backup-texto-exportar').value = json;
+            navigator.clipboard.writeText(json);
+            showToast('JSON copiado al portapapeles');
+        }
+
+        function exportarBackupArchivo() {
+            exportarBackupTexto();
+            const blob = new Blob([document.getElementById('backup-texto-exportar').value], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `alei_backup_${datos.anioLectivoActivo}_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+        }
+
+        function procesarArchivoImportar(input) {
+            const file = input.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                document.getElementById('backup-texto-importar').value = e.target.result;
+            };
+            reader.readAsText(file);
+        }
+
+        function importarBackup() {
+            const texto = document.getElementById('backup-texto-importar').value;
+            if (!texto) { showToast('Pegue el JSON primero', 'error'); return; }
+            
+            try {
+                const data = JSON.parse(texto);
+                const seccion = document.getElementById('backup-seccion-importar').value;
+                
+                if (seccion === 'todo') {
+                    if (confirm('Esto reemplazará TODOS los datos actuales. ¿Continuar?')) {
+                        datos = {...datos, ...data};
+                        // Mantener estructura base
+                        datos.anioLectivoActivo = data.anioLectivoActivo || datos.anioLectivoActivo;
+                    }
+                } else {
+                    // Importar solo una sección
+                    if (Array.isArray(data[seccion])) {
+                        if (seccion === 'alumnos' || seccion === 'libros') {
+                            // Merge: actualizar existentes, agregar nuevos
+                            data[seccion].forEach(item => {
+                                const idx = datos[seccion].findIndex(x => x.id === item.id);
+                                if (idx >= 0) datos[seccion][idx] = {...datos[seccion][idx], ...item};
+                                else datos[seccion].push(item);
+                            });
+                        } else {
+                            datos[seccion] = [...datos[seccion], ...data[seccion]];
+                        }
+                    }
+                }
+                
+                save();
+                init();
+                showToast('Importación exitosa');
+            } catch (e) {
+                showToast('Error: JSON inválido', 'error');
+                console.error(e);
+            }
+        }
+
+        function exportarSeccion(seccion) {
+            const data = {[seccion]: datos[seccion], fecha: new Date().toISOString()};
+            const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `alei_${seccion}_${datos.anioLectivoActivo}.json`;
+            a.click();
+        }
+
+        // === CONFIG ===
+        function renderConfig() {
+            // Niveles
+            document.getElementById('lista-niveles-config').innerHTML = datos.niveles.map(n => `
+                <div class="flex justify-between items-center p-2 bg-gray-50 rounded">
+                    <span>${n.nombre} - ${formatMoney(n.precio)}</span>
+                    <button onclick="eliminarNivel(${n.id})" class="text-red-600 text-sm">Eliminar</button>
+                </div>
+            `).join('');
+            
+            // Tipos matrícula
+            document.getElementById('lista-tipos-mat-config').innerHTML = datos.tiposMatricula.map(t => `
+                <div class="flex justify-between items-center p-2 bg-gray-50 rounded text-sm">
+                    <div>
+                        <span class="font-bold">${t.nombre}</span> - ${formatMoney(t.costo)}
+                        ${t.exento_recargos ? '<span class="text-purple-600 text-xs ml-2">(Exento recargos)</span>' : ''}
+                    </div>
+                    <button onclick="eliminarTipoMat(${t.id})" class="text-red-600">Eliminar</button>
+                </div>
+            `).join('');
+        }
+
+        function agregarNivel(e) {
+            e.preventDefault();
+            const form = e.target;
+            datos.niveles.push({
+                id: generateId(),
+                nombre: form.nombre.value,
+                precio: parseFloat(form.precio.value)
+            });
+            save();
+            renderConfig();
+            actualizarSelects();
+            form.reset();
+            showToast('Nivel agregado');
+        }
+
+        function eliminarNivel(id) {
+            datos.niveles = datos.niveles.filter(n => n.id !== id);
+            save();
+            renderConfig();
+            actualizarSelects();
+        }
+
+        function agregarTipoMatricula(e) {
+            e.preventDefault();
+            const form = e.target;
+            datos.tiposMatricula.push({
+                id: generateId(),
+                nombre: form.nombre.value,
+                costo: parseFloat(form.costo.value),
+                porcentaje: parseFloat(form.porcentaje.value) || 100,
+                exento_recargos: form.exento_recargos.checked
+            });
+            save();
+            renderConfig();
+            actualizarSelects();
+            form.reset();
+            showToast('Tipo agregado');
+        }
+
+        function eliminarTipoMat(id) {
+            datos.tiposMatricula = datos.tiposMatricula.filter(t => t.id !== id);
+            save();
+            renderConfig();
+            actualizarSelects();
+        }
+
+        function resetearSistemaPaso1() {
+            document.getElementById('reset-anio-actual').textContent = datos.anioLectivoActivo;
+            document.getElementById('reset-confirmacion').value = '';
+            abrirModal('modal-reset');
+        }
+
+        function resetearSistemaPaso2() {
+            if (document.getElementById('reset-confirmacion').value !== 'BORRAR TODO') {
+                showToast('Escriba "BORRAR TODO" para confirmar', 'error');
+                return;
+            }
+            
+            // Backup automático antes de borrar
+            const backup = JSON.stringify(datos);
+            localStorage.setItem('alei_backup_antes_reset_' + Date.now(), backup);
+            
+            // Resetear
+            datos.alumnos = [];
+            datos.pagos = [];
+            datos.libros = [];
+            datos.gastos = [];
+            datos.anioLectivoActivo = new Date().getFullYear();
+            datos.auditoria = [];
+            
+            save();
+            cerrarModal('modal-reset');
+            init();
+            showToast('Sistema reseteado. Backup guardado automáticamente.');
+        }
+
+        // === REPORTES Y UTILIDADES ===
+        function generarMensajesCobranza() {
+            const deudores = datos.alumnos.filter(a => {
+                const deuda = calcularDeudaMatricula(a);
+                return deuda > 0 && a.estado === 'activo';
+            }).slice(0, 5);
+            
+            let mensajes = deudores.map(a => {
+                const deuda = calcularDeudaMatricula(a);
+                return `Hola, le recordamos que ${a.nombre} tiene pendiente ${formatMoney(deuda)} de matrícula. Por favor regularizar. Gracias!`;
+            }).join('\n\n');
+            
+            navigator.clipboard.writeText(mensajes);
+            showToast('Mensajes copiados al portapapeles');
+        }
+
+        function generarMensajeWhatsApp(alumnoId, concepto) {
+            const a = datos.alumnos.find(x => x.id === alumnoId);
+            let monto = 0;
+            if (concepto === 'matricula') monto = calcularDeudaMatricula(a);
+            
+            const msg = `Hola! Le recordamos que ${a.nombre} tiene pendiente ${formatMoney(monto)} de ${concepto}. Puede realizar el pago en el instituto o consultar por transferencia. Gracias!`;
+            navigator.clipboard.writeText(msg);
+            showToast('Mensaje copiado');
+        }
+
+        function buscarAlumnoReporte(texto) {
+            if (texto.length < 3) return;
+            const alumno = datos.alumnos.find(a => a.nombre.toLowerCase().includes(texto.toLowerCase()));
+            if (!alumno) return;
+            
+            const deudaMat = calcularDeudaMatricula(alumno);
+            const libros = datos.libros.filter(l => l.alumno_id == alumno.id);
+            const deudaLibros = libros.reduce((sum, l) => sum + parseFloat(l.saldo), 0);
+            
+            document.getElementById('reporte-alumno-resultado').innerHTML = `
+                <div class="mt-4 p-4 bg-gray-50 rounded-lg">
+                    <h4 class="font-bold text-lg mb-2">${alumno.nombre}</h4>
+                    <div class="grid grid-cols-2 gap-4 text-sm">
+                        <div>Deuda Matrícula: <span class="font-bold ${deudaMat > 0 ? 'text-red-600' : 'text-green-600'}">${formatMoney(deudaMat)}</span></div>
+                        <div>Deuda Libros: <span class="font-bold ${deudaLibros > 0 ? 'text-red-600' : 'text-green-600'}">${formatMoney(deudaLibros)}</span></div>
+                    </div>
+                    ${libros.length ? '<h5 class="font-bold mt-3 mb-1">Libros:</h5>' + libros.map(l => `<div class="text-sm">${l.titulo}: ${l.saldo > 0 ? 'Debe ' + formatMoney(l.saldo) : 'Pagado'}</div>`).join('') : ''}
+                    <button onclick="generarMensajeWhatsApp('${alumno.id}', 'matricula')" class="mt-3 bg-green-600 text-white px-3 py-1 rounded text-sm"><i class="fab fa-whatsapp mr-1"></i>Generar mensaje</button>
+                </div>
+            `;
+        }
+
+        function generarReporteMensual() {
+            const mes = document.getElementById('reporte-mes').value;
+            const pagosMes = datos.pagos.filter(p => p.mes == mes && p.anio_lectivo == datos.anioLectivoActivo);
+            
+            const porConcepto = {};
+            pagosMes.forEach(p => {
+                porConcepto[p.concepto] = (porConcepto[p.concepto] || 0) + p.monto;
+            });
+            
+            const total = pagosMes.reduce((sum, p) => sum + p.monto, 0);
+            
+            document.getElementById('resultado-reporte-mensual').innerHTML = `
+                <div class="bg-green-50 p-4 rounded-lg border border-green-200">
+                    <h4 class="font-bold text-green-900 mb-2">Total recaudado: ${formatMoney(total)}</h4>
+                    ${Object.entries(porConcepto).map(([k, v]) => `
+                        <div class="flex justify-between text-sm py-1 border-b border-green-100">
+                            <span class="capitalize">${k}</span>
+                            <span class="font-bold">${formatMoney(v)}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            document.getElementById('resultado-reporte-mensual').classList.remove('hidden');
+        }
+
+        function cobrarRapido(alumnoId) {
+            switchTab('caja-rapida');
+            document.querySelector('.tab[onclick="switchTab(\'caja-rapida\')"]').click();
+            seleccionarAlumnoCaja(alumnoId);
+            document.getElementById('caja-concepto').value = 'mensualidad';
+            actualizarMontoCaja();
+        }
+
+        function verRecibo(pagoId) {
+            const pago = datos.pagos.find(p => p.id === pagoId);
+            const alumno = datos.alumnos.find(a => a.id == pago.alumno_id);
+            alert(`RECIBO\n\nAlumno: ${alumno?.nombre}\nConcepto: ${pago.concepto}\nMonto: ${formatMoney(pago.monto)}\nFecha: ${pago.fecha}\n\n${pago.comentarios || ''}`);
+        }
+
+        // Inicializar
+        init();
+    </script>
 </body>
 </html>
