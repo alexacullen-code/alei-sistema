@@ -196,11 +196,20 @@
     .connection-status.online::before { background: var(--success); }
     .connection-status.offline::before { background: var(--danger); }
   </style>
+<base target="_blank">
 </head>
 <body>
   <!-- Demo Mode Banner (hidden by default) -->
   <div id="demoBanner" class="demo-banner hidden">
-    <i class="fas fa-info-circle"></i> Modo Demo activo - Los datos se guardan localmente. <a href="#" onclick="showSetupGuide()">Ver guía de configuración</a>
+    <i class="fas fa-info-circle"></i> 
+    <strong>Modo Demo activo</strong> - Los datos se guardan localmente. 
+    <span id="demoBannerExtra" style="display: none;">
+      DATABASE_URL no configurada o error de conexión. 
+      <a href="#" onclick="showSetupGuide()">Ver guía de configuración</a>
+    </span>
+    <button onclick="location.reload()" style="margin-left: 10px; padding: 2px 8px; background: white; color: var(--warning); border: none; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">
+      <i class="fas fa-sync"></i> Reintentar
+    </button>
   </div>
 
   <div class="app">
@@ -951,15 +960,38 @@
     
     async function checkApiConnection() {
       try {
-        const response = await fetch(`${API_URL}/years`, { method: 'GET', timeout: 5000 });
+        // Usar health check en lugar de years
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
+        
+        const response = await fetch(`${API_URL}/health`, { 
+          method: 'GET',
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
         if (response.ok) {
-          apiConnected = true;
-          isDemoMode = false;
-          updateConnectionStatus(true);
-          return;
+          const data = await response.json();
+          console.log('Health check:', data);
+          
+          if (data.status === 'ok' && data.database === 'connected') {
+            apiConnected = true;
+            isDemoMode = false;
+            updateConnectionStatus(true);
+            document.getElementById('demoBanner').classList.add('hidden');
+            showToast('Conectado a la base de datos', 'success');
+            return;
+          } else {
+            console.log('BD no conectada:', data);
+            showToast('API disponible pero BD no conectada', 'warning');
+          }
+        } else {
+          const errorData = await response.json();
+          console.log('Health check error:', errorData);
         }
       } catch (e) {
-        console.log('API no disponible, modo demo activado');
+        console.log('API no disponible, modo demo activado:', e.message);
       }
       
       // Modo demo
@@ -967,9 +999,34 @@
       apiConnected = false;
       updateConnectionStatus(false);
       document.getElementById('demoBanner').classList.remove('hidden');
+      document.getElementById('demoBannerExtra').style.display = 'inline';
       
       // Cargar datos de demo desde localStorage si existen
       loadDemoData();
+    }
+    
+    // Función para diagnosticar problemas de conexión
+    async function diagnoseConnection() {
+      const results = [];
+      
+      // Probar health endpoint
+      try {
+        const response = await fetch(`${API_URL}/health`);
+        const data = await response.json();
+        results.push(`Health: ${response.status} - ${JSON.stringify(data)}`);
+      } catch (e) {
+        results.push(`Health: ERROR - ${e.message}`);
+      }
+      
+      // Probar years endpoint
+      try {
+        const response = await fetch(`${API_URL}/years`);
+        results.push(`Years: ${response.status}`);
+      } catch (e) {
+        results.push(`Years: ERROR - ${e.message}`);
+      }
+      
+      alert('Diagnóstico de conexión:\n\n' + results.join('\n'));
     }
     
     function updateConnectionStatus(connected) {
@@ -1800,7 +1857,25 @@
     }
     
     function showSetupGuide() {
-      alert('Guía de configuración:\n\n1. Crea una cuenta en neon.tech\n2. Crea un proyecto PostgreSQL\n3. Ejecuta el archivo db/schema.sql\n4. Copia el Connection String\n5. En Vercel, agrega la variable DATABASE_URL\n6. Redespliega la aplicación');
+      const message = `Guía de configuración:
+
+1. Verifica en Vercel (Settings > Environment Variables) que tengas:
+   - DATABASE_URL = postgresql://usuario:password@host/database
+
+2. Si ya la tienes configurada:
+   - Ve a Vercel > tu proyecto > Deployments
+   - Haz clic en "Redeploy" para aplicar los cambios
+
+3. Para diagnosticar el problema:
+   - Abre la consola del navegador (F12)
+   - Mira si hay errores de red
+   - Verifica que la URL de la API sea correcta
+
+¿Necesitas más ayuda? Revisa el archivo README.md`;
+      
+      if (confirm(message + '\n\n¿Quieres ejecutar un diagnóstico de conexión?')) {
+        diagnoseConnection();
+      }
     }
     
     // Cerrar modales al hacer click fuera
@@ -1833,6 +1908,7 @@
     window.generateCashFlowReport = generateCashFlowReport;
     window.generateMonthlyStatusReport = generateMonthlyStatusReport;
     window.showSetupGuide = showSetupGuide;
+    window.diagnoseConnection = diagnoseConnection;
   </script>
 </body>
 </html>
