@@ -47,6 +47,7 @@ export default function Configuracion() {
   const [isRestoreDialogOpen, setIsRestoreDialogOpen] = useState(false);
   const [backupSection, setBackupSection] = useState('all');
   const [restoreSection, setRestoreSection] = useState('all');
+  const [restoring, setRestoring] = useState(false);
 
   const sectionOptions = [
     { value: 'all', label: 'Todo el sistema' },
@@ -146,17 +147,30 @@ export default function Configuracion() {
   };
 
   const handleRestore = async () => {
+    const raw = jsonInput.trim();
+    if (!raw) {
+      toast.error('Debe pegar o subir un JSON antes de restaurar');
+      return;
+    }
+
     try {
-      const data = JSON.parse(jsonInput);
-      const result = await post(`restore${restoreSection !== 'all' ? `?section=${restoreSection}` : ''}`, data);
-      if (result) {
-        toast.success('Datos restaurados');
-        setIsRestoreDialogOpen(false);
-        setJsonInput('');
-        loadData();
+      setRestoring(true);
+      const data = JSON.parse(raw);
+      const result = await post<{ results?: Record<string, number> }>(`restore${restoreSection !== 'all' ? `?section=${restoreSection}` : ''}`, data);
+      if (!result) {
+        toast.error('No se pudo restaurar. Verifique la respuesta de /api/restore en Red (F12).');
+        return;
       }
-    } catch (e) {
+
+      const count = Object.values(result.results || {}).reduce((acc, n) => acc + Number(n || 0), 0);
+      toast.success(`Datos restaurados correctamente (${count} registros procesados)`);
+      setIsRestoreDialogOpen(false);
+      setJsonInput('');
+      loadData();
+    } catch (_e) {
       toast.error('JSON inválido');
+    } finally {
+      setRestoring(false);
     }
   };
 
@@ -575,9 +589,9 @@ export default function Configuracion() {
             <Button variant="outline" onClick={() => setIsRestoreDialogOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleRestore}>
+            <Button onClick={handleRestore} disabled={restoring}>
               <Upload className="h-4 w-4 mr-2" />
-              Confirmar Restauración
+              {restoring ? 'Restaurando...' : 'Confirmar Restauración'}
             </Button>
           </DialogFooter>
         </DialogContent>

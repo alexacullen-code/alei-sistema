@@ -29,7 +29,7 @@ function AppInitializer() {
       
       if (aniosData) {
         setAniosLectivos(aniosData);
-        const activo = aniosData.find(a => a.activo);
+        const activo = aniosData.find(a => a.activo) || aniosData[0] || null;
         if (activo) setAnioLectivoActivo(activo);
       }
       

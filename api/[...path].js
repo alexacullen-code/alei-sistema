@@ -1470,6 +1470,11 @@ export default async function handler(request) {
       const anioActivo = await sql`SELECT id FROM anios_lectivos WHERE activo = true LIMIT 1`;
       if (anioActivo.length > 0) {
         anioLectivoId = anioActivo[0].id;
+      } else {
+        const ultimoAnio = await sql`SELECT id FROM anios_lectivos ORDER BY anio DESC LIMIT 1`;
+        if (ultimoAnio.length > 0) {
+          anioLectivoId = ultimoAnio[0].id;
+        }
       }
     }
     
