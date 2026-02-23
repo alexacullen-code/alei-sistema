@@ -372,4 +372,220 @@ module.exports = async (req, res) => {
       const anio = url.searchParams.get('anio') || new Date().getFullYear();
       const result = await pool.query(
         'SELECT * FROM gastos WHERE EXTRACT(YEAR FROM fecha) = $1 ORDER BY fecha DESC',
-        [an
+        [anio]
+      );
+      res.writeHead(200, headers);
+      return res.end(JSON.stringify(result.rows));
+    }
+
+    if (path === 'gastos' && method === 'POST') {
+      const body = await getBody(req);
+      
+      if (body.es_cuota && body.total_cuotas > 1) {
+        // Crear múltiples gastos para cuotas
+        const client = await pool.connect();
+        try {
+          await client.query('BEGIN');
+          const montoCuota = Math.floor(body.monto_total / body.total_cuotas);
+          
+          for (let i = 1; i <= body.total_cuotas; i++) {
+            const fechaCuota = new Date(body.fecha);
+            fechaCuota.setMonth(fechaCuota.getMonth() + (i - 1));
+            
+            await client.query(
+              `INSERT INTO gastos (fecha, concepto, categoria, monto_total, es_cuota, numero_cuota, total_cuotas, proveedor)
+               VALUES ($1, $2, $3, $4, true, $5, $6, $7)`,
+              [fechaCuota.toISOString().split('T')[0], 
+               `${body.concepto} (Cuota ${i}/${body.total_cuotas})`,
+               body.categoria, montoCuota, i, body.total_cuotas, body.proveedor]
+            );
+          }
+          await client.query('COMMIT');
+        } finally {
+          client.release();
+        }
+      } else {
+        await pool.query(
+          `INSERT INTO gastos (fecha, concepto, categoria, monto_total, proveedor, observaciones)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [body.fecha, body.concepto, body.categoria, body.monto_total, body.proveedor, body.observaciones]
+        );
+      }
+      
+      res.writeHead(201, headers);
+      return res.end(JSON.stringify({ success: true }));
+    }
+
+    // DASHBOARD - ESTADÍSTICAS
+    if (path === 'dashboard' && method === 'GET') {
+      const anio = url.searchParams.get('anio') || new Date().getFullYear();
+      const mes = url.searchParams.get('mes') || new Date().getMonth() + 1;
+      
+      const client = await pool.connect();
+      try {
+        // Totales
+        const totalAlumnos = await client.query(
+          'SELECT COUNT(*) as total FROM alumnos WHERE anio_lectivo = $1 AND activo = true', [anio]);
+        
+        const ingresosMes = await client.query(
+          `SELECT COALESCE(SUM(monto_final), 0) as total FROM pagos 
+           WHERE EXTRACT(MONTH FROM fecha) = $1 AND EXTRACT(YEAR FROM fecha) = $2`,
+          [mes, anio]);
+        
+        const gastosMes = await client.query(
+          `SELECT COALESCE(SUM(monto_total), 0) as total FROM gastos 
+           WHERE EXTRACT(MONTH FROM fecha) = $1 AND EXTRACT(YEAR FROM fecha) = $2`,
+          [mes, anio]);
+        
+        // Alumnos que pagaron este mes
+        const pagaronMes = await client.query(
+          `SELECT DISTINCT a.id, a.nombre, a.nivel 
+           FROM alumnos a
+           JOIN pagos p ON a.id = p.alumno_id
+           WHERE p.tipo = 'mensualidad' AND p.mes_referencia = $1 AND p.anio_referencia = $2`,
+          [mes, anio]);
+        
+        // Alumnos que deben
+        const todosAlumnos = await client.query(
+          'SELECT id, nombre, nivel FROM alumnos WHERE anio_lectivo = $1 AND activo = true', [anio]);
+        
+        const idsPagaron = pagaronMes.rows.map(r => r.id);
+        const deben = todosAlumnos.rows.filter(a => !idsPagaron.includes(a.id));
+        
+        // Libros pendientes
+        const librosPendientes = await client.query(
+          `SELECT l.*, a.nombre as alumno_nombre 
+           FROM libros l 
+           JOIN alumnos a ON l.alumno_id = a.id 
+           WHERE l.estado != 'pagado' AND a.anio_lectivo = $1
+           ORDER BY l.saldo DESC LIMIT 10`,
+          [anio]);
+        
+        res.writeHead(200, headers);
+        return res.end(JSON.stringify({
+          total_alumnos: parseInt(totalAlumnos.rows[0].total),
+          ingresos_mes: parseInt(ingresosMes.rows[0].total),
+          gastos_mes: parseInt(gastosMes.rows[0].total),
+          balance: parseInt(ingresosMes.rows[0].total) - parseInt(gastosMes.rows[0].total),
+          pagaron_mes: pagaronMes.rows,
+          deben_mes: deben,
+          libros_pendientes: librosPendientes.rows
+        }));
+      } finally {
+        client.release();
+      }
+    }
+
+    // WHATSAPP - GENERAR MENSAJE
+    if (path === 'whatsapp' && method === 'GET') {
+      const alumnoId = url.searchParams.get('alumno_id');
+      const tipo = url.searchParams.get('tipo') || 'cobranza';
+      
+      const alumno = await pool.query('SELECT * FROM alumnos WHERE id = $1', [alumnoId]);
+      if (alumno.rows.length === 0) {
+        res.writeHead(404, headers);
+        return res.end(JSON.stringify({ error: 'No encontrado' }));
+      }
+      
+      const a = alumno.rows[0];
+      let mensaje = '';
+      
+      if (tipo === 'cobranza') {
+        const deudaMat = await calcularDeudaMatricula(alumnoId, pool);
+        const deudaMes = await calcularDeudaMensualActual(alumnoId, pool, a);
+        const total = deudaMat + deudaMes;
+        
+        mensaje = `Hola ${a.nombre_padre || 'Padre/Madre'} de ${a.nombre}, le recordamos que tiene un saldo pendiente de $${total} (Matrícula: $${deudaMat}, Mensualidad: $${deudaMes}). Por favor regularice su situación. Gracias. ALEI Instituto de Inglés.`;
+      } else if (tipo === 'bienvenida') {
+        mensaje = `¡Bienvenido/a ${a.nombre} a ALEI Instituto de Inglés! Su número de estudiante es ${a.numero_anual}. Nos comunicaremos por este medio para informar sobre pagos y novedades. ¡Gracias por confiar en nosotros!`;
+      }
+      
+      res.writeHead(200, headers);
+      return res.end(JSON.stringify({
+        mensaje: mensaje,
+        telefono: a.telefono_padre || a.telefono,
+        nombre_alumno: a.nombre
+      }));
+    }
+
+    // PREINSCRIPCIONES
+    if (path === 'preinscripciones') {
+      if (method === 'GET') {
+        const result = await pool.query('SELECT * FROM preinscripciones ORDER BY fecha_preinscripcion DESC');
+        res.writeHead(200, headers);
+        return res.end(JSON.stringify(result.rows));
+      }
+      
+      if (method === 'POST') {
+        const body = await getBody(req);
+        await pool.query(
+          `INSERT INTO preinscripciones (nombre, telefono, email, nivel_interesado, fecha_preinscripcion, observaciones)
+           VALUES ($1, $2, $3, $4, CURRENT_DATE, $5)`,
+          [body.nombre, body.telefono, body.email, body.nivel_interesado, body.observaciones]
+        );
+        res.writeHead(201, headers);
+        return res.end(JSON.stringify({ success: true }));
+      }
+    }
+
+    res.writeHead(404, headers);
+    res.end(JSON.stringify({ error: 'Ruta no encontrada' }));
+    
+  } catch (error) {
+    console.error('Error:', error);
+    res.writeHead(500, headers);
+    res.end(JSON.stringify({ error: error.message }));
+  }
+};
+
+// Helper para leer body
+function getBody(req) {
+  return new Promise((resolve) => {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      try {
+        resolve(JSON.parse(body));
+      } catch {
+        resolve({});
+      }
+    });
+  });
+}
+
+async function calcularDeudaMatricula(alumnoId, pool) {
+  const alumno = await pool.query('SELECT * FROM alumnos WHERE id = $1', [alumnoId]);
+  if (alumno.rows.length === 0) return 0;
+  
+  const a = alumno.rows[0];
+  const tipoMat = await pool.query('SELECT * FROM tipos_matricula WHERE id = $1', [a.tipo_matricula_id || 1]);
+  const costoBase = 1500; // Default o sacar de config
+  const costoMatricula = tipoMat.rows[0]?.costo || costoBase;
+  
+  const pagado = await pool.query(
+    "SELECT COALESCE(SUM(monto_final), 0) as total FROM pagos WHERE alumno_id = $1 AND tipo = 'matricula'",
+    [alumnoId]
+  );
+  
+  return Math.max(0, costoMatricula - parseInt(pagado.rows[0].total));
+}
+
+async function calcularDeudaMensualActual(alumnoId, pool, alumnoInfo) {
+  if (alumnoInfo.es_hermano && alumnoInfo.precio_especial) {
+    const pagado = await pool.query(
+      "SELECT COALESCE(SUM(monto_final), 0) as total FROM pagos WHERE alumno_id = $1 AND tipo = 'mensualidad' AND mes_referencia = $2",
+      [alumnoId, new Date().getMonth() + 1]
+    );
+    return Math.max(0, alumnoInfo.precio_especial - parseInt(pagado.rows[0].total));
+  }
+  
+  const nivel = await pool.query('SELECT precio FROM niveles WHERE nombre = $1', [alumnoInfo.nivel]);
+  const mensualidad = nivel.rows[0]?.precio || 2000;
+  
+  const pagado = await pool.query(
+    "SELECT COALESCE(SUM(monto_final), 0) as total FROM pagos WHERE alumno_id = $1 AND tipo = 'mensualidad' AND mes_referencia = $2",
+    [alumnoId, new Date().getMonth() + 1]
+  );
+  
+  return Math.max(0, mensualidad - parseInt(pagado.rows[0].total));
+}
