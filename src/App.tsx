@@ -11,6 +11,7 @@ import Preinscripciones from '@/pages/Preinscripciones';
 import CajaRapida from '@/pages/CajaRapida';
 import Configuracion from '@/pages/Configuracion';
 import { useEffect } from 'react';
+import { AppErrorBoundary } from '@/components/AppErrorBoundary';
 import { useStore } from '@/hooks/useStore';
 import { useApi } from '@/hooks/useApi';
 import type { AnioLectivo, Configuracion as ConfigType } from '@/types';
@@ -47,6 +48,7 @@ function App() {
   return (
     <BrowserRouter>
       <AppInitializer />
+      <AppErrorBoundary>
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<Dashboard />} />
@@ -62,6 +64,7 @@ function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
+      </AppErrorBoundary>
     </BrowserRouter>
   );
 }
