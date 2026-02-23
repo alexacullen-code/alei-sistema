@@ -80,8 +80,11 @@ export default function Pagos() {
   }, [anioLectivoActivo, refreshPagos]);
 
   const loadData = async () => {
-    if (!anioLectivoActivo) return;
-    
+    if (!anioLectivoActivo) {
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     const [pagosData, alumnosData] = await Promise.all([
       get<Pago[]>('pagos'),
@@ -260,6 +263,15 @@ export default function Pagos() {
           Nuevo Pago
         </Button>
       </div>
+
+
+      {!anioLectivoActivo && (
+        <Card className="border-amber-200 bg-amber-50">
+          <CardContent className="p-4 text-sm text-amber-800">
+            No hay año lectivo activo o la API respondió con error. Activá un año en Configuración para cargar pagos.
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

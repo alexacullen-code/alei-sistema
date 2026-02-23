@@ -815,6 +815,12 @@ async function convertirPreinscripcion(id, data) {
 // DASHBOARD Y REPORTES
 // ============================================
 
+function isMissingRelationError(error) {
+  const msg = String(error?.message || '').toLowerCase();
+  return msg.includes('relation') && msg.includes('does not exist');
+}
+
+
 async function getDashboard(anioLectivoId, mes, anio) {
   try {
     const anioActual = anio || new Date().getFullYear();
@@ -886,6 +892,18 @@ async function getDashboard(anioLectivoId, mes, anio) {
       flujo_caja: (parseFloat(pagosMes[0]?.total_recaudado) || 0) - (parseFloat(gastosMes[0]?.total) || 0)
     });
   } catch (error) {
+    if (isMissingRelationError(error)) {
+      return createResponse({
+        alumnos_activos: 0,
+        pagos_mes: { total: 0, recaudado: 0, completos: 0, pendientes: 0 },
+        deuda_total: 0,
+        gastos_mes: 0,
+        alumnos_con_deuda: 0,
+        libros_prestados: 0,
+        preinscripciones_pendientes: 0,
+        flujo_caja: 0
+      });
+    }
     return handleError(error);
   }
 }
@@ -955,6 +973,18 @@ async function getConfiguracion() {
     });
     return createResponse(config);
   } catch (error) {
+    if (isMissingRelationError(error)) {
+      return createResponse({
+        descuento_pronto_pago: '150',
+        recargo_mora: '150',
+        dia_limite_descuento: '10',
+        dia_inicio_recargo: '16',
+        nombre_instituto: 'Instituto ALEI',
+        telefono_instituto: '',
+        email_instituto: '',
+        direccion_instituto: ''
+      });
+    }
     return handleError(error);
   }
 }

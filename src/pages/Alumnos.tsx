@@ -78,8 +78,11 @@ export default function Alumnos() {
   }, [anioLectivoActivo, refreshAlumnos]);
 
   const loadData = async () => {
-    if (!anioLectivoActivo) return;
-    
+    if (!anioLectivoActivo) {
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     const [alumnosData, nivelesData] = await Promise.all([
       get<Alumno[]>('alumnos'),
@@ -229,6 +232,15 @@ export default function Alumnos() {
           </Button>
         </div>
       </div>
+
+
+      {!anioLectivoActivo && (
+        <Card className="border-amber-200 bg-amber-50">
+          <CardContent className="p-4 text-sm text-amber-800">
+            No hay año lectivo activo o la API respondió con error. Activá un año en Configuración para cargar alumnos.
+          </CardContent>
+        </Card>
+      )}
 
       {/* Filters */}
       <Card>
