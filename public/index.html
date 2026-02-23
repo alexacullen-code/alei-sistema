@@ -5,1495 +5,1114 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ALEI - Sistema de Gestión Integral</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; background: #f3f4f6; }
-        .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
-        .slide-in { animation: slideIn 0.3s ease-out; }
-        @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .pulse-red { animation: pulseRed 2s infinite; }
-        @keyframes pulseRed { 0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 50% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } }
-        .progress-bar { transition: width 0.5s ease-in-out; }
-        .hide-scrollbar::-webkit-scrollbar { display: none; }
-        .modal-enter { animation: modalEnter 0.2s ease-out; }
-        @keyframes modalEnter { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        body { font-family: 'Inter', sans-serif; }
+        
+        .sidebar-item:hover { background: linear-gradient(90deg, rgba(59,130,246,0.1) 0%, transparent 100%); }
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); }
+        
+        .animate-fade-in { animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .modal-backdrop { background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
+        
+        .status-pagado { background: #dcfce7; color: #166534; }
+        .status-parcial { background: #dbeafe; color: #1e40af; }
+        .status-pendiente { background: #fee2e2; color: #991b1b; }
+        
+        .progress-bar { background: #e5e7eb; border-radius: 9999px; overflow: hidden; }
+        .progress-fill { background: #3b82f6; height: 100%; transition: width 0.3s; }
+        
+        .toast { position: fixed; bottom: 20px; right: 20px; z-index: 9999; animation: slideIn 0.3s ease-out; }
+        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+        
+        input:focus, select:focus, textarea:focus { outline: none; ring: 2px; ring-color: #3b82f6; }
+        
+        .caja-rapida-btn { transition: all 0.2s; }
+        .caja-rapida-btn:active { transform: scale(0.95); }
     </style>
 </head>
-<body class="h-screen overflow-hidden flex flex-col">
+<body class="bg-gray-50 text-gray-800 h-screen overflow-hidden">
 
-    <!-- Header -->
-    <header class="bg-gradient-to-r from-blue-900 to-blue-800 text-white shadow-lg z-50">
-        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
-            <div class="flex items-center gap-3">
-                <i class="fas fa-graduation-cap text-2xl"></i>
-                <div>
-                    <h1 class="text-xl font-bold">ALEI Instituto de Inglés</h1>
-                    <p class="text-xs opacity-80">Sistema de Gestión v3.0</p>
+    <!-- Navbar Superior -->
+    <nav class="bg-blue-900 text-white h-16 flex items-center justify-between px-6 shadow-lg z-50 relative">
+        <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2">
+                <svg class="w-8 h-6" viewBox="0 0 60 30" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="60" height="30" fill="#012169"/>
+                    <path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" stroke-width="6"/>
+                    <path d="M0,0 L60,30 M60,0 L0,30" stroke="#C8102E" stroke-width="4"/>
+                    <path d="M30,0 V30 M0,15 H60" stroke="#fff" stroke-width="10"/>
+                    <path d="M30,0 V30 M0,15 H60" stroke="#C8102E" stroke-width="6"/>
+                </svg>
+                <h1 class="text-xl font-bold tracking-wide">ALEI Instituto de Inglés</h1>
+            </div>
+            <span class="text-blue-200 text-sm hidden md:inline">Sistema de Gestión v2.0</span>
+        </div>
+        
+        <div class="flex items-center gap-4">
+            <select id="select-anio" onchange="cambiarAnio()" class="bg-blue-800 border border-blue-700 rounded px-3 py-1 text-sm focus:border-blue-500">
+                <option value="2025">Año 2025</option>
+                <option value="2026" selected>Año 2026</option>
+                <option value="2027">Año 2027</option>
+            </select>
+            
+            <button onclick="mostrarModal('reset')" class="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-sm font-medium transition flex items-center gap-2">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span class="hidden md:inline">Reset Sistema</span>
+            </button>
+        </div>
+    </nav>
+
+    <div class="flex h-[calc(100vh-64px)]">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-white shadow-md overflow-y-auto">
+            <div class="p-4 space-y-1">
+                <button onclick="navigate('dashboard')" class="sidebar-item w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 text-gray-700 hover:text-blue-900 font-medium transition">
+                    <i class="fas fa-chart-line w-5 text-center"></i> Dashboard
+                </button>
+                
+                <button onclick="navigate('caja')" class="sidebar-item w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 text-gray-700 hover:text-blue-900 font-medium transition bg-green-50 text-green-700 border border-green-200">
+                    <i class="fas fa-cash-register w-5 text-center"></i> Caja Rápida
+                    <span class="ml-auto text-xs bg-green-600 text-white px-2 py-0.5 rounded-full">POS</span>
+                </button>
+                
+                <div class="pt-2 pb-1 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Gestión</div>
+                
+                <button onclick="navigate('alumnos')" class="sidebar-item w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 text-gray-700 hover:text-blue-900 font-medium transition">
+                    <i class="fas fa-users w-5 text-center"></i> Alumnos
+                </button>
+                
+                <button onclick="navigate('pagos')" class="sidebar-item w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 text-gray-700 hover:text-blue-900 font-medium transition">
+                    <i class="fas fa-money-bill-wave w-5 text-center"></i> Pagos
+                </button>
+                
+                <button onclick="navigate('libros')" class="sidebar-item w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 text-gray-700 hover:text-blue-900 font-medium transition">
+                    <i class="fas fa-book w-5 text-center"></i> Libros
+                </button>
+                
+                <button onclick="navigate('deudas')" class="sidebar-item w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 text-gray-700 hover:text-blue-900 font-medium transition">
+                    <i class="fas fa-exclamation-circle w-5 text-center"></i> Deudas
+                    <span id="badge-deudas" class="ml-auto hidden bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">0</span>
+                </button>
+                
+                <button onclick="navigate('gastos')" class="sidebar-item w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 text-gray-700 hover:text-blue-900 font-medium transition">
+                    <i class="fas fa-wallet w-5 text-center"></i> Gastos
+                </button>
+                
+                <button onclick="navigate('espera')" class="sidebar-item w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 text-gray-700 hover:text-blue-900 font-medium transition">
+                    <i class="fas fa-list-ol w-5 text-center"></i> Lista Espera
+                </button>
+                
+                <div class="pt-2 pb-1 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Sistema</div>
+                
+                <button onclick="navigate('backup')" class="sidebar-item w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 text-gray-700 hover:text-blue-900 font-medium transition">
+                    <i class="fas fa-database w-5 text-center"></i> Backup/Import
+                </button>
+            </div>
+            
+            <div class="p-4 mt-auto border-t">
+                <div class="bg-blue-50 rounded-lg p-3 text-sm">
+                    <div class="font-semibold text-blue-900 mb-1">Usuario:</div>
+                    <div class="text-blue-700">Administrador</div>
+                    <div class="text-xs text-blue-600 mt-1" id="current-date"></div>
                 </div>
             </div>
-            <div class="flex items-center gap-4">
-                <select id="anio-lectivo" onchange="cambiarAnio()" class="bg-blue-800 border border-blue-700 rounded px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
-                    <option value="2025">Año 2025</option>
-                    <option value="2026" selected>Año 2026</option>
-                    <option value="2027">Año 2027</option>
-                </select>
-                <button onclick="mostrarAlertas()" class="relative p-2 hover:bg-blue-800 rounded-full transition">
-                    <i class="fas fa-bell"></i>
-                    <span id="badge-alertas" class="absolute top-0 right-0 bg-red-500 text-xs rounded-full w-5 h-5 flex items-center justify-center hidden">0</span>
-                </button>
-                <button onclick="mostrarModal('reset')" class="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-sm font-medium transition pulse-red">
-                    <i class="fas fa-exclamation-triangle mr-1"></i>Reset
-                </button>
-            </div>
-        </div>
-    </header>
-
-    <div class="flex flex-1 overflow-hidden">
-        <!-- Sidebar -->
-        <aside class="w-64 bg-white shadow-xl overflow-y-auto hide-scrollbar">
-            <nav class="p-4 space-y-1">
-                <button onclick="navigate('dashboard')" class="nav-btn w-full text-left px-4 py-3 rounded-lg hover:bg-blue-50 text-gray-700 hover:text-blue-900 transition flex items-center gap-3">
-                    <i class="fas fa-chart-line w-5"></i> Dashboard
-                </button>
-                <button onclick="navigate('caja')" class="nav-btn w-full text-left px-4 py-3 rounded-lg hover:bg-green-50 text-gray-700 hover:text-green-900 transition flex items-center gap-3">
-                    <i class="fas fa-cash-register w-5 text-green-600"></i> Caja Rápida (POS)
-                </button>
-                <div class="pt-2 pb-1 px-4 text-xs font-semibold text-gray-400 uppercase">Gestión</div>
-                <button onclick="navigate('alumnos')" class="nav-btn w-full text-left px-4 py-3 rounded-lg hover:bg-blue-50 text-gray-700 hover:text-blue-900 transition flex items-center gap-3">
-                    <i class="fas fa-users w-5"></i> Alumnos
-                </button>
-                <button onclick="navigate('pagos')" class="nav-btn w-full text-left px-4 py-3 rounded-lg hover:bg-blue-50 text-gray-700 hover:text-blue-900 transition flex items-center gap-3">
-                    <i class="fas fa-money-bill-wave w-5"></i> Pagos
-                </button>
-                <button onclick="navigate('libros')" class="nav-btn w-full text-left px-4 py-3 rounded-lg hover:bg-blue-50 text-gray-700 hover:text-blue-900 transition flex items-center gap-3">
-                    <i class="fas fa-book w-5"></i> Libros/Materiales
-                </button>
-                <button onclick="navigate('deudas')" class="nav-btn w-full text-left px-4 py-3 rounded-lg hover:bg-red-50 text-gray-700 hover:text-red-900 transition flex items-center gap-3">
-                    <i class="fas fa-exclamation-circle w-5 text-red-500"></i> Deudas
-                </button>
-                <button onclick="navigate('gastos')" class="nav-btn w-full text-left px-4 py-3 rounded-lg hover:bg-blue-50 text-gray-700 hover:text-blue-900 transition flex items-center gap-3">
-                    <i class="fas fa-wallet w-5"></i> Gastos
-                </button>
-                <div class="pt-2 pb-1 px-4 text-xs font-semibold text-gray-400 uppercase">Utilidades</div>
-                <button onclick="navigate('espera')" class="nav-btn w-full text-left px-4 py-3 rounded-lg hover:bg-blue-50 text-gray-700 hover:text-blue-900 transition flex items-center gap-3">
-                    <i class="fas fa-list-ul w-5"></i> Lista de Espera
-                </button>
-                <button onclick="navigate('reportes')" class="nav-btn w-full text-left px-4 py-3 rounded-lg hover:bg-blue-50 text-gray-700 hover:text-blue-900 transition flex items-center gap-3">
-                    <i class="fas fa-file-alt w-5"></i> Reportes
-                </button>
-                <button onclick="navigate('backup')" class="nav-btn w-full text-left px-4 py-3 rounded-lg hover:bg-blue-50 text-gray-700 hover:text-blue-900 transition flex items-center gap-3">
-                    <i class="fas fa-database w-5"></i> Backup/Restore
-                </button>
-            </nav>
         </aside>
 
         <!-- Main Content -->
         <main id="main-content" class="flex-1 overflow-y-auto p-6 bg-gray-50">
-            <!-- Content injected by JS -->
+            <!-- Contenido dinámico aquí -->
         </main>
     </div>
 
-    <!-- Modal Genérico -->
-    <div id="modal-overlay" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
-        <div id="modal-content" class="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto modal-enter">
-            <!-- Dynamic content -->
+    <!-- Modal Reset -->
+    <div id="modal-reset" class="fixed inset-0 modal-backdrop hidden flex items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden animate-fade-in">
+            <div class="bg-red-600 text-white px-6 py-4 flex items-center gap-3">
+                <i class="fas fa-exclamation-triangle text-2xl"></i>
+                <h3 class="text-xl font-bold">Resetear Sistema</h3>
+            </div>
+            <div class="p-6">
+                <p class="text-gray-700 mb-4">Esta acción eliminará <strong>TODOS</strong> los datos permanentemente. Para confirmar, escriba el código de seguridad:</p>
+                
+                <div class="bg-red-50 border-2 border-red-200 rounded-lg p-3 mb-4 text-center">
+                    <span class="font-mono font-bold text-red-800 text-lg">BORRAR_TODO_2026</span>
+                </div>
+                
+                <input type="text" id="codigo-reset" placeholder="Escriba el código aquí" 
+                       class="w-full border-2 border-gray-300 rounded-lg px-4 py-3 mb-4 text-center font-mono uppercase tracking-wider focus:border-red-500">
+                
+                <div class="flex gap-3">
+                    <button onclick="cerrarModal('reset')" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 rounded-lg transition">
+                        Cancelar
+                    </button>
+                    <button onclick="ejecutarReset()" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 rounded-lg transition">
+                        Confirmar Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Ficha Alumno -->
+    <div id="modal-ficha" class="fixed inset-0 modal-backdrop hidden flex items-center justify-center z-50 overflow-y-auto py-10">
+        <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full mx-4 overflow-hidden animate-fade-in max-h-[90vh] overflow-y-auto">
+            <div class="bg-blue-900 text-white px-6 py-4 flex justify-between items-center sticky top-0">
+                <h3 class="text-xl font-bold"><i class="fas fa-id-card mr-2"></i> Ficha del Alumno</h3>
+                <button onclick="cerrarModal('ficha')" class="text-white hover:text-gray-300 text-2xl">&times;</button>
+            </div>
+            <div id="ficha-contenido" class="p-6">
+                <!-- Contenido dinámico -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal WhatsApp -->
+    <div id="modal-whatsapp" class="fixed inset-0 modal-backdrop hidden flex items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full mx-4 overflow-hidden animate-fade-in">
+            <div class="bg-green-600 text-white px-6 py-4 flex items-center gap-3">
+                <i class="fab fa-whatsapp text-2xl"></i>
+                <h3 class="text-xl font-bold">Enviar Mensaje</h3>
+            </div>
+            <div class="p-6">
+                <div class="mb-4">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Tipo de mensaje:</label>
+                    <select id="whatsapp-tipo" class="w-full border rounded-lg px-3 py-2" onchange="actualizarPreviewWhatsApp()">
+                        <option value="cobranza">Cobranza (deuda pendiente)</option>
+                        <option value="bienvenida">Bienvenida</option>
+                        <option value="recordatorio">Recordatorio general</option>
+                    </select>
+                </div>
+                
+                <div class="bg-gray-50 border rounded-lg p-4 mb-4">
+                    <div class="text-xs text-gray-500 mb-1">Vista previa:</div>
+                    <div id="whatsapp-preview" class="text-gray-800 whitespace-pre-wrap"></div>
+                </div>
+                
+                <div class="flex gap-3">
+                    <button onclick="cerrarModal('whatsapp')" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 rounded-lg">
+                        Cancelar
+                    </button>
+                    <button onclick="enviarWhatsApp()" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded-lg flex items-center justify-center gap-2">
+                        <i class="fab fa-whatsapp"></i> Abrir WhatsApp
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- Toast Container -->
-    <div id="toast-container" class="fixed bottom-4 right-4 z-50 space-y-2 pointer-events-none"></div>
+    <div id="toast-container"></div>
 
     <script>
-        // ==================== CONFIGURACIÓN Y ESTADO ====================
-        const currentYear = new Date().getFullYear();
-        let appState = {
-            anio: 2026,
-            db: {
-                config: { matriculaBase: 3000, mensualidadBase: 2500, descuento: 150, recargo: 150 },
-                tiposMatricula: [
-                    { id: 1, nombre: 'Regular', porcentaje: 100, esExcepcion: false },
-                    { id: 2, nombre: 'Beca 50%', porcentaje: 50, esExcepcion: false },
-                    { id: 3, nombre: 'Hermano', porcentaje: 100, esExcepcion: true, costoFijo: 2000 }
-                ],
-                niveles: [],
-                alumnos: [],
-                libros: [],
-                pagos: [],
-                gastos: [],
-                preinscripciones: [],
-                alertas: []
-            }
-        };
+        // Configuración Global
+        const API_URL = '/api';
+        let anioActual = 2026;
+        let alumnoSeleccionado = null;
+        let libroSeleccionado = null;
+        let datosTemp = {};
 
-        // ==================== LOCALSTORAGE ====================
-        function initDB() {
-            const saved = localStorage.getItem(`alei_db_${appState.anio}`);
-            if (saved) {
-                appState.db = JSON.parse(saved);
-            } else {
-                // Intentar migrar datos de año anterior o crear nuevo
-                saveDB();
-            }
-        }
-
-        function saveDB() {
-            localStorage.setItem(`alei_db_${appState.anio}`, JSON.stringify(appState.db));
-        }
-
-        function cambiarAnio() {
-            appState.anio = parseInt(document.getElementById('anio-lectivo').value);
-            initDB();
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('current-date').textContent = new Date().toLocaleDateString('es-UY', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
             navigate('dashboard');
-            showToast(`Cambiado al año ${appState.anio}`);
-        }
+            
+            // Verificar conexión
+            fetch(`${API_URL}/health`).catch(() => showToast('Error de conexión con el servidor', 'error'));
+        });
 
-        // ==================== UTILIDADES ====================
-        function $(id) { return document.getElementById(id); }
-        
-        function showToast(message, type = 'success', duration = 3000) {
-            const container = $('toast-container');
+        // Utilidades
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
-            toast.className = `pointer-events-auto slide-in px-6 py-3 rounded-lg shadow-lg text-white font-medium ${
-                type === 'error' ? 'bg-red-600' : type === 'warning' ? 'bg-yellow-500' : 'bg-green-600'
-            }`;
-            toast.innerHTML = `<i class="fas ${type === 'error' ? 'fa-times-circle' : type === 'warning' ? 'fa-exclamation-triangle' : 'fa-check-circle'} mr-2"></i>${message}`;
+            const colors = type === 'error' ? 'bg-red-600' : 'bg-green-600';
+            toast.className = `${colors} text-white px-6 py-3 rounded-lg shadow-lg mb-2 flex items-center gap-2`;
+            toast.innerHTML = `<i class="fas ${type === 'error' ? 'fa-exclamation-circle' : 'fa-check-circle'}"></i> ${message}`;
             container.appendChild(toast);
-            setTimeout(() => toast.remove(), duration);
+            setTimeout(() => toast.remove(), 4000);
         }
 
         function formatMoney(amount) {
             return '$' + (amount || 0).toLocaleString('es-UY');
         }
 
-        function formatDate(dateStr) {
-            if (!dateStr) return '-';
-            const d = new Date(dateStr);
-            return d.toLocaleDateString('es-UY');
+        function cambiarAnio() {
+            anioActual = document.getElementById('select-anio').value;
+            showToast(`Año cambiado a ${anioActual}`);
+            navigate('dashboard');
         }
 
-        function generateId() {
-            return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        function mostrarModal(id) {
+            document.getElementById(`modal-${id}`).classList.remove('hidden');
         }
 
-        function calcularDeudaMatricula(alumno) {
-            const tipo = appState.db.tiposMatricula.find(t => t.id === alumno.tipoMatriculaId);
-            if (!tipo) return 0;
-            
-            let costo = tipo.costoFijo || (appState.db.config.matriculaBase * tipo.porcentaje / 100);
-            const pagado = appState.db.pagos
-                .filter(p => p.alumnoId === alumno.id && p.tipo === 'matricula')
-                .reduce((sum, p) => sum + p.monto, 0);
-            
-            return Math.max(0, costo - pagado);
+        function cerrarModal(id) {
+            document.getElementById(`modal-${id}`).classList.add('hidden');
         }
 
-        function calcularDeudaMensual(alumno, mes) {
-            // Si es hermano (excepción), usa precio especial sin recargos/descuentos
-            if (alumno.esHermano && alumno.precioEspecialHermano) {
-                const pagado = appState.db.pagos
-                    .filter(p => p.alumnoId === alumno.id && p.tipo === 'mensualidad' && p.mes === mes)
-                    .reduce((sum, p) => sum + p.monto, 0);
-                return Math.max(0, alumno.precioEspecialHermano - pagado);
-            }
-            
-            const nivel = appState.db.niveles.find(n => n.id === alumno.nivelId);
-            const base = nivel?.precioMensual || appState.db.config.mensualidadBase;
-            
-            const pagado = appState.db.pagos
-                .filter(p => p.alumnoId === alumno.id && p.tipo === 'mensualidad' && p.mes === mes)
-                .reduce((sum, p) => sum + p.monto, 0);
-            
-            return Math.max(0, base - pagado);
-        }
-
-        function calcularRecargoDescuento(monto, fechaPagoStr, mesPago) {
-            const fecha = new Date(fechaPagoStr);
-            const dia = fecha.getDate();
-            const mesActual = fecha.getMonth() + 1;
-            
-            // Si paga el mes anterior al que corresponde (adelantado) -> descuento
-            // Si paga el mismo mes -> según día
-            // Si paga mes siguiente (atrasado) -> recargo
-            
-            if (mesActual < mesPago) {
-                // Pago adelantado del mes siguiente
-                return { descuento: appState.db.config.descuento, recargo: 0, montoFinal: monto - appState.db.config.descuento };
-            } else if (mesActual === mesPago) {
-                if (dia <= 10) {
-                    return { descuento: appState.db.config.descuento, recargo: 0, montoFinal: monto - appState.db.config.descuento };
-                } else if (dia >= 16) {
-                    return { descuento: 0, recargo: appState.db.config.recargo, montoFinal: monto + appState.db.config.recargo };
-                }
-            } else if (mesActual > mesPago) {
-                // Pago atrasado
-                return { descuento: 0, recargo: appState.db.config.recargo, montoFinal: monto + appState.db.config.recargo };
-            }
-            
-            return { descuento: 0, recargo: 0, montoFinal: monto };
-        }
-
-        // ==================== NAVEGACIÓN ====================
-        function navigate(view) {
-            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('bg-blue-100', 'text-blue-900', 'font-semibold'));
-            event?.target?.classList.add('bg-blue-100', 'text-blue-900', 'font-semibold');
-            
-            const main = $('main-content');
-            main.innerHTML = '<div class="flex justify-center items-center h-64"><i class="fas fa-spinner fa-spin text-4xl text-blue-600"></i></div>';
-            
-            setTimeout(() => {
-                switch(view) {
-                    case 'dashboard': renderDashboard(); break;
-                    case 'caja': renderCajaRapida(); break;
-                    case 'alumnos': renderAlumnos(); break;
-                    case 'pagos': renderPagos(); break;
-                    case 'libros': renderLibros(); break;
-                    case 'deudas': renderDeudas(); break;
-                    case 'gastos': renderGastos(); break;
-                    case 'espera': renderListaEspera(); break;
-                    case 'reportes': renderReportes(); break;
-                    case 'backup': renderBackup(); break;
-                }
-            }, 100);
-        }
-
-        // ==================== DASHBOARD ====================
-        function renderDashboard() {
-            const stats = calcularEstadisticas();
-            const hoy = new Date();
-            const mesActual = hoy.getMonth() + 1;
-            
-            let html = `
-                <div class="mb-6 flex justify-between items-center">
-                    <h2 class="text-2xl font-bold text-gray-800">Dashboard ${appState.anio}</h2>
-                    <div class="text-sm text-gray-500">${hoy.toLocaleDateString('es-UY', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
-                </div>
-                
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-                    <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-500">
-                        <div class="text-gray-500 text-sm font-medium mb-1">Total Alumnos</div>
-                        <div class="text-3xl font-bold text-gray-800">${stats.totalAlumnos}</div>
-                        <div class="text-xs text-gray-400 mt-2">Activos este año</div>
-                    </div>
-                    <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-green-500">
-                        <div class="text-gray-500 text-sm font-medium mb-1">Ingresos ${getNombreMes(mesActual)}</div>
-                        <div class="text-3xl font-bold text-green-600">${formatMoney(stats.ingresosMes)}</div>
-                        <div class="text-xs text-green-600 mt-2"><i class="fas fa-arrow-up"></i> Este mes</div>
-                    </div>
-                    <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-red-500">
-                        <div class="text-gray-500 text-sm font-medium mb-1">Deuda Total</div>
-                        <div class="text-3xl font-bold text-red-600">${formatMoney(stats.deudaTotal)}</div>
-                        <div class="text-xs text-red-400 mt-2">Por cobrar</div>
-                    </div>
-                    <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-yellow-500">
-                        <div class="text-gray-500 text-sm font-medium mb-1">Libros Pendientes</div>
-                        <div class="text-3xl font-bold text-yellow-600">${stats.librosPendientes}</div>
-                        <div class="text-xs text-yellow-600 mt-2">Con saldo</div>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div class="bg-white rounded-xl shadow-md p-6">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="font-bold text-lg text-gray-800">⚠️ Alertas y Vencimientos</h3>
-                            <button onclick="generarTodasLasAlertas()" class="text-sm text-blue-600 hover:underline">Actualizar</button>
-                        </div>
-                        <div class="space-y-3 max-h-96 overflow-y-auto" id="lista-alertas">
-                            ${generarHTMLAlertas()}
-                        </div>
-                    </div>
-
-                    <div class="bg-white rounded-xl shadow-md p-6">
-                        <h3 class="font-bold text-lg text-gray-800 mb-4">💰 Resumen Financiero</h3>
-                        <div class="space-y-4">
-                            <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                                <span class="text-gray-600">Cobrado Matrículas</span>
-                                <span class="font-bold text-gray-800">${formatMoney(stats.cobradoMatriculas)}</span>
-                            </div>
-                            <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                                <span class="text-gray-600">Cobrado Mensualidades</span>
-                                <span class="font-bold text-gray-800">${formatMoney(stats.cobradoMensualidades)}</span>
-                            </div>
-                            <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                                <span class="text-gray-600">Cobrado Libros</span>
-                                <span class="font-bold text-gray-800">${formatMoney(stats.cobradoLibros)}</span>
-                            </div>
-                            <div class="flex justify-between items-center p-3 bg-red-50 rounded-lg border border-red-100">
-                                <span class="text-red-700 font-medium">Gastos del Mes</span>
-                                <span class="font-bold text-red-700">${formatMoney(stats.gastosMes)}</span>
-                            </div>
-                            <div class="flex justify-between items-center p-4 bg-blue-50 rounded-lg border border-blue-200 mt-4">
-                                <span class="text-blue-900 font-bold">Balance Neto</span>
-                                <span class="font-bold text-xl text-blue-900">${formatMoney(stats.ingresosMes - stats.gastosMes)}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="mt-6 bg-white rounded-xl shadow-md p-6">
-                    <h3 class="font-bold text-lg text-gray-800 mb-4">📊 Estado de Mensualidades - ${getNombreMes(mesActual)}</h3>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-sm">
-                            <thead class="bg-gray-50 text-gray-600">
-                                <tr>
-                                    <th class="px-4 py-2 text-left">Nivel</th>
-                                    <th class="px-4 py-2 text-center">Total Alumnos</th>
-                                    <th class="px-4 py-2 text-center">Pagaron</th>
-                                    <th class="px-4 py-2 text-center">Deben</th>
-                                    <th class="px-4 py-2 text-right">% Cobranza</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-100">
-                                ${appState.db.niveles.map(nivel => {
-                                    const alumnosNivel = appState.db.alumnos.filter(a => a.nivelId === nivel.id && a.activo !== false);
-                                    const pagaron = alumnosNivel.filter(a => 
-                                        appState.db.pagos.some(p => p.alumnoId === a.id && p.tipo === 'mensualidad' && p.mes === mesActual)
-                                    ).length;
-                                    const deben = alumnosNivel.length - pagaron;
-                                    const porcentaje = alumnosNivel.length ? Math.round((pagaron / alumnosNivel.length) * 100) : 0;
-                                    return `
-                                        <tr class="hover:bg-gray-50">
-                                            <td class="px-4 py-3 font-medium">${nivel.nombre}</td>
-                                            <td class="px-4 py-3 text-center">${alumnosNivel.length}</td>
-                                            <td class="px-4 py-3 text-center text-green-600 font-medium">${pagaron}</td>
-                                            <td class="px-4 py-3 text-center text-red-600 font-medium">${deben}</td>
-                                            <td class="px-4 py-3 text-right">
-                                                <div class="flex items-center justify-end gap-2">
-                                                    <div class="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
-                                                        <div class="h-full bg-green-500" style="width: ${porcentaje}%"></div>
-                                                    </div>
-                                                    <span class="text-xs font-medium">${porcentaje}%</span>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    `;
-                                }).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            `;
-            
-            $('main-content').innerHTML = html;
-            actualizarBadgeAlertas();
-        }
-
-        function calcularEstadisticas() {
-            const mesActual = new Date().getMonth() + 1;
-            const alumnos = appState.db.alumnos.filter(a => a.activo !== false);
-            
-            const ingresosMes = appState.db.pagos
-                .filter(p => {
-                    const fecha = new Date(p.fecha);
-                    return fecha.getMonth() + 1 === mesActual;
-                })
-                .reduce((sum, p) => sum + p.monto, 0);
-            
-            const gastosMes = appState.db.gastos
-                .filter(g => {
-                    const fecha = new Date(g.fecha);
-                    return fecha.getMonth() + 1 === mesActual;
-                })
-                .reduce((sum, g) => sum + g.monto, 0);
-            
-            const deudaTotal = alumnos.reduce((sum, a) => sum + calcularDeudaMatricula(a), 0) +
-                              alumnos.reduce((sum, a) => sum + calcularDeudaMensual(a, mesActual), 0);
-            
-            return {
-                totalAlumnos: alumnos.length,
-                ingresosMes,
-                gastosMes,
-                deudaTotal,
-                librosPendientes: appState.db.libros.filter(l => l.saldo > 0).length,
-                cobradoMatriculas: appState.db.pagos.filter(p => p.tipo === 'matricula').reduce((s, p) => s + p.monto, 0),
-                cobradoMensualidades: appState.db.pagos.filter(p => p.tipo === 'mensualidad').reduce((s, p) => s + p.monto, 0),
-                cobradoLibros: appState.db.pagos.filter(p => p.tipo === 'libro').reduce((s, p) => s + p.monto, 0)
-            };
-        }
-
-        function generarHTMLAlertas() {
-            const hoy = new Date();
-            const alertas = [];
-            
-            // Alertas de cumpleaños (simulado por fecha de inscripción por ahora)
-            appState.db.alumnos.forEach(a => {
-                if (a.activo === false) return;
-                const deudaMat = calcularDeudaMatricula(a);
-                const deudaMes = calcularDeudaMensual(a, hoy.getMonth() + 1);
-                
-                if (deudaMat > 0) {
-                    alertas.push({
-                        tipo: 'danger',
-                        icon: 'fa-exclamation-circle',
-                        titulo: `Deuda Matrícula: ${a.nombre}`,
-                        desc: `Pendiente: ${formatMoney(deudaMat)}`,
-                        accion: `onclick="abrirModalPagoDirecto('${a.id}', 'matricula')"`
-                    });
-                }
-                if (deudaMes > 0) {
-                    alertas.push({
-                        tipo: 'warning',
-                        icon: 'fa-clock',
-                        titulo: `Mensualidad pendiente: ${a.nombre}`,
-                        desc: `Mes actual - Debe: ${formatMoney(deudaMes)}`,
-                        accion: `onclick="abrirModalPagoDirecto('${a.id}', 'mensualidad')"`
-                    });
-                }
-            });
-            
-            // Libros pendientes
-            appState.db.libros.filter(l => l.saldo > 0).forEach(l => {
-                const alumno = appState.db.alumnos.find(a => a.id === l.alumnoId);
-                if (alumno) {
-                    alertas.push({
-                        tipo: 'info',
-                        icon: 'fa-book',
-                        titulo: `Libro pendiente: ${alumno.nombre}`,
-                        desc: `${l.titulo} - Saldo: ${formatMoney(l.saldo)}`,
-                        accion: `onclick="abrirModalAbonoLibro('${l.id}')"`
-                    });
-                }
-            });
-            
-            if (alertas.length === 0) {
-                return '<div class="text-center text-gray-500 py-8">No hay alertas pendientes</div>';
-            }
-            
-            return alertas.map(a => `
-                <div class="flex items-start gap-3 p-3 rounded-lg border-l-4 ${a.tipo === 'danger' ? 'bg-red-50 border-red-500' : a.tipo === 'warning' ? 'bg-yellow-50 border-yellow-500' : 'bg-blue-50 border-blue-500'} cursor-pointer hover:shadow-md transition" ${a.accion}>
-                    <i class="fas ${a.icon} mt-1 ${a.tipo === 'danger' ? 'text-red-500' : a.tipo === 'warning' ? 'text-yellow-600' : 'text-blue-500'}"></i>
-                    <div class="flex-1">
-                        <div class="font-semibold text-sm text-gray-800">${a.titulo}</div>
-                        <div class="text-xs text-gray-600">${a.desc}</div>
-                    </div>
-                    <button class="text-xs bg-white px-2 py-1 rounded border hover:bg-gray-50">Ver</button>
-                </div>
-            `).join('');
-        }
-
-        // ==================== CAJA RÁPIDA (POS) ====================
-        function renderCajaRapida() {
-            $('main-content').innerHTML = `
-                <div class="max-w-4xl mx-auto">
-                    <h2 class="text-2xl font-bold text-gray-800 mb-6">Caja Rápida (POS)</h2>
-                    
-                    <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Buscar Alumno</label>
-                        <div class="relative">
-                            <input type="text" id="pos-busqueda" class="w-full pl-10 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none text-lg" 
-                                placeholder="Escribe nombre o cédula..." oninput="buscarAlumnoPOS(this.value)">
-                            <i class="fas fa-search absolute left-3 top-4 text-gray-400"></i>
-                        </div>
-                        <div id="pos-resultados" class="mt-2 max-h-48 overflow-y-auto space-y-1"></div>
-                    </div>
-
-                    <div id="pos-formulario" class="hidden bg-white rounded-xl shadow-lg p-6 slide-in">
-                        <div class="flex justify-between items-start mb-6 pb-4 border-b">
-                            <div>
-                                <div class="text-sm text-gray-500">Alumno</div>
-                                <div class="text-2xl font-bold text-gray-800" id="pos-nombre-alumno"></div>
-                                <div class="text-sm text-gray-600" id="pos-info-alumno"></div>
-                            </div>
-                            <div class="text-right">
-                                <div class="text-sm text-gray-500">Deuda Total</div>
-                                <div class="text-3xl font-bold text-red-600" id="pos-deuda-total"></div>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Concepto</label>
-                                <select id="pos-concepto" class="w-full p-3 border rounded-lg focus:border-blue-500 focus:outline-none" onchange="actualizarMontoPOS()">
-                                    <option value="">Seleccione...</option>
-                                    <option value="matricula">Matrícula</option>
-                                    <option value="mensualidad">Mensualidad</option>
-                                    <option value="libro">Libro/Material</option>
-                                    <option value="cuota">Cuota extraordinaria</option>
-                                </select>
-                            </div>
-                            <div id="pos-campo-mes" class="hidden">
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Mes</label>
-                                <select id="pos-mes" class="w-full p-3 border rounded-lg">
-                                    ${[...Array(12)].map((_, i) => `<option value="${i+1}" ${i+1 === new Date().getMonth()+1 ? 'selected' : ''}>${getNombreMes(i+1)}</option>`).join('')}
-                                </select>
-                            </div>
-                        </div>
-
-                        <div id="pos-info-calculo" class="hidden mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                            <div class="flex justify-between mb-2">
-                                <span class="text-gray-600">Base:</span>
-                                <span class="font-medium" id="pos-monto-base"></span>
-                            </div>
-                            <div class="flex justify-between mb-2 text-green-600" id="pos-row-descuento" style="display:none">
-                                <span>Descuento pronto pago:</span>
-                                <span class="font-medium">-${formatMoney(appState.db.config.descuento)}</span>
-                            </div>
-                            <div class="flex justify-between mb-2 text-red-600" id="pos-row-recargo" style="display:none">
-                                <span>Recargo:</span>
-                                <span class="font-medium">+${formatMoney(appState.db.config.recargo)}</span>
-                            </div>
-                            <div class="flex justify-between pt-2 border-t border-blue-200 text-lg font-bold">
-                                <span>Total a pagar:</span>
-                                <span id="pos-monto-final"></span>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-4 mb-6">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Monto Recibido $</label>
-                                <input type="number" id="pos-monto" class="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none text-xl font-bold" oninput="calcularVuelto()">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Fecha</label>
-                                <input type="date" id="pos-fecha" class="w-full p-3 border rounded-lg" value="${new Date().toISOString().split('T')[0]}">
-                            </div>
-                        </div>
-
-                        <div id="pos-vuelto" class="hidden mb-6 p-4 bg-green-50 rounded-lg text-center">
-                            <span class="text-gray-600">Vuelto: </span>
-                            <span class="text-2xl font-bold text-green-700" id="pos-vuelto-monto">$0</span>
-                        </div>
-
-                        <div class="mb-6">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Comentarios/Observaciones</label>
-                            <textarea id="pos-comentarios" class="w-full p-3 border rounded-lg" rows="2" placeholder="Ej: Me entregó $500, falta el resto..."></textarea>
-                        </div>
-
-                        <button onclick="procesarPagoPOS()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-lg text-lg transition transform hover:scale-[1.02]">
-                            <i class="fas fa-check-circle mr-2"></i> Registrar Pago
-                        </button>
-                    </div>
-                </div>
-            `;
-        }
-
-        let alumnoPOS = null;
-
-        function buscarAlumnoPOS(term) {
-            if (term.length < 2) {
-                $('pos-resultados').innerHTML = '';
-                return;
-            }
-            const filtrados = appState.db.alumnos.filter(a => 
-                a.activo !== false && 
-                (a.nombre.toLowerCase().includes(term.toLowerCase()) || a.cedula.includes(term))
-            );
-            
-            $('pos-resultados').innerHTML = filtrados.map(a => `
-                <div class="p-3 hover:bg-blue-50 rounded-lg cursor-pointer border border-gray-200 transition flex justify-between items-center" onclick="seleccionarAlumnoPOS('${a.id}')">
-                    <div>
-                        <div class="font-medium text-gray-800">${a.nombre}</div>
-                        <div class="text-xs text-gray-500">CI: ${a.cedula}</div>
-                    </div>
-                    <i class="fas fa-chevron-right text-gray-400"></i>
-                </div>
-            `).join('');
-        }
-
-        function seleccionarAlumnoPOS(id) {
-            alumnoPOS = appState.db.alumnos.find(a => a.id === id);
-            if (!alumnoPOS) return;
-            
-            $('pos-nombre-alumno').textContent = alumnoPOS.nombre;
-            const nivel = appState.db.niveles.find(n => n.id === alumnoPOS.nivelId)?.nombre || 'Sin nivel';
-            const tipoMat = appState.db.tiposMatricula.find(t => t.id === alumnoPOS.tipoMatriculaId)?.nombre || 'Regular';
-            $('pos-info-alumno').textContent = `${nivel} | ${tipoMat}${alumnoPOS.esHermano ? ' | HERMANO' : ''}`;
-            
-            const deudaMat = calcularDeudaMatricula(alumnoPOS);
-            const deudaMes = calcularDeudaMensual(alumnoPOS, new Date().getMonth() + 1);
-            $('pos-deuda-total').textContent = formatMoney(deudaMat + deudaMes);
-            
-            $('pos-resultados').innerHTML = '';
-            $('pos-formulario').classList.remove('hidden');
-            $('pos-formulario').classList.add('slide-in');
-        }
-
-        function actualizarMontoPOS() {
-            const concepto = $('pos-concepto').value;
-            const campoMes = $('pos-campo-mes');
-            const infoCalculo = $('pos-info-calculo');
-            
-            campoMes.classList.toggle('hidden', concepto !== 'mensualidad');
-            
-            if (!concepto) {
-                infoCalculo.classList.add('hidden');
-                return;
-            }
-            
-            let montoBase = 0;
-            if (concepto === 'matricula') {
-                const tipo = appState.db.tiposMatricula.find(t => t.id === alumnoPOS.tipoMatriculaId);
-                montoBase = tipo?.costoFijo || (appState.db.config.matriculaBase * (tipo?.porcentaje || 100) / 100);
-            } else if (concepto === 'mensualidad') {
-                if (alumnoPOS.esHermano && alumnoPOS.precioEspecialHermano) {
-                    montoBase = alumnoPOS.precioEspecialHermano;
-                } else {
-                    const nivel = appState.db.niveles.find(n => n.id === alumnoPOS.nivelId);
-                    montoBase = nivel?.precioMensual || appState.db.config.mensualidadBase;
-                }
-            }
-            
-            $('pos-monto-base').textContent = formatMoney(montoBase);
-            $('pos-monto').value = montoBase;
-            
-            // Calcular descuento/recargo si aplica
-            calcularDescuentoRecargoPOS();
-            infoCalculo.classList.remove('hidden');
-        }
-
-        function calcularDescuentoRecargoPOS() {
-            const concepto = $('pos-concepto').value;
-            const fecha = $('pos-fecha').value;
-            const mes = parseInt($('pos-mes')?.value || new Date().getMonth() + 1);
-            
-            if (concepto !== 'mensualidad' || alumnoPOS.esHermano) {
-                $('pos-row-descuento').style.display = 'none';
-                $('pos-row-recargo').style.display = 'none';
-                $('pos-monto-final').textContent = formatMoney(parseInt($('pos-monto').value) || 0);
-                return;
-            }
-            
-            const resultado = calcularRecargoDescuento(parseInt($('pos-monto-base').textContent.replace(/\D/g,'')) || 0, fecha, mes);
-            
-            $('pos-row-descuento').style.display = resultado.descuento > 0 ? 'flex' : 'none';
-            $('pos-row-recargo').style.display = resultado.recargo > 0 ? 'flex' : 'none';
-            $('pos-monto-final').textContent = formatMoney(resultado.montoFinal);
-            $('pos-monto').value = resultado.montoFinal;
-        }
-
-        function calcularVuelto() {
-            const recibido = parseInt($('pos-monto').value) || 0;
-            const fecha = $('pos-fecha').value;
-            const mes = parseInt($('pos-mes')?.value || new Date().getMonth() + 1);
-            const concepto = $('pos-concepto').value;
-            
-            let debePagar = parseInt($('pos-monto-base')?.textContent?.replace(/\D/g,'')) || 0;
-            
-            if (concepto === 'mensualidad' && !alumnoPOS.esHermano) {
-                const resultado = calcularRecargoDescuento(debePagar, fecha, mes);
-                debePagar = resultado.montoFinal;
-            }
-            
-            const vuelto = recibido - debePagar;
-            const divVuelto = $('pos-vuelto');
-            
-            if (vuelto > 0) {
-                divVuelto.classList.remove('hidden');
-                $('pos-vuelto-monto').textContent = formatMoney(vuelto);
-            } else {
-                divVuelto.classList.add('hidden');
-            }
-        }
-
-        function procesarPagoPOS() {
-            const monto = parseInt($('pos-monto').value);
-            const concepto = $('pos-concepto').value;
-            const fecha = $('pos-fecha').value;
-            const comentarios = $('pos-comentarios').value;
-            const mes = parseInt($('pos-mes')?.value);
-            
-            if (!monto || !concepto) {
-                showToast('Complete todos los campos', 'error');
-                return;
-            }
-            
-            const pago = {
-                id: generateId(),
-                alumnoId: alumnoPOS.id,
-                tipo: concepto,
-                monto,
-                fecha,
-                mes: concepto === 'mensualidad' ? mes : null,
-                comentarios,
-                timestamp: new Date().toISOString()
-            };
-            
-            appState.db.pagos.push(pago);
-            saveDB();
-            
-            showToast('Pago registrado correctamente');
-            
-            // Limpiar
-            $('pos-formulario').classList.add('hidden');
-            $('pos-busqueda').value = '';
-            alumnoPOS = null;
-            
-            // Actualizar dashboard si está visible
-            if ($('main-content').innerHTML.includes('Dashboard')) {
-                renderDashboard();
-            }
-        }
-
-        // ==================== ALUMNOS ====================
-        function renderAlumnos() {
-            const alumnos = appState.db.alumnos.filter(a => a.activo !== false);
-            
-            let html = `
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold text-gray-800">Gestión de Alumnos</h2>
-                    <button onclick="mostrarFormAlumno()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow transition">
-                        <i class="fas fa-plus mr-2"></i>Nuevo Alumno
-                    </button>
-                </div>
-
-                <div class="bg-white rounded-xl shadow-md p-4 mb-6">
-                    <div class="flex gap-4">
-                        <div class="flex-1 relative">
-                            <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
-                            <input type="text" id="busqueda-alumnos" placeholder="Buscar por nombre, cédula, teléfono..." 
-                                class="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:border-blue-500"
-                                oninput="filtrarTablaAlumnos(this.value)">
-                        </div>
-                        <select id="filtro-nivel-alumnos" class="border rounded-lg px-4 py-2" onchange="filtrarTablaAlumnos()">
-                            <option value="">Todos los niveles</option>
-                            ${appState.db.niveles.map(n => `<option value="${n.id}">${n.nombre}</option>`).join('')}
-                        </select>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-xl shadow-md overflow-hidden">
-                    <table class="w-full text-sm text-left">
-                        <thead class="bg-gray-50 text-gray-600 font-semibold">
-                            <tr>
-                                <th class="px-6 py-4">N°</th>
-                                <th class="px-6 py-4">Nombre</th>
-                                <th class="px-6 py-4">Cédula</th>
-                                <th class="px-6 py-4">Nivel</th>
-                                <th class="px-6 py-4">Contacto</th>
-                                <th class="px-6 py-4">Estado</th>
-                                <th class="px-6 py-4 text-right">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-100" id="tabla-alumnos-body">
-                            ${alumnos.map(a => renderFilaAlumno(a)).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            `;
-            
-            $('main-content').innerHTML = html;
-        }
-
-        function renderFilaAlumno(a) {
-            const nivel = appState.db.niveles.find(n => n.id === a.nivelId);
-            const deudaMat = calcularDeudaMatricula(a);
-            const deudaMes = calcularDeudaMensual(a, new Date().getMonth() + 1);
-            const tieneDeuda = deudaMat > 0 || deudaMes > 0;
-            
-            return `
-                <tr class="hover:bg-gray-50 transition">
-                    <td class="px-6 py-4 font-medium text-gray-500">#${a.numeroAnual || a.id.substr(-4)}</td>
-                    <td class="px-6 py-4">
-                        <div class="font-medium text-gray-900">${a.nombre}</div>
-                        <div class="text-xs text-gray-500">${a.esHermano ? '<i class="fas fa-user-friends text-blue-500"></i> Hermano' : ''}</div>
-                    </td>
-                    <td class="px-6 py-4 font-mono text-gray-600">${a.cedula}</td>
-                    <td class="px-6 py-4">
-                        <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">${nivel?.nombre || 'Sin nivel'}</span>
-                    </td>
-                    <td class="px-6 py-4">
-                        <div class="text-gray-600"><i class="fas fa-phone text-xs mr-1"></i> ${a.telefono || '-'}</div>
-                        ${a.telefonoPadre ? `<div class="text-xs text-gray-500">Padre: ${a.telefonoPadre}</div>` : ''}
-                    </td>
-                    <td class="px-6 py-4">
-                        ${tieneDeuda ? 
-                            `<span class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">Deuda: ${formatMoney(deudaMat + deudaMes)}</span>` : 
-                            `<span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">Al día</span>`
-                        }
-                    </td>
-                    <td class="px-6 py-4 text-right space-x-2">
-                        <button onclick="verFichaAlumno('${a.id}')" class="text-blue-600 hover:text-blue-800 font-medium" title="Ver ficha completa">
-                            <i class="fas fa-id-card"></i>
-                        </button>
-                        <button onclick="editarAlumno('${a.id}')" class="text-gray-600 hover:text-gray-800" title="Editar">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button onclick="generarWhatsApp('${a.id}')" class="text-green-600 hover:text-green-800" title="Enviar WhatsApp">
-                            <i class="fab fa-whatsapp"></i>
-                        </button>
-                        <button onclick="darDeBajaAlumno('${a.id}')" class="text-red-400 hover:text-red-600" title="Dar de baja">
-                            <i class="fas fa-user-times"></i>
-                        </button>
-                    </td>
-                </tr>
-            `;
-        }
-
-        function mostrarFormAlumno(alumnoId = null) {
-            const alumno = alumnoId ? appState.db.alumnos.find(a => a.id === alumnoId) : null;
-            const esEdicion = !!alumno;
-            
-            const html = `
-                <div class="p-6">
-                    <h3 class="text-xl font-bold mb-6">${esEdicion ? 'Editar' : 'Nuevo'} Alumno</h3>
-                    <form id="form-alumno" onsubmit="guardarAlumno(event, '${alumnoId || ''}')" class="space-y-4 max-w-3xl">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Nombre Completo *</label>
-                                <input type="text" name="nombre" value="${alumno?.nombre || ''}" required class="w-full border rounded-lg px-3 py-2 focus:border-blue-500 focus:outline-none">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Cédula de Identidad *</label>
-                                <input type="text" name="cedula" value="${alumno?.cedula || ''}" required 
-                                    onblur="validarCedulaUnica(this.value, '${alumnoId || ''}')"
-                                    class="w-full border rounded-lg px-3 py-2 focus:border-blue-500 focus:outline-none">
-                                <div id="error-cedula" class="text-red-500 text-xs mt-1 hidden">Esta cédula ya está registrada</div>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Teléfono Alumno</label>
-                                <input type="text" name="telefono" value="${alumno?.telefono || ''}" class="w-full border rounded-lg px-3 py-2">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                                <input type="email" name="email" value="${alumno?.email || ''}" class="w-full border rounded-lg px-3 py-2">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Edad</label>
-                                <input type="number" name="edad" value="${alumno?.edad || ''}" class="w-full border rounded-lg px-3 py-2">
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Nombre Padre/Tutor</label>
-                                <input type="text" name="nombrePadre" value="${alumno?.nombrePadre || ''}" class="w-full border rounded-lg px-3 py-2">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Teléfono Padre</label>
-                                <input type="text" name="telefonoPadre" value="${alumno?.telefonoPadre || ''}" class="w-full border rounded-lg px-3 py-2">
-                            </div>
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
-                            <input type="text" name="direccion" value="${alumno?.direccion || ''}" class="w-full border rounded-lg px-3 py-2">
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Nivel *</label>
-                                <select name="nivelId" required class="w-full border rounded-lg px-3 py-2">
-                                    <option value="">Seleccione...</option>
-                                    ${appState.db.niveles.map(n => `<option value="${n.id}" ${alumno?.nivelId === n.id ? 'selected' : ''}>${n.nombre}</option>`).join('')}
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Tipo Matrícula</label>
-                                <select name="tipoMatriculaId" class="w-full border rounded-lg px-3 py-2" onchange="toggleHermano(this.value)">
-                                    ${appState.db.tiposMatricula.map(t => `<option value="${t.id}" ${alumno?.tipoMatriculaId === t.id ? 'selected' : ''}>${t.nombre}</option>`).join('')}
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Fecha Inscripción</label>
-                                <input type="date" name="fechaInscripcion" value="${alumno?.fechaInscripcion || new Date().toISOString().split('T')[0]}" class="w-full border rounded-lg px-3 py-2">
-                            </div>
-                        </div>
-
-                        <div id="campo-hermano" class="${alumno?.esHermano ? '' : 'hidden'} p-4 bg-blue-50 rounded-lg border border-blue-200">
-                            <div class="flex items-center gap-2 mb-3">
-                                <input type="checkbox" name="esHermano" id="check-hermano" ${alumno?.esHermano ? 'checked' : ''} class="w-4 h-4 text-blue-600">
-                                <label for="check-hermano" class="text-sm font-medium text-blue-900">Marcar como Hermano (excepción de recargos/descuentos)</label>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-blue-800 mb-1">Precio Mensual Fijo para Hermano $</label>
-                                <input type="number" name="precioEspecialHermano" value="${alumno?.precioEspecialHermano || ''}" 
-                                    placeholder="Ej: 2000" class="w-full border rounded-lg px-3 py-2">
-                                <p class="text-xs text-blue-600 mt-1">Este precio se mantendrá fijo sin descuentos ni recargos por fecha</p>
-                            </div>
-                        </div>
-
-                        <div class="flex gap-3 pt-4">
-                            <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition">
-                                ${esEdicion ? 'Guardar Cambios' : 'Registrar Alumno'}
-                            </button>
-                            <button type="button" onclick="cerrarModal()" class="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50">
-                                Cancelar
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            `;
-            
-            mostrarModalContent(html);
-        }
-
-        function toggleHermano(tipoId) {
-            const tipo = appState.db.tiposMatricula.find(t => t.id == tipoId);
-            const div = $('campo-hermano');
-            if (tipo?.nombre?.toLowerCase().includes('hermano')) {
-                div.classList.remove('hidden');
-                $('check-hermano').checked = true;
-            }
-        }
-
-        function validarCedulaUnica(cedula, excludeId) {
-            const existe = appState.db.alumnos.find(a => a.cedula === cedula && a.id !== excludeId && a.activo !== false);
-            const errorDiv = $('error-cedula');
-            if (existe) {
-                errorDiv.classList.remove('hidden');
-            } else {
-                errorDiv.classList.add('hidden');
-            }
-        }
-
-        function guardarAlumno(e, id) {
-            e.preventDefault();
-            const form = e.target;
-            const data = Object.fromEntries(new FormData(form));
-            
-            // Validar cédula
-            const existe = appState.db.alumnos.find(a => a.cedula === data.cedula && a.id !== id && a.activo !== false);
-            if (existe) {
-                showToast('La cédula ya está registrada', 'error');
-                return;
-            }
-            
-            const alumnoData = {
-                id: id || generateId(),
-                ...data,
-                esHermano: data.esHermano === 'on',
-                numeroAnual: id ? (appState.db.alumnos.find(a => a.id === id)?.numeroAnual) : (appState.db.alumnos.length + 1),
-                activo: true
-            };
-            
-            if (id) {
-                const idx = appState.db.alumnos.findIndex(a => a.id === id);
-                appState.db.alumnos[idx] = alumnoData;
-                showToast('Alumno actualizado');
-            } else {
-                appState.db.alumnos.push(alumnoData);
-                showToast('Alumno registrado correctamente');
-            }
-            
-            saveDB();
-            cerrarModal();
-            renderAlumnos();
-        }
-
-        function verFichaAlumno(id) {
-            const a = appState.db.alumnos.find(x => x.id === id);
-            if (!a) return;
-            
-            const nivel = appState.db.niveles.find(n => n.id === a.nivelId);
-            const tipoMat = appState.db.tiposMatricula.find(t => t.id === a.tipoMatriculaId);
-            const libros = appState.db.libros.filter(l => l.alumnoId === id);
-            const pagos = appState.db.pagos.filter(p => p.alumnoId === id).sort((a,b) => new Date(b.fecha) - new Date(a.fecha));
-            
-            const deudaMat = calcularDeudaMatricula(a);
-            const deudaMes = calcularDeudaMensual(a, new Date().getMonth() + 1);
-            const deudaLibros = libros.reduce((sum, l) => sum + l.saldo, 0);
-            
-            const html = `
-                <div class="p-6 max-w-4xl">
-                    <div class="flex justify-between items-start mb-6">
-                        <div>
-                            <h2 class="text-2xl font-bold text-gray-800">${a.nombre}</h2>
-                            <p class="text-gray-500">CI: ${a.cedula} | N° ${a.numeroAnual}</p>
-                        </div>
-                        <button onclick="cerrarModal()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times text-2xl"></i></button>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                        <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                            <div class="text-sm text-blue-600 mb-1">Deuda Matrícula</div>
-                            <div class="text-2xl font-bold text-blue-900">${formatMoney(deudaMat)}</div>
-                        </div>
-                        <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-                            <div class="text-sm text-yellow-600 mb-1">Mensualidad Pendiente</div>
-                            <div class="text-2xl font-bold text-yellow-900">${formatMoney(deudaMes)}</div>
-                        </div>
-                        <div class="bg-red-50 p-4 rounded-lg border border-red-200">
-                            <div class="text-sm text-red-600 mb-1">Deuda Libros</div>
-                            <div class="text-2xl font-bold text-red-900">${formatMoney(deudaLibros)}</div>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <h3 class="font-bold text-gray-800 mb-3">Datos Personales</h3>
-                            <div class="bg-gray-50 p-4 rounded-lg space-y-2 text-sm">
-                                <div class="flex justify-between"><span class="text-gray-500">Nivel:</span> <span class="font-medium">${nivel?.nombre}</span></div>
-                                <div class="flex justify-between"><span class="text-gray-500">Tipo Matrícula:</span> <span class="font-medium">${tipoMat?.nombre} ${a.esHermano ? '(Hermano)' : ''}</span></div>
-                                <div class="flex justify-between"><span class="text-gray-500">Teléfono:</span> <span class="font-medium">${a.telefono || '-'}</span></div>
-                                <div class="flex justify-between"><span class="text-gray-500">Email:</span> <span class="font-medium">${a.email || '-'}</span></div>
-                                <div class="flex justify-between"><span class="text-gray-500">Dirección:</span> <span class="font-medium">${a.direccion || '-'}</span></div>
-                                <div class="flex justify-between"><span class="text-gray-500">Padre/Tutor:</span> <span class="font-medium">${a.nombrePadre || '-'} ${a.telefonoPadre ? '('+a.telefonoPadre+')' : ''}</span></div>
-                            </div>
-
-                            <h3 class="font-bold text-gray-800 mb-3 mt-6">Libros Asignados</h3>
-                            <div class="space-y-2">
-                                ${libros.length ? libros.map(l => `
-                                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg border ${l.saldo > 0 ? 'border-red-200' : 'border-green-200'}">
-                                        <div>
-                                            <div class="font-medium text-sm">${l.titulo}</div>
-                                            <div class="text-xs ${l.saldo > 0 ? 'text-red-600' : 'text-green-600'}">
-                                                ${l.saldo > 0 ? `Debe: ${formatMoney(l.saldo)}` : 'Pagado'}
-                                            </div>
-                                        </div>
-                                        ${l.saldo > 0 ? `<button onclick="abrirModalAbonoLibro('${l.id}'); cerrarModal();" class="text-xs bg-blue-600 text-white px-2 py-1 rounded">Abonar</button>` : ''}
-                                    </div>
-                                `).join('') : '<div class="text-gray-400 text-sm">No tiene libros asignados</div>'}
-                            </div>
-                        </div>
-
-                        <div>
-                            <h3 class="font-bold text-gray-800 mb-3">Historial de Pagos</h3>
-                            <div class="space-y-2 max-h-96 overflow-y-auto">
-                                ${pagos.length ? pagos.map(p => `
-                                    <div class="p-3 bg-gray-50 rounded-lg text-sm border-l-4 ${p.tipo === 'matricula' ? 'border-blue-500' : p.tipo === 'mensualidad' ? 'border-green-500' : 'border-yellow-500'}">
-                                        <div class="flex justify-between mb-1">
-                                            <span class="font-medium capitalize">${p.tipo} ${p.mes ? getNombreMes(p.mes) : ''}</span>
-                                            <span class="font-bold">${formatMoney(p.monto)}</span>
-                                        </div>
-                                        <div class="text-xs text-gray-500">${formatDate(p.fecha)}</div>
-                                        ${p.comentarios ? `<div class="text-xs text-gray-600 mt-1 italic">"${p.comentarios}"</div>` : ''}
-                                    </div>
-                                `).join('') : '<div class="text-gray-400 text-sm">Sin pagos registrados</div>'}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            mostrarModalContent(html);
-        }
-
-        function generarWhatsApp(id) {
-            const a = appState.db.alumnos.find(x => x.id === id);
-            const deudaMat = calcularDeudaMatricula(a);
-            const deudaMes = calcularDeudaMensual(a, new Date().getMonth() + 1);
-            const total = deudaMat + deudaMes;
-            
-            const mensaje = `Hola ${a.nombrePadre || 'Padre/Madre'} de ${a.nombre}, le recordamos que tiene un saldo pendiente de ${formatMoney(total)} en ALEI Instituto de Inglés (Matrícula: ${formatMoney(deudaMat)}, Mensualidad: ${formatMoney(deudaMes)}). Por favor regularice su situación. Gracias!`;
-            
-            const tel = a.telefonoPadre || a.telefono;
-            window.open(`https://wa.me/598${tel.replace(/\D/g,'')}?text=${encodeURIComponent(mensaje)}`, '_blank');
-        }
-
-        function darDeBajaAlumno(id) {
-            if (!confirm('¿Está seguro de dar de baja a este alumno? Los datos se mantendrán pero no aparecerá en listados activos.')) return;
-            
-            const idx = appState.db.alumnos.findIndex(a => a.id === id);
-            appState.db.alumnos[idx].activo = false;
-            saveDB();
-            renderAlumnos();
-            showToast('Alumno dado de baja');
-        }
-
-        // ==================== LIBROS ====================
-        function renderLibros() {
-            const librosPendientes = appState.db.libros.filter(l => l.saldo > 0);
-            
-            let html = `
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold text-gray-800">Libros y Materiales</h2>
-                    <button onclick="mostrarFormAsignarLibro()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow">
-                        <i class="fas fa-plus mr-2"></i>Asignar Libro
-                    </button>
-                </div>
-
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-                    <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-500">
-                        <div class="text-gray-500 text-sm mb-1">Total Libros Asignados</div>
-                        <div class="text-3xl font-bold text-gray-800">${appState.db.libros.length}</div>
-                    </div>
-                    <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-yellow-500">
-                        <div class="text-gray-500 text-sm mb-1">Con Saldo Pendiente</div>
-                        <div class="text-3xl font-bold text-yellow-600">${librosPendientes.length}</div>
-                    </div>
-                    <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-green-500">
-                        <div class="text-gray-500 text-sm mb-1">Pagados Completos</div>
-                        <div class="text-3xl font-bold text-green-600">${appState.db.libros.filter(l => l.saldo === 0).length}</div>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-xl shadow-md overflow-hidden">
-                    <table class="w-full text-sm text-left">
-                        <thead class="bg-gray-50 text-gray-600 font-semibold">
-                            <tr>
-                                <th class="px-6 py-4">Alumno</th>
-                                <th class="px-6 py-4">Libro</th>
-                                <th class="px-6 py-4">Costo Total</th>
-                                <th class="px-6 py-4">Abonado</th>
-                                <th class="px-6 py-4">Saldo</th>
-                                <th class="px-6 py-4">Progreso</th>
-                                <th class="px-6 py-4 text-right">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-100">
-                            ${librosPendientes.map(l => {
-                                const alumno = appState.db.alumnos.find(a => a.id === l.alumnoId);
-                                const porcentaje = Math.round((l.abonado / l.costoTotal) * 100);
-                                return `
-                                    <tr class="hover:bg-gray-50">
-                                        <td class="px-6 py-4 font-medium">${alumno?.nombre || 'N/A'}</td>
-                                        <td class="px-6 py-4">${l.titulo}</td>
-                                        <td class="px-6 py-4">${formatMoney(l.costoTotal)}</td>
-                                        <td class="px-6 py-4 text-green-600 font-medium">${formatMoney(l.abonado)}</td>
-                                        <td class="px-6 py-4 text-red-600 font-bold">${formatMoney(l.saldo)}</td>
-                                        <td class="px-6 py-4">
-                                            <div class="w-full bg-gray-200 rounded-full h-2.5">
-                                                <div class="bg-blue-600 h-2.5 rounded-full" style="width: ${porcentaje}%"></div>
-                                            </div>
-                                            <span class="text-xs text-gray-500">${porcentaje}%</span>
-                                        </td>
-                                        <td class="px-6 py-4 text-right">
-                                            <button onclick="abrirModalAbonoLibro('${l.id}')" class="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700">
-                                                Abonar
-                                            </button>
-                                        </td>
-                                    </tr>
-                                `;
-                            }).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            `;
-            
-            $('main-content').innerHTML = html;
-        }
-
-        function mostrarFormAsignarLibro() {
-            const html = `
-                <div class="p-6 max-w-lg">
-                    <h3 class="text-xl font-bold mb-4">Asignar Libro a Alumno</h3>
-                    <form id="form-libro" onsubmit="guardarLibro(event)" class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Alumno</label>
-                            <select name="alumnoId" required class="w-full border rounded-lg px-3 py-2">
-                                <option value="">Seleccione...</option>
-                                ${appState.db.alumnos.filter(a => a.activo !== false).map(a => `<option value="${a.id}">${a.nombre}</option>`).join('')}
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Título del Libro</label>
-                            <input type="text" name="titulo" required class="w-full border rounded-lg px-3 py-2" placeholder="Ej: Wider World 2 Student's Book">
-                        </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Costo Total $</label>
-                                <input type="number" name="costoTotal" required class="w-full border rounded-lg px-3 py-2" onchange="calcularSaldoInicial()">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Primer Abono $</label>
-                                <input type="number" name="primerAbono" value="0" class="w-full border rounded-lg px-3 py-2" onchange="calcularSaldoInicial()">
-                            </div>
-                        </div>
-                        <div class="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                            <div class="flex justify-between text-sm font-bold text-red-600">
-                                <span>Saldo a Financiar:</span>
-                                <span id="saldo-inicial-libro">${formatMoney(0)}</span>
-                            </div>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Comentarios</label>
-                            <textarea name="comentarios" class="w-full border rounded-lg px-3 py-2" rows="2"></textarea>
-                        </div>
-                        <div class="flex gap-3">
-                            <button type="submit" class="flex-1 bg-blue-600 text-white font-bold py-2 rounded-lg hover:bg-blue-700">Asignar y Registrar Abono</button>
-                            <button type="button" onclick="cerrarModal()" class="px-4 py-2 border rounded-lg hover:bg-gray-50">Cancelar</button>
-                        </div>
-                    </form>
-                </div>
-            `;
-            mostrarModalContent(html);
-        }
-
-        function calcularSaldoInicial() {
-            const total = parseInt(document.querySelector('[name="costoTotal"]')?.value) || 0;
-            const abono = parseInt(document.querySelector('[name="primerAbono"]')?.value) || 0;
-            $('saldo-inicial-libro').textContent = formatMoney(total - abono);
-        }
-
-        function guardarLibro(e) {
-            e.preventDefault();
-            const data = Object.fromEntries(new FormData(e.target));
-            
-            const libro = {
-                id: generateId(),
-                alumnoId: data.alumnoId,
-                titulo: data.titulo,
-                costoTotal: parseInt(data.costoTotal),
-                abonado: parseInt(data.primerAbono) || 0,
-                saldo: parseInt(data.costoTotal) - (parseInt(data.primerAbono) || 0),
-                pagos: parseInt(data.primerAbono) > 0 ? [{
-                    fecha: new Date().toISOString().split('T')[0],
-                    monto: parseInt(data.primerAbono),
-                    comentarios: 'Primer abono al asignar'
-                }] : []
-            };
-            
-            appState.db.libros.push(libro);
-            
-            // Registrar pago si hay abono
-            if (parseInt(data.primerAbono) > 0) {
-                appState.db.pagos.push({
-                    id: generateId(),
-                    alumnoId: data.alumnoId,
-                    tipo: 'libro',
-                    monto: parseInt(data.primerAbono),
-                    fecha: new Date().toISOString().split('T')[0],
-                    comentarios: `Abono inicial libro: ${data.titulo}. ${data.comentarios || ''}`
+        async function fetchData(endpoint, options = {}) {
+            try {
+                const res = await fetch(`${API_URL}/${endpoint}`, {
+                    ...options,
+                    headers: { 'Content-Type': 'application/json', ...options.headers }
                 });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Error en la petición');
+                return data;
+            } catch (error) {
+                showToast(error.message, 'error');
+                throw error;
             }
-            
-            saveDB();
-            cerrarModal();
-            renderLibros();
-            showToast('Libro asignado correctamente');
         }
 
-        function abrirModalAbonoLibro(libroId) {
-            const libro = appState.db.libros.find(l => l.id === libroId);
-            const alumno = appState.db.alumnos.find(a => a.id === libro.alumnoId);
+        // Navegación Principal
+        async function navigate(section) {
+            const main = document.getElementById('main-content');
+            main.innerHTML = '<div class="flex justify-center items-center h-full"><i class="fas fa-spinner fa-spin text-4xl text-blue-600"></i></div>';
             
-            const html = `
-                <div class="p-6 max-w-md">
-                    <h3 class="text-xl font-bold mb-4">Registrar Abono</h3>
-                    <div class="mb-4 p-4 bg-blue-50 rounded-lg">
-                        <div class="font-medium text-blue-900">${alumno.nombre}</div>
-                        <div class="text-sm text-blue-700">${libro.titulo}</div>
-                        <div class="mt-2 flex justify-between text-sm">
-                            <span>Total: ${formatMoney(libro.costoTotal)}</span>
-                            <span>Saldo: <strong class="text-red-600">${formatMoney(libro.saldo)}</strong></span>
+            switch(section) {
+                case 'dashboard': await renderDashboard(); break;
+                case 'caja': renderCajaRapida(); break;
+                case 'alumnos': await renderAlumnos(); break;
+                case 'pagos': await renderPagos(); break;
+                case 'libros': await renderLibros(); break;
+                case 'deudas': await renderDeudas(); break;
+                case 'gastos': await renderGastos(); break;
+                case 'espera': await renderEspera(); break;
+                case 'backup': renderBackup(); break;
+            }
+        }
+
+        // DASHBOARD
+        async function renderDashboard() {
+            try {
+                const data = await fetchData(`dashboard?anio=${anioActual}&mes=${new Date().getMonth()+1}`);
+                
+                document.getElementById('main-content').innerHTML = `
+                    <div class="animate-fade-in space-y-6">
+                        <div class="flex justify-between items-center">
+                            <h2 class="text-3xl font-bold text-gray-800">Dashboard ${anioActual}</h2>
+                            <span class="text-sm text-gray-500">Actualizado: ${new Date().toLocaleTimeString()}</span>
+                        </div>
+                        
+                        <!-- Stats Cards -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <div class="bg-white rounded-xl shadow-sm p-6 card-hover border-l-4 border-blue-500">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-600 mb-1">Total Alumnos</p>
+                                        <h3 class="text-3xl font-bold text-gray-800">${data.total_alumnos}</h3>
+                                    </div>
+                                    <div class="bg-blue-100 p-3 rounded-lg">
+                                        <i class="fas fa-users text-blue-600 text-xl"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-white rounded-xl shadow-sm p-6 card-hover border-l-4 border-green-500">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-600 mb-1">Ingresos Mes</p>
+                                        <h3 class="text-3xl font-bold text-green-600">${formatMoney(data.ingresos_mes)}</h3>
+                                    </div>
+                                    <div class="bg-green-100 p-3 rounded-lg">
+                                        <i class="fas fa-arrow-up text-green-600 text-xl"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-white rounded-xl shadow-sm p-6 card-hover border-l-4 border-red-500">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-600 mb-1">Gastos Mes</p>
+                                        <h3 class="text-3xl font-bold text-red-600">${formatMoney(data.gastos_mes)}</h3>
+                                    </div>
+                                    <div class="bg-red-100 p-3 rounded-lg">
+                                        <i class="fas fa-arrow-down text-red-600 text-xl"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-white rounded-xl shadow-sm p-6 card-hover border-l-4 ${data.balance >= 0 ? 'border-blue-500' : 'border-orange-500'}">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-600 mb-1">Balance</p>
+                                        <h3 class="text-3xl font-bold ${data.balance >= 0 ? 'text-blue-600' : 'text-orange-600'}">${formatMoney(data.balance)}</h3>
+                                    </div>
+                                    <div class="${data.balance >= 0 ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'} p-3 rounded-lg">
+                                        <i class="fas fa-wallet text-xl"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <!-- Deudores del Mes -->
+                            <div class="bg-white rounded-xl shadow-sm p-6">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h3 class="text-xl font-bold text-gray-800">
+                                        <i class="fas fa-exclamation-triangle text-orange-500 mr-2"></i>
+                                        Deben Mensualidad (${data.deben_mes.length})
+                                    </h3>
+                                </div>
+                                <div class="space-y-2 max-h-96 overflow-y-auto">
+                                    ${data.deben_mes.length === 0 ? '<p class="text-gray-500 text-center py-4">Todos al día 🎉</p>' : 
+                                      data.deben_mes.map(a => `
+                                        <div class="flex justify-between items-center p-3 bg-red-50 rounded-lg border border-red-100">
+                                            <div>
+                                                <div class="font-semibold text-gray-800">${a.nombre}</div>
+                                                <div class="text-sm text-gray-600">${a.nivel}</div>
+                                            </div>
+                                            <button onclick="showWhatsApp(${a.id})" class="text-green-600 hover:text-green-800 p-2" title="Enviar WhatsApp">
+                                                <i class="fab fa-whatsapp text-xl"></i>
+                                            </button>
+                                        </div>
+                                      `).join('')}
+                                </div>
+                            </div>
+                            
+                            <!-- Libros Pendientes -->
+                            <div class="bg-white rounded-xl shadow-sm p-6">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h3 class="text-xl font-bold text-gray-800">
+                                        <i class="fas fa-book text-blue-500 mr-2"></i>
+                                        Libros Pendientes
+                                    </h3>
+                                </div>
+                                <div class="space-y-2 max-h-96 overflow-y-auto">
+                                    ${data.libros_pendientes.length === 0 ? '<p class="text-gray-500 text-center py-4">Sin libros pendientes</p>' :
+                                      data.libros_pendientes.map(l => `
+                                        <div class="p-3 bg-blue-50 rounded-lg border border-blue-100">
+                                            <div class="flex justify-between mb-1">
+                                                <span class="font-semibold text-gray-800">${l.alumno_nombre}</span>
+                                                <span class="text-red-600 font-bold">${formatMoney(l.saldo)}</span>
+                                            </div>
+                                            <div class="text-sm text-gray-600 mb-2">${l.titulo}</div>
+                                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                                <div class="bg-blue-600 h-2 rounded-full" style="width: ${(l.pagado/l.costo_total)*100}%"></div>
+                                            </div>
+                                        </div>
+                                      `).join('')}
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <form id="form-abono" onsubmit="registrarAbonoLibro(event, '${libroId}')" class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Monto del Abono $</label>
-                            <input type="number" name="monto" max="${libro.saldo}" required class="w-full border rounded-lg px-3 py-2">
+                `;
+                
+                // Actualizar badge
+                const badge = document.getElementById('badge-deudas');
+                if (data.deben_mes.length > 0) {
+                    badge.textContent = data.deben_mes.length;
+                    badge.classList.remove('hidden');
+                }
+            } catch (e) {
+                document.getElementById('main-content').innerHTML = '<div class="text-center text-red-600">Error cargando dashboard</div>';
+            }
+        }
+
+        // CAJA RÁPIDA (POS)
+        function renderCajaRapida() {
+            document.getElementById('main-content').innerHTML = `
+                <div class="animate-fade-in max-w-4xl mx-auto">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-6">Caja Rápida <span class="text-sm font-normal text-gray-500">(3 clicks para cobrar)</span></h2>
+                    
+                    <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                        <!-- Paso 1: Buscar Alumno -->
+                        <div class="p-6 border-b bg-gray-50">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">1. Buscar Alumno</label>
+                            <div class="relative">
+                                <input type="text" id="caja-busqueda" placeholder="Escriba nombre o cédula..." 
+                                       class="w-full pl-10 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 text-lg"
+                                       oninput="buscarAlumnoCaja(this.value)">
+                                <i class="fas fa-search absolute left-3 top-4 text-gray-400"></i>
+                            </div>
+                            <div id="caja-resultados" class="mt-2 space-y-1 max-h-48 overflow-y-auto"></div>
                         </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Comentarios</label>
-                            <textarea name="comentarios" class="w-full border rounded-lg px-3 py-2" rows="2" placeholder="Ej: Me entregó $500, falta el resto..."></textarea>
+                        
+                        <!-- Info Alumno Seleccionado -->
+                        <div id="caja-info-alumno" class="hidden p-6 bg-blue-50 border-b">
+                            <!-- Se llena dinámicamente -->
                         </div>
-                        <div class="flex gap-3">
-                            <button type="submit" class="flex-1 bg-green-600 text-white font-bold py-2 rounded-lg hover:bg-green-700">Registrar Abono</button>
-                            <button type="button" onclick="cerrarModal()" class="px-4 py-2 border rounded-lg hover:bg-gray-50">Cancelar</button>
+                        
+                        <!-- Paso 2: Concepto y Monto -->
+                        <div id="caja-form" class="hidden p-6 space-y-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">2. Concepto</label>
+                                    <select id="caja-concepto" onchange="actualizarMontoSugerido()" 
+                                            class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 text-lg">
+                                        <option value="">Seleccione...</option>
+                                        <option value="matricula">Matrícula</option>
+                                        <option value="mensualidad">Mensualidad</option>
+                                        <option value="libro">Libro / Material</option>
+                                        <option value="examen">Examen</option>
+                                    </select>
+                                </div>
+                                
+                                <div id="campo-mes" class="hidden">
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Mes</label>
+                                    <select id="caja-mes" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg">
+                                        ${[...Array(12)].map((_, i) => `<option value="${i+1}" ${i+1 === new Date().getMonth()+1 ? 'selected' : ''}>${new Date(2024, i).toLocaleString('es', {month: 'long'})}</option>`).join('')}
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">3. Monto</label>
+                                    <div class="relative">
+                                        <span class="absolute left-4 top-3 text-gray-500 text-lg">$</span>
+                                        <input type="number" id="caja-monto" 
+                                               class="w-full pl-8 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 text-lg font-bold"
+                                               placeholder="0">
+                                    </div>
+                                    <div id="caja-ayuda-monto" class="text-sm text-gray-500 mt-1"></div>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Comentarios (opcional)</label>
+                                    <input type="text" id="caja-comentarios" 
+                                           class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500"
+                                           placeholder="Ej: Paga parcial, falta resto próxima semana">
+                                </div>
+                            </div>
+                            
+                            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 hidden" id="caja-resumen">
+                                <div class="flex justify-between items-center">
+                                    <div>
+                                        <div class="text-sm text-gray-600">Monto final a cobrar:</div>
+                                        <div class="text-2xl font-bold text-gray-800" id="caja-monto-final">$0</div>
+                                    </div>
+                                    <div id="caja-descuento-info" class="text-sm text-green-600 font-medium hidden">
+                                        <i class="fas fa-check-circle"></i> Descuento pronto pago aplicado
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <button onclick="registrarPagoCaja()" 
+                                    class="caja-rapida-btn w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-lg text-xl shadow-lg flex items-center justify-center gap-3">
+                                <i class="fas fa-check-circle"></i>
+                                REGISTRAR PAGO
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('caja-busqueda').focus();
+        }
+
+        async function buscarAlumnoCaja(term) {
+            if (term.length < 3) {
+                document.getElementById('caja-resultados').innerHTML = '';
+                return;
+            }
+            
+            try {
+                const data = await fetchData(`alumnos?busqueda=${encodeURIComponent(term)}&anio=${anioActual}`);
+                const div = document.getElementById('caja-resultados');
+                
+                div.innerHTML = data.map(a => `
+                    <div onclick="seleccionarAlumnoCaja(${a.id}, '${a.nombre}', '${a.cedula}', '${a.nivel}', ${a.es_hermano || false}, ${a.precio_especial || 0})" 
+                         class="p-3 bg-white border rounded-lg cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition flex justify-between items-center">
+                        <div>
+                            <div class="font-semibold text-gray-800">${a.nombre}</div>
+                            <div class="text-sm text-gray-500">CI: ${a.cedula} | ${a.nivel}</div>
+                        </div>
+                        ${a.es_hermano ? '<span class="bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded">Herman@</span>' : ''}
+                    </div>
+                `).join('');
+            } catch (e) {}
+        }
+
+        function seleccionarAlumnoCaja(id, nombre, cedula, nivel, esHermano, precioEspecial) {
+            alumnoSeleccionado = { id, nombre, cedula, nivel, esHermano, precioEspecial };
+            document.getElementById('caja-resultados').innerHTML = '';
+            document.getElementById('caja-busqueda').value = nombre;
+            
+            document.getElementById('caja-info-alumno').innerHTML = `
+                <div class="flex justify-between items-center">
+                    <div>
+                        <div class="text-2xl font-bold text-blue-900">${nombre}</div>
+                        <div class="text-blue-700">${cedula} | ${nivel}</div>
+                        ${esHermano ? `<div class="mt-1 inline-block bg-purple-100 text-purple-800 text-sm px-2 py-1 rounded font-medium">Precio especial herman@: ${formatMoney(precioEspecial)}</div>` : ''}
+                    </div>
+                    <button onclick="resetCaja()" class="text-blue-600 hover:text-blue-800 text-sm underline">Cambiar</button>
+                </div>
+            `;
+            document.getElementById('caja-info-alumno').classList.remove('hidden');
+            document.getElementById('caja-form').classList.remove('hidden');
+        }
+
+        function resetCaja() {
+            alumnoSeleccionado = null;
+            document.getElementById('caja-busqueda').value = '';
+            document.getElementById('caja-resultados').innerHTML = '';
+            document.getElementById('caja-info-alumno').classList.add('hidden');
+            document.getElementById('caja-form').classList.add('hidden');
+            document.getElementById('caja-concepto').value = '';
+            document.getElementById('caja-monto').value = '';
+        }
+
+        function actualizarMontoSugerido() {
+            const concepto = document.getElementById('caja-concepto').value;
+            const campoMes = document.getElementById('campo-mes');
+            const ayuda = document.getElementById('caja-ayuda-monto');
+            
+            campoMes.classList.add('hidden');
+            
+            if (!alumnoSeleccionado) return;
+            
+            if (concepto === 'mensualidad') {
+                campoMes.classList.remove('hidden');
+                if (alumnoSeleccionado.esHermano && alumnoSeleccionado.precioEspecial) {
+                    document.getElementById('caja-monto').value = alumnoSeleccionado.precioEspecial;
+                    ayuda.textContent = 'Precio especial (sin descuentos/recargos)';
+                } else {
+                    // Aquí deberías obtener el precio del nivel, usando un valor temporal
+                    document.getElementById('caja-monto').value = 2000; // Placeholder
+                    ayuda.textContent = 'Se aplicará descuento si paga antes del 10';
+                }
+            } else if (concepto === 'matricula') {
+                document.getElementById('caja-monto').value = 1500; // Placeholder
+                ayuda.textContent = 'Costo de matrícula';
+            }
+        }
+
+        async function registrarPagoCaja() {
+            if (!alumnoSeleccionado) return showToast('Seleccione un alumno primero', 'error');
+            
+            const concepto = document.getElementById('caja-concepto').value;
+            const monto = parseInt(document.getElementById('caja-monto').value);
+            const comentarios = document.getElementById('caja-comentarios').value;
+            const mes = document.getElementById('caja-mes').value;
+            
+            if (!concepto || !monto) return showToast('Complete todos los campos', 'error');
+            
+            try {
+                await fetchData('pagos', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        alumno_id: alumnoSeleccionado.id,
+                        tipo: concepto,
+                        concepto: concepto === 'mensualidad' ? `Mensualidad ${mes}/${anioActual}` : concepto,
+                        monto: monto,
+                        fecha: new Date().toISOString().split('T')[0],
+                        comentarios: comentarios,
+                        mes_referencia: mes,
+                        anio_referencia: anioActual,
+                        es_abono: false
+                    })
+                });
+                
+                showToast('¡Pago registrado exitosamente!');
+                resetCaja();
+                setTimeout(() => navigate('dashboard'), 1000);
+            } catch (e) {}
+        }
+
+        // ALUMNOS
+        async function renderAlumnos() {
+            try {
+                const data = await fetchData(`alumnos?anio=${anioActual}`);
+                
+                document.getElementById('main-content').innerHTML = `
+                    <div class="animate-fade-in">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-3xl font-bold text-gray-800">Alumnos ${anioActual}</h2>
+                            <button onclick="mostrarFormAlumno()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-md">
+                                <i class="fas fa-plus"></i> Nuevo Alumno
+                            </button>
+                        </div>
+                        
+                        <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                            <div class="p-4 border-b flex gap-4">
+                                <div class="flex-1 relative">
+                                    <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                                    <input type="text" id="search-alumnos" placeholder="Buscar por nombre o cédula..." 
+                                           class="w-full pl-10 pr-4 py-2 border rounded-lg focus:border-blue-500"
+                                           oninput="filtrarTabla('tabla-alumnos', this.value)">
+                                </div>
+                            </div>
+                            
+                            <div class="overflow-x-auto">
+                                <table class="w-full">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">N°</th>
+                                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Nombre</th>
+                                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Cédula</th>
+                                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Nivel</th>
+                                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Contacto</th>
+                                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Estado</th>
+                                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tabla-alumnos" class="divide-y divide-gray-100">
+                                        ${data.map(a => `
+                                            <tr class="hover:bg-gray-50">
+                                                <td class="px-6 py-4 font-medium text-gray-900">${a.numero_anual}</td>
+                                                <td class="px-6 py-4">
+                                                    <div class="font-medium text-gray-900">${a.nombre}</div>
+                                                    ${a.es_hermano ? '<span class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">Herman@</span>' : ''}
+                                                </td>
+                                                <td class="px-6 py-4 text-gray-600">${a.cedula}</td>
+                                                <td class="px-6 py-4 text-gray-600">${a.nivel}</td>
+                                                <td class="px-6 py-4 text-sm text-gray-600">
+                                                    <div><i class="fas fa-phone text-xs mr-1"></i> ${a.telefono || '-'}</div>
+                                                    <div class="text-xs mt-1"><i class="fas fa-user text-xs mr-1"></i> ${a.nombre_padre || 'Sin contacto'}</div>
+                                                </td>
+                                                <td class="px-6 py-4">
+                                                    <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Activo</span>
+                                                </td>
+                                                <td class="px-6 py-4">
+                                                    <div class="flex gap-2">
+                                                        <button onclick="verFichaAlumno(${a.id})" class="text-blue-600 hover:text-blue-900" title="Ver ficha">
+                                                            <i class="fas fa-id-card"></i>
+                                                        </button>
+                                                        <button onclick="editarAlumno(${a.id})" class="text-yellow-600 hover:text-yellow-900" title="Editar">
+                                                            <i class="fas fa-edit"></i>
+                                                        </button>
+                                                        <button onclick="showWhatsApp(${a.id})" class="text-green-600 hover:text-green-900" title="WhatsApp">
+                                                            <i class="fab fa-whatsapp"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } catch (e) {
+                document.getElementById('main-content').innerHTML = '<div class="text-center text-red-600 p-8">Error cargando alumnos</div>';
+            }
+        }
+
+        function mostrarFormAlumno() {
+            // Formulario completo en modal o inline
+            document.getElementById('main-content').innerHTML = `
+                <div class="animate-fade-in max-w-4xl mx-auto">
+                    <div class="flex items-center gap-4 mb-6">
+                        <button onclick="navigate('alumnos')" class="text-gray-600 hover:text-gray-800">
+                            <i class="fas fa-arrow-left text-xl"></i>
+                        </button>
+                        <h2 class="text-3xl font-bold text-gray-800">Nuevo Alumno</h2>
+                    </div>
+                    
+                    <form onsubmit="guardarAlumno(event)" class="bg-white rounded-xl shadow-sm p-6 space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Nombre Completo *</label>
+                                <input type="text" name="nombre" required class="w-full px-4 py-2 border rounded-lg focus:border-blue-500">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Cédula *</label>
+                                <input type="text" name="cedula" required class="w-full px-4 py-2 border rounded-lg focus:border-blue-500" placeholder="1.234.567-8">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Fecha Inscripción</label>
+                                <input type="date" name="fecha_inscripcion" value="${new Date().toISOString().split('T')[0]}" class="w-full px-4 py-2 border rounded-lg focus:border-blue-500">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Nivel</label>
+                                <select name="nivel" class="w-full px-4 py-2 border rounded-lg focus:border-blue-500">
+                                    <option value="1st CH">1st CH</option>
+                                    <option value="2nd CH">2nd CH</option>
+                                    <option value="3rd CH">3rd CH</option>
+                                    <option value="4th CH">4th CH</option>
+                                    <option value="1st J">1st J</option>
+                                    <option value="2nd J">2nd J</option>
+                                    <option value="3rd J">3rd J</option>
+                                    <option value="4th J">4th J</option>
+                                    <option value="5th J">5th J</option>
+                                    <option value="PET">PET</option>
+                                    <option value="FCE">FCE</option>
+                                    <option value="CAE">CAE</option>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Edad</label>
+                                <input type="number" name="edad" class="w-full px-4 py-2 border rounded-lg focus:border-blue-500">
+                            </div>
+                            
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Dirección</label>
+                                <input type="text" name="direccion" class="w-full px-4 py-2 border rounded-lg focus:border-blue-500">
+                            </div>
+                            
+                            <div class="md:col-span-2 border-t pt-4">
+                                <h3 class="font-semibold text-gray-800 mb-4">Datos del Padre/Madre/Tutor</h3>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Nombre del Padre/Madre</label>
+                                <input type="text" name="nombre_padre" class="w-full px-4 py-2 border rounded-lg focus:border-blue-500">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Teléfono Principal *</label>
+                                <input type="text" name="telefono" required class="w-full px-4 py-2 border rounded-lg focus:border-blue-500">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Teléfono Alternativo</label>
+                                <input type="text" name="telefono_padre" class="w-full px-4 py-2 border rounded-lg focus:border-blue-500">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Email</label>
+                                <input type="email" name="email" class="w-full px-4 py-2 border rounded-lg focus:border-blue-500">
+                            </div>
+                            
+                            <div class="md:col-span-2 border-t pt-4">
+                                <label class="flex items-center gap-2">
+                                    <input type="checkbox" name="es_hermano" onchange="togglePrecioHermano(this)" class="w-4 h-4 text-blue-600 rounded">
+                                    <span class="text-sm font-semibold text-gray-700">Es herman@ (precio especial)</span>
+                                </label>
+                            </div>
+                            
+                            <div id="campo-precio-hermano" class="hidden md:col-span-2">
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Precio Mensual Especial</label>
+                                <input type="number" name="precio_especial" class="w-full px-4 py-2 border rounded-lg focus:border-blue-500" placeholder="$">
+                                <p class="text-xs text-gray-500 mt-1">Este precio no tendrá descuentos ni recargos automáticos</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-end gap-3 pt-4">
+                            <button type="button" onclick="navigate('alumnos')" class="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">Cancelar</button>
+                            <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold">Guardar Alumno</button>
                         </div>
                     </form>
                 </div>
             `;
-            mostrarModalContent(html);
         }
 
-        function registrarAbonoLibro(e, libroId) {
+        function togglePrecioHermano(checkbox) {
+            document.getElementById('campo-precio-hermano').classList.toggle('hidden', !checkbox.checked);
+        }
+
+        async function guardarAlumno(e) {
             e.preventDefault();
-            const data = Object.fromEntries(new FormData(e.target));
-            const monto = parseInt(data.monto);
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData);
             
-            const libro = appState.db.libros.find(l => l.id === libroId);
-            libro.abonado += monto;
-            libro.saldo -= monto;
-            libro.pagos.push({
-                fecha: new Date().toISOString().split('T')[0],
-                monto,
-                comentarios: data.comentarios
-            });
+            data.anio_lectivo = anioActual;
+            data.es_hermano = data.es_hermano === 'on';
+            data.precio_especial = data.precio_especial ? parseInt(data.precio_especial) : null;
+            data.edad = data.edad ? parseInt(data.edad) : null;
             
-            appState.db.pagos.push({
-                id: generateId(),
-                alumnoId: libro.alumnoId,
-                tipo: 'libro',
-                monto,
-                fecha: new Date().toISOString().split('T')[0],
-                comentarios: `Abono libro: ${libro.titulo}. ${data.comentarios}`
-            });
-            
-            saveDB();
-            cerrarModal();
-            renderLibros();
-            showToast('Abono registrado');
+            try {
+                await fetchData('alumnos', {
+                    method: 'POST',
+                    body: JSON.stringify(data)
+                });
+                showToast('Alumno guardado correctamente');
+                navigate('alumnos');
+            } catch (e) {}
         }
 
-        // ==================== BACKUP & RESET ====================
-        function renderBackup() {
-            $('main-content').innerHTML = `
-                <h2 class="text-2xl font-bold text-gray-800 mb-6">Backup y Restauración</h2>
+        async function verFichaAlumno(id) {
+            try {
+                const data = await fetchData(`alumnos/${id}/ficha`);
+                const a = data.alumno;
                 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                    <div class="bg-white rounded-xl shadow-md p-6">
-                        <h3 class="font-bold text-lg mb-4 text-green-700"><i class="fas fa-download mr-2"></i>Exportar Datos</h3>
-                        <p class="text-sm text-gray-600 mb-4">Descargue todos los datos del año ${appState.anio} como respaldo.</p>
-                        <button onclick="exportarBackup()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg transition">
-                            Descargar Backup JSON
-                        </button>
+                document.getElementById('ficha-contenido').innerHTML = `
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <!-- Columna Info Personal -->
+                        <div class="space-y-4">
+                            <div class="bg-blue-50 rounded-lg p-4">
+                                <h4 class="font-bold text-blue-900 text-lg mb-2">${a.nombre}</h4>
+                                <div class="space-y-1 text-sm">
+                                    <div><span class="font-semibold">CI:</span> ${a.cedula}</div>
+                                    <div><span class="font-semibold">N°:</span> ${a.numero_anual}</div>
+                                    <div><span class="font-semibold">Nivel:</span> ${a.nivel}</div>
+                                    <div><span class="font-semibold">Edad:</span> ${a.edad || '-'} años</div>
+                                    <div><span class="font-semibold">Inscripción:</span> ${a.fecha_inscripcion}</div>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                <h4 class="font-semibold text-gray-800 mb-2">Contacto</h4>
+                                <div class="space-y-1 text-sm">
+                                    <div><i class="fas fa-phone text-gray-400 w-4"></i> ${a.telefono || '-'}</div>
+                                    <div><i class="fas fa-user text-gray-400 w-4"></i> ${a.nombre_padre || '-'}</div>
+                                    <div><i class="fas fa-phone-alt text-gray-400 w-4"></i> ${a.telefono_padre || '-'}</div>
+                                    <div><i class="fas fa-envelope text-gray-400 w-4"></i> ${a.email || '-'}</div>
+                                    <div><i class="fas fa-map-marker-alt text-gray-400 w-4"></i> ${a.direccion || '-'}</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Columna Deudas -->
+                        <div class="space-y-4">
+                            <h4 class="font-bold text-gray-800">Estado de Cuenta</h4>
+                            
+                            <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-red-800 font-semibold">Deuda Matrícula</span>
+                                    <span class="text-red-900 font-bold text-xl">${formatMoney(data.deudas.matricula)}</span>
+                                </div>
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-red-800 font-semibold">Mensualidad Actual</span>
+                                    <span class="text-red-900 font-bold text-xl">${formatMoney(data.deudas.mensualidad_actual)}</span>
+                                </div>
+                                <div class="flex justify-between items-center pt-2 border-t border-red-200">
+                                    <span class="text-red-900 font-bold">Total Deuda</span>
+                                    <span class="text-red-900 font-bold text-2xl">${formatMoney(data.deudas.matricula + data.deudas.mensualidad_actual + data.deudas.libros)}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-blue-50 rounded-lg p-4">
+                                <h5 class="font-semibold text-blue-900 mb-2">Libros</h5>
+                                ${data.libros.length === 0 ? '<p class="text-sm text-gray-600">Sin libros asignados</p>' :
+                                  data.libros.map(l => `
+                                    <div class="mb-2 pb-2 border-b border-blue-200 last:border-0">
+                                        <div class="flex justify-between text-sm">
+                                            <span>${l.titulo}</span>
+                                            <span class="${l.saldo > 0 ? 'text-red-600 font-bold' : 'text-green-600'}">${formatMoney(l.saldo)}</span>
+                                        </div>
+                                        <div class="text-xs text-gray-500">${formatMoney(l.pagado)} / ${formatMoney(l.costo_total)}</div>
+                                    </div>
+                                  `).join('')}
+                            </div>
+                        </div>
+                        
+                        <!-- Columna Historial -->
+                        <div>
+                            <h4 class="font-bold text-gray-800 mb-4">Historial de Pagos</h4>
+                            <div class="space-y-2 max-h-96 overflow-y-auto">
+                                ${data.pagos.length === 0 ? '<p class="text-gray-500 text-sm">Sin pagos registrados</p>' :
+                                  data.pagos.map(p => `
+                                    <div class="bg-gray-50 rounded p-3 text-sm">
+                                        <div class="flex justify-between items-start">
+                                            <div>
+                                                <div class="font-semibold text-gray-800 capitalize">${p.concepto}</div>
+                                                <div class="text-gray-500 text-xs">${p.fecha}</div>
+                                                ${p.comentarios ? `<div class="text-gray-600 italic mt-1 text-xs">"${p.comentarios}"</div>` : ''}
+                                            </div>
+                                            <div class="text-right">
+                                                <div class="font-bold text-green-600">${formatMoney(p.monto_final || p.monto)}</div>
+                                                ${p.descuento > 0 ? `<div class="text-xs text-green-500">-${formatMoney(p.descuento)}</div>` : ''}
+                                                ${p.recargo > 0 ? `<div class="text-xs text-red-500">+${formatMoney(p.recargo)}</div>` : ''}
+                                            </div>
+                                        </div>
+                                    </div>
+                                  `).join('')}
+                            </div>
+                        </div>
                     </div>
+                `;
+                
+                mostrarModal('ficha');
+            } catch (e) {}
+        }
 
-                    <div class="bg-white rounded-xl shadow-md p-6">
-                        <h3 class="font-bold text-lg mb-4 text-blue-700"><i class="fas fa-upload mr-2"></i>Importar Datos</h3>
-                        <div class="mb-4">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Pegar JSON aquí:</label>
-                            <textarea id="import-text" class="w-full border rounded-lg px-3 py-2 h-32 text-xs font-mono" placeholder="Pega aquí el contenido del backup..."></textarea>
-                        </div>
-                        <div class="mb-4">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">O seleccionar archivo:</label>
-                            <input type="file" id="import-file" accept=".json" onchange="cargarArchivoImport(event)" class="w-full text-sm">
-                        </div>
-                        <div class="flex gap-2">
-                            <button onclick="importarBackup()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-lg">Importar</button>
-                            <button onclick="importarBackup(true)" class="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 rounded-lg">Fusionar</button>
-                        </div>
-                        <p class="text-xs text-gray-500 mt-2">"Importar" reemplaza todo. "Fusionar" suma a lo existente.</p>
+        // LIBROS
+        async function renderLibros() {
+            // Implementación similar a alumnos pero para gestión de libros
+            document.getElementById('main-content').innerHTML = `
+                <div class="animate-fade-in">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-6">Gestión de Libros</h2>
+                    <div class="bg-white rounded-xl shadow-sm p-8 text-center">
+                        <i class="fas fa-book text-6xl text-gray-300 mb-4"></i>
+                        <p class="text-gray-500">Use la "Caja Rápida" o la "Ficha del Alumno" para asignar libros y registrar pagos parciales.</p>
+                        <button onclick="navigate('caja')" class="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg">Ir a Caja Rápida</button>
                     </div>
-                </div>
-
-                <div class="bg-red-50 border border-red-200 rounded-xl p-6">
-                    <h3 class="font-bold text-lg mb-4 text-red-800"><i class="fas fa-exclamation-triangle mr-2"></i>Zona Peligrosa</h3>
-                    <p class="text-sm text-red-700 mb-4">Al resetear se borrarán TODOS los datos del año ${appState.anio}. Esta acción no se puede deshacer.</p>
-                    <button onclick="mostrarModal('reset')" class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg pulse-red">
-                        Resetear Sistema
-                    </button>
                 </div>
             `;
         }
 
-        function exportarBackup() {
-            const data = {
-                ...appState.db,
-                meta: {
-                    anio: appState.anio,
-                    fechaExportacion: new Date().toISOString(),
-                    version: '3.0'
-                }
-            };
-            
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `alei_backup_${appState.anio}_${new Date().toISOString().split('T')[0]}.json`;
-            a.click();
-            showToast('Backup descargado');
+        // BACKUP / IMPORT
+        function renderBackup() {
+            document.getElementById('main-content').innerHTML = `
+                <div class="animate-fade-in max-w-6xl mx-auto">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-6">Backup y Restauración</h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        <!-- Exportar -->
+                        <div class="bg-white rounded-xl shadow-sm p-6">
+                            <h3 class="text-xl font-bold text-green-700 mb-4"><i class="fas fa-download mr-2"></i>Exportar Datos</h3>
+                            <p class="text-gray-600 mb-4">Descargue todos los datos o por sección.</p>
+                            
+                            <div class="space-y-2">
+                                <button onclick="exportarCompleto()" class="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-semibold transition">
+                                    Descargar Todo (JSON)
+                                </button>
+                                <div class="grid grid-cols-2 gap-2 mt-2">
+                                    <button onclick="exportarTabla('alumnos')" class="bg-gray-100 hover:bg-gray-200 py-2 rounded text-sm">Solo Alumnos</button>
+                                    <button onclick="exportarTabla('pagos')" class="bg-gray-100 hover:bg-gray-200 py-2 rounded text-sm">Solo Pagos</button>
+                                    <button onclick="exportarTabla('libros')" class="bg-gray-100 hover:bg-gray-200 py-2 rounded text-sm">Solo Libros</button>
+                                    <button onclick="exportarTabla('gastos')" class="bg-gray-100 hover:bg-gray-200 py-2 rounded text-sm">Solo Gastos</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Importar -->
+                        <div class="bg-white rounded-xl shadow-sm p-6">
+                            <h3 class="text-xl font-bold text-blue-700 mb-4"><i class="fas fa-upload mr-2"></i>Importar Datos</h3>
+                            <p class="text-gray-600 mb-4">Pegue el JSON o seleccione archivo.</p>
+                            
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-semibold mb-2">Seleccione sección:</label>
+                                    <select id="import-seccion" class="w-full border rounded-lg px-3 py-2">
+                                        <option value="completo">Backup Completo</option>
+                                        <option value="alumnos">Solo Alumnos</option>
+                                        <option value="libros">Solo Libros</option>
+                                        <option value="pagos">Solo Pagos</option>
+                                    </select>
+                                </div>
+                                
+                                <textarea id="import-json" placeholder="Pegue aquí el contenido JSON..." 
+                                          class="w-full h-32 border rounded-lg px-3 py-2 font-mono text-xs"></textarea>
+                                
+                                <div class="flex gap-2">
+                                    <label class="flex-1 bg-gray-100 hover:bg-gray-200 text-center py-2 rounded-lg cursor-pointer transition">
+                                        <i class="fas fa-file-upload mr-2"></i>Subir Archivo
+                                        <input type="file" accept=".json" class="hidden" onchange="cargarArchivoImport(this)">
+                                    </label>
+                                    <button onclick="procesarImport()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-semibold">
+                                        Importar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                        <h4 class="font-semibold text-yellow-800 mb-2"><i class="fas fa-info-circle mr-2"></i>Información importante:</h4>
+                        <ul class="text-sm text-yellow-700 space-y-1 list-disc list-inside">
+                            <li>Al importar, los datos existentes se actualizarán si coinciden los IDs</li>
+                            <li>Se recomienda hacer backup antes de importar grandes cantidades de datos</li>
+                            <li>El formato debe ser el mismo que el exportado por el sistema</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
         }
 
-        function cargarArchivoImport(e) {
-            const file = e.target.files[0];
+        async function exportarCompleto() {
+            try {
+                const data = await fetchData('backup');
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `alei_backup_completo_${anioActual}_${new Date().toISOString().split('T')[0]}.json`;
+                a.click();
+                showToast('Backup descargado');
+            } catch (e) {}
+        }
+
+        async function exportarTabla(tabla) {
+            // Implementar exportación por tabla específica
+            showToast('Función específica por tabla - usar backup completo por ahora');
+        }
+
+        function cargarArchivoImport(input) {
+            const file = input.files[0];
             if (!file) return;
+            
             const reader = new FileReader();
-            reader.onload = (event) => {
-                $('import-text').value = event.target.result;
+            reader.onload = (e) => {
+                document.getElementById('import-json').value = e.target.result;
             };
             reader.readAsText(file);
         }
 
-        function importarBackup(merge = false) {
+        async function procesarImport() {
+            const jsonText = document.getElementById('import-json').value;
+            const seccion = document.getElementById('import-seccion').value;
+            
+            if (!jsonText) return showToast('Pegue el JSON primero', 'error');
+            
             try {
-                const text = $('import-text').value;
-                if (!text) return showToast('Pega el JSON primero', 'error');
+                const data = JSON.parse(jsonText);
                 
-                const data = JSON.parse(text);
-                
-                if (!merge) {
-                    // Reemplazar todo
-                    if (confirm(`¿Reemplazar todos los datos del año ${appState.anio} con los del backup?`)) {
-                        appState.db = data;
-                        saveDB();
-                        showToast('Datos importados correctamente');
-                        navigate('dashboard');
-                    }
-                } else {
-                    // Fusionar
-                    if (data.alumnos) {
-                        data.alumnos.forEach(a => {
-                            if (!appState.db.alumnos.find(x => x.cedula === a.cedula)) {
-                                appState.db.alumnos.push({...a, id: generateId()});
-                            }
-                        });
-                    }
-                    if (data.pagos) appState.db.pagos.push(...data.pagos.map(p => ({...p, id: generateId()})));
-                    if (data.libros) appState.db.libros.push(...data.libros.map(l => ({...l, id: generateId()})));
-                    saveDB();
-                    showToast('Datos fusionados correctamente');
+                if (seccion !== 'completo' && !data[seccion]) {
+                    return showToast(`El JSON no contiene datos de ${seccion}`, 'error');
                 }
+                
+                const payload = seccion === 'completo' ? data : { [seccion]: data[seccion] || data };
+                
+                await fetchData('backup', {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                
+                showToast('Datos importados correctamente');
+                document.getElementById('import-json').value = '';
             } catch (e) {
-                showToast('Error: JSON inválido', 'error');
+                showToast('Error: ' + e.message, 'error');
             }
         }
 
-        // ==================== MODALES ====================
-        function mostrarModalContent(html) {
-            $('modal-content').innerHTML = html;
-            $('modal-overlay').classList.remove('hidden');
-        }
-
-        function mostrarModal(tipo) {
-            if (tipo === 'reset') {
-                const html = `
-                    <div class="p-6 text-center max-w-md mx-auto">
-                        <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <i class="fas fa-exclamation-triangle text-3xl text-red-600"></i>
-                        </div>
-                        <h3 class="text-xl font-bold text-gray-800 mb-2">¿Resetear Sistema?</h3>
-                        <p class="text-gray-600 mb-6">Se borrarán todos los datos del año ${appState.anio}. Para confirmar, escriba <strong>RESET_${appState.anio}</strong></p>
-                        <input type="text" id="confirm-reset" class="w-full border-2 border-red-300 rounded-lg px-4 py-2 mb-6 text-center font-mono" placeholder="RESET_${appState.anio}">
-                        <div class="flex gap-3">
-                            <button onclick="ejecutarReset()" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-lg">Sí, Borrar Todo</button>
-                            <button onclick="cerrarModal()" class="flex-1 border border-gray-300 hover:bg-gray-50 py-3 rounded-lg">Cancelar</button>
-                        </div>
-                    </div>
-                `;
-                mostrarModalContent(html);
-            }
-        }
-
-        function ejecutarReset() {
-            const input = $('confirm-reset').value;
-            if (input !== `RESET_${appState.anio}`) {
-                return showToast('Código de confirmación incorrecto', 'error');
+        // RESET
+        async function ejecutarReset() {
+            const codigo = document.getElementById('codigo-reset').value;
+            
+            if (codigo !== 'BORRAR_TODO_2026') {
+                return showToast('Código incorrecto', 'error');
             }
             
-            appState.db = {
-                config: { matriculaBase: 3000, mensualidadBase: 2500, descuento: 150, recargo: 150 },
-                tiposMatricula: [
-                    { id: 1, nombre: 'Regular', porcentaje: 100, esExcepcion: false },
-                    { id: 2, nombre: 'Beca 50%', porcentaje: 50, esExcepcion: false }
-                ],
-                niveles: [],
-                alumnos: [],
-                libros: [],
-                pagos: [],
-                gastos: [],
-                preinscripciones: [],
-                alertas: []
-            };
+            try {
+                await fetchData('reset', {
+                    method: 'POST',
+                    body: JSON.stringify({ codigo })
+                });
+                showToast('Sistema reseteado. Recargando...');
+                setTimeout(() => location.reload(), 2000);
+            } catch (e) {}
+        }
+
+        // WHATSAPP
+        async function showWhatsApp(alumnoId) {
+            try {
+                const data = await fetchData(`whatsapp?alumno_id=${alumnoId}&tipo=cobranza`);
+                datosTemp.whatsapp = data;
+                document.getElementById('whatsapp-preview').textContent = data.mensaje;
+                mostrarModal('whatsapp');
+            } catch (e) {}
+        }
+
+        function enviarWhatsApp() {
+            const data = datosTemp.whatsapp;
+            if (!data) return;
             
-            saveDB();
-            cerrarModal();
-            navigate('dashboard');
-            showToast('Sistema reseteado completamente');
+            const mensaje = encodeURIComponent(data.mensaje);
+            const telefono = data.telefono ? data.telefono.replace(/\D/g, '') : '';
+            window.open(`https://wa.me/598${telefono}?text=${mensaje}`, '_blank');
+            cerrarModal('whatsapp');
         }
 
-        function cerrarModal() {
-            $('modal-overlay').classList.add('hidden');
-        }
-
-        // ==================== HELPERS ====================
-        function getNombreMes(num) {
-            const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-            return meses[num - 1];
-        }
-
-        function filtrarTablaAlumnos(term) {
-            // Implementación simple de filtro
-            const rows = document.querySelectorAll('#tabla-alumnos-body tr');
+        // Utilidades tabla
+        function filtrarTabla(tablaId, termino) {
+            const rows = document.querySelectorAll(`#${tablaId} tr`);
+            const lower = termino.toLowerCase();
+            
             rows.forEach(row => {
                 const text = row.textContent.toLowerCase();
-                row.style.display = text.includes(term.toLowerCase()) ? '' : 'none';
+                row.style.display = text.includes(lower) ? '' : 'none';
             });
         }
 
-        // ==================== INICIALIZACIÓN ====================
-        window.onclick = (e) => {
-            if (e.target === $('modal-overlay')) cerrarModal();
-        };
-
-        // Iniciar
-        initDB();
-        navigate('dashboard');
+        // Placeholders para funciones pendientes
+        async function renderPagos() { document.getElementById('main-content').innerHTML = '<div class="p-8 text-center">Use Caja Rápida para registrar pagos</div>'; }
+        async function renderDeudas() { document.getElementById('main-content').innerHTML = '<div class="p-8 text-center">Ver Dashboard para deudas</div>'; }
+        async function renderGastos() { document.getElementById('main-content').innerHTML = '<div class="p-8 text-center">Módulo de gastos - En desarrollo</div>'; }
+        async function renderEspera() { document.getElementById('main-content').innerHTML = '<div class="p-8 text-center">Lista de espera - En desarrollo</div>'; }
+        function editarAlumno(id) { showToast('Función editar - En desarrollo'); }
+        function actualizarPreviewWhatsApp() { /* Implementar cambio de tipo */ }
     </script>
 </body>
 </html>
