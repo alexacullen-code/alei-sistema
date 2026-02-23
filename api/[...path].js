@@ -935,36 +935,56 @@ async function updateConfiguracion(data) {
 // BACKUP Y RESTORE
 // ============================================
 
-async function backupData(anioLectivoId) {
+const SECTION_KEYS = ['anio_lectivo', 'niveles', 'alumnos', 'libros', 'pagos', 'gastos', 'examenes', 'preinscripciones', 'prestamos'];
+
+async function buildBackupBySection(anioLectivoId) {
+  return {
+    anio_lectivo: await sql`SELECT * FROM anios_lectivos WHERE id = ${anioLectivoId}`,
+    niveles: await sql`SELECT * FROM niveles WHERE anio_lectivo_id = ${anioLectivoId}`,
+    alumnos: await sql`SELECT * FROM alumnos WHERE anio_lectivo_id = ${anioLectivoId}`,
+    libros: await sql`SELECT * FROM libros WHERE anio_lectivo_id = ${anioLectivoId}`,
+    pagos: await sql`
+      SELECT p.* FROM pagos p
+      JOIN alumnos a ON p.alumno_id = a.id
+      WHERE a.anio_lectivo_id = ${anioLectivoId}
+    `,
+    gastos: await sql`SELECT * FROM gastos WHERE anio_lectivo_id = ${anioLectivoId}`,
+    examenes: await sql`SELECT * FROM examenes WHERE anio_lectivo_id = ${anioLectivoId}`,
+    preinscripciones: await sql`SELECT * FROM preinscripciones WHERE anio_lectivo_id = ${anioLectivoId}`,
+    prestamos: await sql`
+      SELECT pl.* FROM prestamos_libros pl
+      JOIN alumnos a ON pl.alumno_id = a.id
+      WHERE a.anio_lectivo_id = ${anioLectivoId}
+    `,
+  };
+}
+
+async function backupData(anioLectivoId, section = 'all') {
   try {
-    const backup = {
-      anio_lectivo: await sql`SELECT * FROM anios_lectivos WHERE id = ${anioLectivoId}`,
-      niveles: await sql`SELECT * FROM niveles WHERE anio_lectivo_id = ${anioLectivoId}`,
-      alumnos: await sql`SELECT * FROM alumnos WHERE anio_lectivo_id = ${anioLectivoId}`,
-      libros: await sql`SELECT * FROM libros WHERE anio_lectivo_id = ${anioLectivoId}`,
-      pagos: await sql`
-        SELECT p.* FROM pagos p
-        JOIN alumnos a ON p.alumno_id = a.id
-        WHERE a.anio_lectivo_id = ${anioLectivoId}
-      `,
-      gastos: await sql`SELECT * FROM gastos WHERE anio_lectivo_id = ${anioLectivoId}`,
-      examenes: await sql`SELECT * FROM examenes WHERE anio_lectivo_id = ${anioLectivoId}`,
-      preinscripciones: await sql`SELECT * FROM preinscripciones WHERE anio_lectivo_id = ${anioLectivoId}`,
-      prestamos: await sql`
-        SELECT pl.* FROM prestamos_libros pl
-        JOIN alumnos a ON pl.alumno_id = a.id
-        WHERE a.anio_lectivo_id = ${anioLectivoId}
-      `,
-      fecha_backup: new Date().toISOString()
-    };
-    
-    return createResponse(backup);
+    const fullBackup = await buildBackupBySection(anioLectivoId);
+
+    if (section !== 'all') {
+      if (!SECTION_KEYS.includes(section)) {
+        return createResponse({ error: 'Sección de backup inválida' }, 400);
+      }
+
+      return createResponse({
+        section,
+        data: fullBackup[section],
+        fecha_backup: new Date().toISOString(),
+      });
+    }
+
+    return createResponse({
+      ...fullBackup,
+      fecha_backup: new Date().toISOString(),
+    });
   } catch (error) {
     return handleError(error, 'Error al generar backup');
   }
 }
 
-async function restoreData(data, anioLectivoId) {
+async function restoreData(data, anioLectivoId, section = 'all') {
   try {
     // Esta función requiere lógica más compleja para manejar dependencias
     // y evitar duplicados. Por ahora, solo insertamos datos básicos.
@@ -978,9 +998,11 @@ async function restoreData(data, anioLectivoId) {
       preinscripciones: 0
     };
     
+    const sectionsToRestore = section === 'all' ? data : { [section]: data?.data || data?.[section] || data };
+
     // Restaurar niveles
-    if (data.niveles && Array.isArray(data.niveles)) {
-      for (const nivel of data.niveles) {
+    if (sectionsToRestore.niveles && Array.isArray(sectionsToRestore.niveles)) {
+      for (const nivel of sectionsToRestore.niveles) {
         try {
           await sql`
             INSERT INTO niveles (anio_lectivo_id, nombre, descripcion, capacidad_maxima, cuota_mensual, horario, profesor)
@@ -994,8 +1016,8 @@ async function restoreData(data, anioLectivoId) {
     }
     
     // Restaurar alumnos
-    if (data.alumnos && Array.isArray(data.alumnos)) {
-      for (const alumno of data.alumnos) {
+    if (sectionsToRestore.alumnos && Array.isArray(sectionsToRestore.alumnos)) {
+      for (const alumno of sectionsToRestore.alumnos) {
         try {
           await sql`
             INSERT INTO alumnos (anio_lectivo_id, cedula, nombre, apellido, fecha_nacimiento, email, telefono, direccion)
@@ -1008,7 +1030,68 @@ async function restoreData(data, anioLectivoId) {
       }
     }
     
-    return createResponse({ message: 'Restore completado', results });
+    if (sectionsToRestore.libros && Array.isArray(sectionsToRestore.libros)) {
+      for (const libro of sectionsToRestore.libros) {
+        try {
+          await sql`
+            INSERT INTO libros (
+              anio_lectivo_id, codigo, titulo, autor, editorial,
+              materia, nivel_id, precio, stock_total, stock_disponible, descripcion
+            ) VALUES (
+              ${anioLectivoId}, ${libro.codigo}, ${libro.titulo}, ${libro.autor}, ${libro.editorial},
+              ${libro.materia}, ${libro.nivel_id}, ${libro.precio}, ${libro.stock_total}, ${libro.stock_disponible || libro.stock_total}, ${libro.descripcion}
+            )
+          `;
+          results.libros++;
+        } catch (e) {
+          console.error('Error al restaurar libro:', e);
+        }
+      }
+    }
+
+    if (sectionsToRestore.gastos && Array.isArray(sectionsToRestore.gastos)) {
+      for (const gasto of sectionsToRestore.gastos) {
+        try {
+          await sql`
+            INSERT INTO gastos (
+              anio_lectivo_id, concepto, categoria, proveedor,
+              monto_total, monto_pagado, es_cuota, numero_cuotas, cuota_actual,
+              fecha_gasto, fecha_vencimiento, estado, numero_comprobante, tipo_comprobante, comentarios
+            ) VALUES (
+              ${anioLectivoId}, ${gasto.concepto}, ${gasto.categoria}, ${gasto.proveedor},
+              ${gasto.monto_total}, ${gasto.monto_pagado || 0}, ${gasto.es_cuota || false}, ${gasto.numero_cuotas || 1}, ${gasto.cuota_actual || 1},
+              ${gasto.fecha_gasto}, ${gasto.fecha_vencimiento}, ${gasto.estado || 'pendiente'}, ${gasto.numero_comprobante}, ${gasto.tipo_comprobante}, ${gasto.comentarios}
+            )
+          `;
+          results.gastos++;
+        } catch (e) {
+          console.error('Error al restaurar gasto:', e);
+        }
+      }
+    }
+
+    if (sectionsToRestore.preinscripciones && Array.isArray(sectionsToRestore.preinscripciones)) {
+      for (const pre of sectionsToRestore.preinscripciones) {
+        try {
+          await sql`
+            INSERT INTO preinscripciones (
+              anio_lectivo_id, nombre, apellido, cedula, fecha_nacimiento,
+              email, telefono, telefono_alternativo, nombre_tutor, telefono_tutor,
+              nivel_interesado_id, horario_preferido, estado, fuente, comentarios
+            ) VALUES (
+              ${anioLectivoId}, ${pre.nombre}, ${pre.apellido}, ${pre.cedula}, ${pre.fecha_nacimiento},
+              ${pre.email}, ${pre.telefono}, ${pre.telefono_alternativo}, ${pre.nombre_tutor}, ${pre.telefono_tutor},
+              ${pre.nivel_interesado_id}, ${pre.horario_preferido}, ${pre.estado || 'pendiente'}, ${pre.fuente}, ${pre.comentarios}
+            )
+          `;
+          results.preinscripciones++;
+        } catch (e) {
+          console.error('Error al restaurar pre-inscripción:', e);
+        }
+      }
+    }
+
+    return createResponse({ message: 'Restore completado', section, results });
   } catch (error) {
     return handleError(error, 'Error al restaurar datos');
   }
@@ -1424,11 +1507,17 @@ export default async function handler(request) {
     // RUTAS: BACKUP Y RESTORE
     // ============================================
     if (path === 'backup') {
-      if (request.method === 'GET') return await backupData(anioLectivoId);
+      if (request.method === 'GET') {
+        const section = searchParams.get('section') || 'all';
+        return await backupData(anioLectivoId, section);
+      }
     }
     
     if (path === 'restore') {
-      if (request.method === 'POST') return await restoreData(await request.json(), anioLectivoId);
+      if (request.method === 'POST') {
+        const section = searchParams.get('section') || 'all';
+        return await restoreData(await request.json(), anioLectivoId, section);
+      }
     }
     
     // ============================================

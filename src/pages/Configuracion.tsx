@@ -3,17 +3,16 @@ import { useApi } from '@/hooks/useApi';
 import { useStore } from '@/hooks/useStore';
 import type { Configuracion as ConfigType, AnioLectivo } from '@/types';
 import { 
-  Settings, 
   Download, 
   Upload, 
   AlertTriangle,
   Trash2,
   Save,
   Database,
-  RefreshCw,
   Calendar,
   DollarSign,
-  Building
+  Building,
+  Plus
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,18 +35,28 @@ export default function Configuracion() {
   const { 
     configuracion, 
     setConfiguracion, 
-    anioLectivoActivo, 
     setAnioLectivoActivo,
     aniosLectivos,
     setAniosLectivos
   } = useStore();
   
-  const [loading, setLoading] = useState(false);
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const [isResetConfirmDialogOpen, setIsResetConfirmDialogOpen] = useState(false);
   const [resetConfirmText, setResetConfirmText] = useState('');
   const [jsonInput, setJsonInput] = useState('');
   const [isRestoreDialogOpen, setIsRestoreDialogOpen] = useState(false);
+  const [backupSection, setBackupSection] = useState('all');
+  const [restoreSection, setRestoreSection] = useState('all');
+
+  const sectionOptions = [
+    { value: 'all', label: 'Todo el sistema' },
+    { value: 'alumnos', label: 'Alumnos' },
+    { value: 'niveles', label: 'Niveles' },
+    { value: 'libros', label: 'Libros' },
+    { value: 'pagos', label: 'Pagos' },
+    { value: 'gastos', label: 'Gastos' },
+    { value: 'preinscripciones', label: 'Pre-inscripciones' },
+  ];
   
   const [configForm, setConfigForm] = useState({
     descuento_pronto_pago: '150',
@@ -124,13 +133,13 @@ export default function Configuracion() {
   };
 
   const handleBackup = async () => {
-    const data = await get('backup');
+    const data = await get(`backup${backupSection !== 'all' ? `?section=${backupSection}` : ''}`);
     if (data) {
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `backup-completo-${new Date().toISOString().split('T')[0]}.json`;
+      a.download = `backup-${backupSection}-${new Date().toISOString().split('T')[0]}.json`;
       a.click();
       toast.success('Backup descargado');
     }
@@ -139,7 +148,7 @@ export default function Configuracion() {
   const handleRestore = async () => {
     try {
       const data = JSON.parse(jsonInput);
-      const result = await post('restore', data);
+      const result = await post(`restore${restoreSection !== 'all' ? `?section=${restoreSection}` : ''}`, data);
       if (result) {
         toast.success('Datos restaurados');
         setIsRestoreDialogOpen(false);
@@ -387,6 +396,18 @@ export default function Configuracion() {
                   <Download className="h-4 w-4 mr-2" />
                   Descargar Backup
                 </Button>
+                <div className="mt-3 max-w-xs">
+                  <Label>Sección a respaldar</Label>
+                  <select
+                    className="w-full border rounded-md px-3 py-2 text-sm mt-1"
+                    value={backupSection}
+                    onChange={(e) => setBackupSection(e.target.value)}
+                  >
+                    {sectionOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div className="border-t pt-6">
@@ -406,6 +427,18 @@ export default function Configuracion() {
                     onChange={(e) => setJsonInput(e.target.value)}
                     rows={5}
                   />
+                  <div className="max-w-xs">
+                    <Label>Sección a restaurar</Label>
+                    <select
+                      className="w-full border rounded-md px-3 py-2 text-sm mt-1"
+                      value={restoreSection}
+                      onChange={(e) => setRestoreSection(e.target.value)}
+                    >
+                      {sectionOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
                   <Button 
                     onClick={() => setIsRestoreDialogOpen(true)}
                     disabled={!jsonInput}
@@ -552,5 +585,3 @@ export default function Configuracion() {
     </div>
   );
 }
-
-import { Plus } from 'lucide-react';
