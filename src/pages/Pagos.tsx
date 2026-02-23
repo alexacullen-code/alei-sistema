@@ -48,8 +48,8 @@ export default function Pagos() {
   
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [filtroEstado, setFiltroEstado] = useState<string>('');
-  const [filtroMes, setFiltroMes] = useState<string>('');
+  const [filtroEstado, setFiltroEstado] = useState<string>('all');
+  const [filtroMes, setFiltroMes] = useState<string>('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isPagoParcialDialogOpen, setIsPagoParcialDialogOpen] = useState(false);
   const [selectedPago, setSelectedPago] = useState<Pago | null>(null);
@@ -223,8 +223,8 @@ export default function Pagos() {
   };
 
   const filteredPagos = pagos.filter(pago => {
-    if (filtroEstado && pago.estado !== filtroEstado) return false;
-    if (filtroMes && pago.mes !== parseInt(filtroMes)) return false;
+    if (filtroEstado !== 'all' && pago.estado !== filtroEstado) return false;
+    if (filtroMes !== 'all' && pago.mes !== parseInt(filtroMes)) return false;
     if (search) {
       const searchLower = search.toLowerCase();
       return (
@@ -319,7 +319,7 @@ export default function Pagos() {
                 <SelectValue placeholder="Estado" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos</SelectItem>
+                <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="pendiente">Pendiente</SelectItem>
                 <SelectItem value="parcial">Parcial</SelectItem>
                 <SelectItem value="pagado">Pagado</SelectItem>
@@ -330,7 +330,7 @@ export default function Pagos() {
                 <SelectValue placeholder="Mes" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos</SelectItem>
+                <SelectItem value="all">Todos</SelectItem>
                 {MESES.map((mes) => (
                   <SelectItem key={mes.value} value={mes.value.toString()}>
                     {mes.label}
