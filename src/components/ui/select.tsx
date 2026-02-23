@@ -103,6 +103,11 @@ function SelectItem({
   children,
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Item>) {
+  if (props.value === "") {
+    console.warn("[SelectItem] Se intentó renderizar un SelectItem con value vacío. Se omite para evitar crash de Radix.")
+    return null
+  }
+
   return (
     <SelectPrimitive.Item
       data-slot="select-item"
