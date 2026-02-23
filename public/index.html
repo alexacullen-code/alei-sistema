@@ -1,0 +1,3335 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ALEI - Sistema de Gestión Escolar</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #8b5cf6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --info: #3b82f6;
+            --dark: #1e293b;
+            --light: #f8fafc;
+            --gray: #64748b;
+            --gray-light: #e2e8f0;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f1f5f9;
+            color: var(--dark);
+            line-height: 1.6;
+        }
+
+        /* Layout */
+        .app {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 260px;
+            background: var(--dark);
+            color: white;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 100;
+            transition: transform 0.3s;
+        }
+
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .sidebar-header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .sidebar-header p {
+            font-size: 0.75rem;
+            color: var(--gray);
+            margin-top: 0.25rem;
+        }
+
+        .year-selector {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .year-selector label {
+            font-size: 0.75rem;
+            color: var(--gray);
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        .year-selector select {
+            width: 100%;
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+            border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.1);
+            color: white;
+            font-size: 0.875rem;
+        }
+
+        .nav-menu {
+            padding: 1rem 0;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 0.875rem 1.5rem;
+            color: rgba(255,255,255,0.7);
+            text-decoration: none;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .nav-item:hover {
+            background: rgba(255,255,255,0.05);
+            color: white;
+        }
+
+        .nav-item.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .nav-item i {
+            width: 24px;
+            margin-right: 0.75rem;
+            font-size: 1rem;
+        }
+
+        .nav-item span {
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: 260px;
+            padding: 2rem;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .header h2 {
+            font-size: 1.75rem;
+            font-weight: 700;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        /* Cards */
+        .card {
+            background: white;
+            border-radius: 0.75rem;
+            box-shadow: var(--shadow);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .card-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .stat-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .stat-icon.blue { background: #dbeafe; color: var(--info); }
+        .stat-icon.green { background: #d1fae5; color: var(--success); }
+        .stat-icon.orange { background: #fef3c7; color: var(--warning); }
+        .stat-icon.red { background: #fee2e2; color: var(--danger); }
+        .stat-icon.purple { background: #ede9fe; color: var(--secondary); }
+
+        .stat-content h3 {
+            font-size: 1.75rem;
+            font-weight: 700;
+        }
+
+        .stat-content p {
+            font-size: 0.875rem;
+            color: var(--gray);
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.625rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-warning {
+            background: var(--warning);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: var(--gray-light);
+            color: var(--dark);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--gray-light);
+            color: var(--dark);
+        }
+
+        .btn-sm {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.75rem;
+        }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 0.375rem;
+        }
+
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            padding: 0.625rem 0.875rem;
+            border: 1px solid var(--gray-light);
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        /* Tables */
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 0.875rem 1rem;
+            text-align: left;
+            font-size: 0.875rem;
+        }
+
+        th {
+            background: #f8fafc;
+            font-weight: 600;
+            color: var(--gray);
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+        }
+
+        tr {
+            border-bottom: 1px solid var(--gray-light);
+        }
+
+        tr:hover {
+            background: #f8fafc;
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.625rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .badge-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-danger {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge-info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        /* Search */
+        .search-box {
+            position: relative;
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 0.875rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray);
+        }
+
+        .search-box input {
+            padding-left: 2.5rem;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 0.75rem;
+            width: 90%;
+            max-width: 700px;
+            max-height: 90vh;
+            overflow-y: auto;
+            transform: scale(0.9);
+            transition: transform 0.3s;
+        }
+
+        .modal-overlay.active .modal {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--gray-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--gray);
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .modal-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--gray-light);
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid var(--gray-light);
+            margin-bottom: 1.5rem;
+        }
+
+        .tab {
+            padding: 0.75rem 1.25rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tab:hover {
+            color: var(--primary);
+        }
+
+        .tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Alerts Panel */
+        .alert-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.875rem;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 0.75rem;
+            background: white;
+            border: 1px solid var(--gray-light);
+        }
+
+        .alert-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .alert-icon.birthday { background: #fce7f3; color: #be185d; }
+        .alert-icon.payment { background: #fee2e2; color: #991b1b; }
+        .alert-icon.book { background: #dbeafe; color: #1e40af; }
+
+        .alert-content h4 {
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .alert-content p {
+            font-size: 0.75rem;
+            color: var(--gray);
+        }
+
+        /* POS Mode */
+        .pos-container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .pos-amount {
+            font-size: 3rem;
+            font-weight: 700;
+            text-align: center;
+            padding: 2rem;
+            background: var(--dark);
+            color: white;
+            border-radius: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Grid */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+        }
+
+        /* Hidden */
+        .hidden {
+            display: none !important;
+        }
+
+        /* Loading */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--gray-light);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Toast */
+        .toast-container {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 2000;
+        }
+
+        .toast {
+            background: white;
+            border-radius: 0.5rem;
+            padding: 1rem 1.25rem;
+            box-shadow: var(--shadow-lg);
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .toast.success { border-left: 4px solid var(--success); }
+        .toast.error { border-left: 4px solid var(--danger); }
+        .toast.warning { border-left: 4px solid var(--warning); }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .grid-2, .grid-3 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Danger Zone */
+        .danger-zone {
+            border: 2px dashed var(--danger);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .danger-zone h3 {
+            color: var(--danger);
+            margin-bottom: 1rem;
+        }
+
+        /* Debt Summary */
+        .debt-summary {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .debt-summary h4 {
+            color: #991b1b;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .debt-summary .amount {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #dc2626;
+        }
+
+        /* Student Profile */
+        .profile-header {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .profile-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: white;
+            font-weight: 600;
+        }
+
+        .profile-info h3 {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .profile-info p {
+            color: var(--gray);
+            font-size: 0.875rem;
+        }
+
+        /* Payment History */
+        .payment-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.875rem;
+            border: 1px solid var(--gray-light);
+            border-radius: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .payment-item.paid {
+            background: #f0fdf4;
+            border-color: #bbf7d0;
+        }
+
+        .payment-item.pending {
+            background: #fefce8;
+            border-color: #fde047;
+        }
+
+        /* Mobile Menu Toggle */
+        .menu-toggle {
+            display: none;
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            z-index: 101;
+            background: var(--dark);
+            color: white;
+            border: none;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+        }
+
+        @media (max-width: 768px) {
+            .menu-toggle {
+                display: block;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="menu-toggle" onclick="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <div class="app">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h1><i class="fas fa-graduation-cap"></i> ALEI</h1>
+                <p>Sistema de Gestión Escolar</p>
+            </div>
+            
+            <div class="year-selector">
+                <label>Año Lectivo</label>
+                <select id="yearSelect" onchange="changeYear()">
+                    <option value="">Cargando...</option>
+                </select>
+            </div>
+            
+            <nav class="nav-menu">
+                <a class="nav-item active" onclick="showSection('dashboard')">
+                    <i class="fas fa-home"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a class="nav-item" onclick="showSection('students')">
+                    <i class="fas fa-users"></i>
+                    <span>Alumnos</span>
+                </a>
+                <a class="nav-item" onclick="showSection('payments')">
+                    <i class="fas fa-dollar-sign"></i>
+                    <span>Pagos</span>
+                </a>
+                <a class="nav-item" onclick="showSection('books')">
+                    <i class="fas fa-book"></i>
+                    <span>Libros</span>
+                </a>
+                <a class="nav-item" onclick="showSection('levels')">
+                    <i class="fas fa-chalkboard"></i>
+                    <span>Niveles</span>
+                </a>
+                <a class="nav-item" onclick="showSection('expenses')">
+                    <i class="fas fa-receipt"></i>
+                    <span>Gastos</span>
+                </a>
+                <a class="nav-item" onclick="showSection('waiting')">
+                    <i class="fas fa-clock"></i>
+                    <span>Lista de Espera</span>
+                </a>
+                <a class="nav-item" onclick="showSection('reports')">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Reportes</span>
+                </a>
+                <a class="nav-item" onclick="showSection('backup')">
+                    <i class="fas fa-database"></i>
+                    <span>Backup/Restore</span>
+                </a>
+                <a class="nav-item" onclick="showSection('config')">
+                    <i class="fas fa-cog"></i>
+                    <span>Configuración</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Toast Container -->
+            <div class="toast-container" id="toastContainer"></div>
+
+            <!-- DASHBOARD SECTION -->
+            <section id="dashboard-section">
+                <div class="header">
+                    <h2>Dashboard</h2>
+                    <button class="btn btn-primary" onclick="showSection('pos')">
+                        <i class="fas fa-cash-register"></i> Modo Caja Rápida
+                    </button>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon blue">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="statStudents">0</h3>
+                            <p>Alumnos Activos</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon purple">
+                            <i class="fas fa-chalkboard"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="statLevels">0</h3>
+                            <p>Niveles</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon green">
+                            <i class="fas fa-dollar-sign"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="statIncome">$0</h3>
+                            <p>Ingresos del Mes</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon orange">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="statAlerts">0</h3>
+                            <p>Alertas</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon red">
+                            <i class="fas fa-money-bill-wave"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="statDebt">$0</h3>
+                            <p>Deuda Total</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Alertas Recientes</h3>
+                            <button class="btn btn-sm btn-outline" onclick="loadAlerts()">Actualizar</button>
+                        </div>
+                        <div id="alertsList">
+                            <div class="loading"><div class="spinner"></div></div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Pagos Pendientes</h3>
+                            <a class="btn btn-sm btn-outline" onclick="showSection('payments')">Ver todos</a>
+                        </div>
+                        <div id="pendingPaymentsList">
+                            <div class="loading"><div class="spinner"></div></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- STUDENTS SECTION -->
+            <section id="students-section" class="hidden">
+                <div class="header">
+                    <h2>Gestión de Alumnos</h2>
+                    <button class="btn btn-primary" onclick="openStudentModal()">
+                        <i class="fas fa-plus"></i> Nuevo Alumno
+                    </button>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="search-box" style="width: 300px;">
+                            <i class="fas fa-search"></i>
+                            <input type="text" class="form-input" id="studentSearch" placeholder="Buscar por nombre, cédula..." onkeyup="searchStudents()">
+                        </div>
+                        <div>
+                            <select class="form-select" id="studentLevelFilter" onchange="loadStudents()" style="width: 150px; display: inline-block;">
+                                <option value="">Todos los niveles</option>
+                            </select>
+                            <select class="form-select" id="studentStatusFilter" onchange="loadStudents()" style="width: 150px; display: inline-block;">
+                                <option value="active">Activos</option>
+                                <option value="inactive">Inactivos</option>
+                                <option value="">Todos</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>N°</th>
+                                    <th>Nombre</th>
+                                    <th>Cédula</th>
+                                    <th>Nivel</th>
+                                    <th>Contacto</th>
+                                    <th>Deuda</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="studentsTable">
+                                <tr><td colspan="8" class="loading"><div class="spinner"></div></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PAYMENTS SECTION -->
+            <section id="payments-section" class="hidden">
+                <div class="header">
+                    <h2>Gestión de Pagos</h2>
+                    <button class="btn btn-primary" onclick="openPaymentModal()">
+                        <i class="fas fa-plus"></i> Registrar Pago
+                    </button>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Pagos Pendientes</h3>
+                        <div>
+                            <input type="month" class="form-input" id="paymentMonthFilter" onchange="loadPendingPayments()" style="width: 150px; display: inline-block;">
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Alumno</th>
+                                    <th>Concepto</th>
+                                    <th>Mes</th>
+                                    <th>Monto Final</th>
+                                    <th>Pagado</th>
+                                    <th>Pendiente</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="paymentsTable">
+                                <tr><td colspan="8" class="loading"><div class="spinner"></div></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- POS SECTION -->
+            <section id="pos-section" class="hidden">
+                <div class="header">
+                    <h2><i class="fas fa-cash-register"></i> Modo Caja Rápida</h2>
+                    <button class="btn btn-secondary" onclick="showSection('dashboard')">
+                        <i class="fas fa-arrow-left"></i> Volver
+                    </button>
+                </div>
+
+                <div class="pos-container">
+                    <div class="card">
+                        <div class="form-group">
+                            <label class="form-label">Alumno</label>
+                            <select class="form-select" id="posStudent">
+                                <option value="">Seleccionar alumno...</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Concepto</label>
+                            <select class="form-select" id="posConcept" onchange="updatePosAmount()">
+                                <option value="mensualidad">Mensualidad</option>
+                                <option value="matricula">Matrícula</option>
+                                <option value="libro">Libro</option>
+                                <option value="extra">Extra</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Mes (para mensualidad)</label>
+                            <input type="month" class="form-input" id="posMonth">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Monto</label>
+                            <input type="number" class="form-input" id="posAmount" placeholder="0.00">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Método de Pago</label>
+                            <select class="form-select" id="posMethod">
+                                <option value="cash">Efectivo</option>
+                                <option value="transfer">Transferencia</option>
+                                <option value="card">Tarjeta</option>
+                                <option value="mercadopago">MercadoPago</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Comentario</label>
+                            <textarea class="form-textarea" id="posComment" rows="2"></textarea>
+                        </div>
+
+                        <button class="btn btn-success btn-lg" style="width: 100%; padding: 1rem;" onclick="processPosPayment()">
+                            <i class="fas fa-check"></i> Registrar Pago
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- BOOKS SECTION -->
+            <section id="books-section" class="hidden">
+                <div class="header">
+                    <h2>Gestión de Libros</h2>
+                    <button class="btn btn-primary" onclick="openBookModal()">
+                        <i class="fas fa-plus"></i> Nuevo Libro
+                    </button>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="search-box" style="width: 300px;">
+                            <i class="fas fa-search"></i>
+                            <input type="text" class="form-input" id="bookSearch" placeholder="Buscar libro..." onkeyup="loadBooks()">
+                        </div>
+                        <button class="btn btn-outline" onclick="showLowStock()">
+                            <i class="fas fa-exclamation-circle"></i> Stock Bajo
+                        </button>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Título</th>
+                                    <th>Autor</th>
+                                    <th>Precio</th>
+                                    <th>Stock</th>
+                                    <th>Nivel</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="booksTable">
+                                <tr><td colspan="6" class="loading"><div class="spinner"></div></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- LEVELS SECTION -->
+            <section id="levels-section" class="hidden">
+                <div class="header">
+                    <h2>Gestión de Niveles</h2>
+                    <button class="btn btn-primary" onclick="openLevelModal()">
+                        <i class="fas fa-plus"></i> Nuevo Nivel
+                    </button>
+                </div>
+
+                <div class="card">
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Nombre</th>
+                                    <th>Horario</th>
+                                    <th>Profesor</th>
+                                    <th>Aula</th>
+                                    <th>Capacidad</th>
+                                    <th>Alumnos</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="levelsTable">
+                                <tr><td colspan="7" class="loading"><div class="spinner"></div></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- EXPENSES SECTION -->
+            <section id="expenses-section" class="hidden">
+                <div class="header">
+                    <h2>Gestión de Gastos</h2>
+                    <button class="btn btn-primary" onclick="openExpenseModal()">
+                        <i class="fas fa-plus"></i> Nuevo Gasto
+                    </button>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <select class="form-select" id="expenseCategoryFilter" onchange="loadExpenses()" style="width: 180px; display: inline-block;">
+                                <option value="">Todas las categorías</option>
+                                <option value="servicios">Servicios</option>
+                                <option value="materiales">Materiales</option>
+                                <option value="sueldos">Sueldos</option>
+                                <option value="alquiler">Alquiler</option>
+                                <option value="impuestos">Impuestos</option>
+                                <option value="otros">Otros</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Descripción</th>
+                                    <th>Categoría</th>
+                                    <th>Proveedor</th>
+                                    <th>Monto</th>
+                                    <th>Cuotas</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="expensesTable">
+                                <tr><td colspan="8" class="loading"><div class="spinner"></div></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- WAITING LIST SECTION -->
+            <section id="waiting-section" class="hidden">
+                <div class="header">
+                    <h2>Lista de Espera</h2>
+                    <button class="btn btn-primary" onclick="openWaitingModal()">
+                        <i class="fas fa-plus"></i> Nueva Pre-inscripción
+                    </button>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <select class="form-select" id="waitingStatusFilter" onchange="loadWaitingList()" style="width: 150px; display: inline-block;">
+                                <option value="waiting">En espera</option>
+                                <option value="contacted">Contactados</option>
+                                <option value="converted">Convertidos</option>
+                                <option value="">Todos</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Estudiante</th>
+                                    <th>Edad</th>
+                                    <th>Padre/Tutor</th>
+                                    <th>Teléfono</th>
+                                    <th>Nivel Preferido</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="waitingTable">
+                                <tr><td colspan="8" class="loading"><div class="spinner"></div></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- REPORTS SECTION -->
+            <section id="reports-section" class="hidden">
+                <div class="header">
+                    <h2>Reportes</h2>
+                </div>
+
+                <div class="grid-2">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Flujo de Caja</h3>
+                            <input type="month" class="form-input" id="cashFlowMonth" onchange="loadCashFlow()" style="width: 150px;">
+                        </div>
+                        <div id="cashFlowReport">
+                            <div class="loading"><div class="spinner"></div></div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Estado de Mensualidades</h3>
+                            <input type="month" class="form-input" id="monthlyStatusMonth" onchange="loadMonthlyStatus()" style="width: 150px;">
+                        </div>
+                        <div id="monthlyStatusReport">
+                            <div class="loading"><div class="spinner"></div></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- BACKUP SECTION -->
+            <section id="backup-section" class="hidden">
+                <div class="header">
+                    <h2>Backup y Restore</h2>
+                </div>
+
+                <div class="grid-2">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Exportar Datos</h3>
+                        </div>
+                        <p style="margin-bottom: 1rem; color: var(--gray);">Descarga los datos de cada sección en formato JSON.</p>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem;">
+                            <button class="btn btn-outline" onclick="backupData('students')">
+                                <i class="fas fa-download"></i> Alumnos
+                            </button>
+                            <button class="btn btn-outline" onclick="backupData('books')">
+                                <i class="fas fa-download"></i> Libros
+                            </button>
+                            <button class="btn btn-outline" onclick="backupData('levels')">
+                                <i class="fas fa-download"></i> Niveles
+                            </button>
+                            <button class="btn btn-outline" onclick="backupData('payments')">
+                                <i class="fas fa-download"></i> Pagos
+                            </button>
+                            <button class="btn btn-outline" onclick="backupData('expenses')">
+                                <i class="fas fa-download"></i> Gastos
+                            </button>
+                            <button class="btn btn-outline" onclick="backupData('waiting-list')">
+                                <i class="fas fa-download"></i> Lista Espera
+                            </button>
+                            <button class="btn btn-primary" onclick="backupData('all')" style="grid-column: span 2;">
+                                <i class="fas fa-download"></i> Backup Completo
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Importar Datos</h3>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Sección</label>
+                            <select class="form-select" id="restoreSection">
+                                <option value="students">Alumnos</option>
+                                <option value="books">Libros</option>
+                                <option value="levels">Niveles</option>
+                                <option value="expenses">Gastos</option>
+                                <option value="waiting-list">Lista Espera</option>
+                                <option value="all">Todo</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Datos JSON (pegar texto o subir archivo)</label>
+                            <textarea class="form-textarea" id="restoreData" rows="6" placeholder='{"students": [...]}'></textarea>
+                        </div>
+                        <div class="form-group">
+                            <input type="file" class="form-input" id="restoreFile" accept=".json" onchange="loadRestoreFile()">
+                        </div>
+                        <button class="btn btn-warning" onclick="restoreData()">
+                            <i class="fas fa-upload"></i> Importar Datos
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top: 2rem;">
+                    <div class="danger-zone">
+                        <h3><i class="fas fa-exclamation-triangle"></i> Zona de Peligro</h3>
+                        <p>Esta acción eliminará TODOS los datos del año lectivo seleccionado.</p>
+                        <button class="btn btn-danger" onclick="confirmReset()">
+                            <i class="fas fa-trash"></i> Resetear Sistema
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- CONFIG SECTION -->
+            <section id="config-section" class="hidden">
+                <div class="header">
+                    <h2>Configuración</h2>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Configuración del Instituto</h3>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Nombre del Instituto</label>
+                            <input type="text" class="form-input" id="configInstituteName">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Teléfono</label>
+                            <input type="text" class="form-input" id="configPhone">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Dirección</label>
+                        <textarea class="form-textarea" id="configAddress" rows="2"></textarea>
+                    </div>
+                    <button class="btn btn-primary" onclick="saveConfig()">Guardar Configuración</button>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Precios y Recargos</h3>
+                    </div>
+                    <div id="yearConfigForm">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Precio Matrícula</label>
+                                <input type="number" class="form-input" id="configMatriculaPrice">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Precio Mensualidad</label>
+                                <input type="number" class="form-input" id="configMensualidadPrice">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Descuento Pronto Pago ($)</label>
+                                <input type="number" class="form-input" id="configDescuento">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Recargo por Atraso ($)</label>
+                                <input type="number" class="form-input" id="configRecargo">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Día Límite Descuento</label>
+                                <input type="number" class="form-input" id="configDiaDescuento">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Día Límite Normal</label>
+                                <input type="number" class="form-input" id="configDiaNormal">
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="saveYearConfig()">Guardar Precios</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- MODALS -->
+    
+    <!-- Student Modal -->
+    <div class="modal-overlay" id="studentModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title" id="studentModalTitle">Nuevo Alumno</h3>
+                <button class="modal-close" onclick="closeModal('studentModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="studentId">
+                <div class="tabs">
+                    <div class="tab active" onclick="showTab('studentTab', 'basic')">Datos Básicos</div>
+                    <div class="tab" onclick="showTab('studentTab', 'contact')">Contacto</div>
+                    <div class="tab" onclick="showTab('studentTab', 'academic')">Académico</div>
+                </div>
+                
+                <div id="studentTab-basic" class="tab-content active">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Cédula *</label>
+                            <input type="text" class="form-input" id="studentCedula" onblur="validateCedula()">
+                            <small id="cedulaValidation" style="color: var(--danger);"></small>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Nombre *</label>
+                            <input type="text" class="form-input" id="studentFirstName">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Apellido *</label>
+                            <input type="text" class="form-input" id="studentLastName">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Fecha de Nacimiento</label>
+                            <input type="date" class="form-input" id="studentBirthDate">
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="studentTab-contact" class="tab-content">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-input" id="studentEmail">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Teléfono Principal</label>
+                            <input type="tel" class="form-input" id="studentPhone">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Teléfono Secundario</label>
+                            <input type="tel" class="form-input" id="studentPhone2">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Dirección</label>
+                            <textarea class="form-textarea" id="studentAddress" rows="2"></textarea>
+                        </div>
+                    </div>
+                    <hr style="margin: 1rem 0;">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Nombre Padre/Madre/Tutor</label>
+                            <input type="text" class="form-input" id="studentParentName">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Teléfono Padre/Madre</label>
+                            <input type="tel" class="form-input" id="studentParentPhone">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Email Padre/Madre</label>
+                            <input type="email" class="form-input" id="studentParentEmail">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Relación</label>
+                            <select class="form-select" id="studentParentRel">
+                                <option value="">Seleccionar...</option>
+                                <option value="padre">Padre</option>
+                                <option value="madre">Madre</option>
+                                <option value="tutor">Tutor</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="studentTab-academic" class="tab-content">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Nivel</label>
+                            <select class="form-select" id="studentLevel">
+                                <option value="">Seleccionar...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Tipo de Matrícula</label>
+                            <select class="form-select" id="studentEnrollmentType">
+                                <option value="">Seleccionar...</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">
+                                <input type="checkbox" id="studentIsHermano" onchange="toggleHermanoPrice()"> Es Hermano
+                            </label>
+                        </div>
+                        <div class="form-group" id="hermanoPriceGroup" style="display: none;">
+                            <label class="form-label">Precio Mensualidad Especial</label>
+                            <input type="number" class="form-input" id="studentCustomPrice" placeholder="Precio fijo para hermano">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Fecha de Inscripción</label>
+                            <input type="date" class="form-input" id="studentEnrollmentDate">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Estado</label>
+                            <select class="form-select" id="studentStatus">
+                                <option value="active">Activo</option>
+                                <option value="inactive">Inactivo</option>
+                                <option value="suspended">Suspendido</option>
+                                <option value="graduated">Graduado</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('studentModal')">Cancelar</button>
+                <button class="btn btn-primary" onclick="saveStudent()">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Student Profile Modal -->
+    <div class="modal-overlay" id="profileModal">
+        <div class="modal" style="max-width: 900px;">
+            <div class="modal-header">
+                <h3 class="modal-title">Ficha del Alumno</h3>
+                <button class="modal-close" onclick="closeModal('profileModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="profileContent">
+                    <div class="loading"><div class="spinner"></div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Modal -->
+    <div class="modal-overlay" id="paymentModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Registrar Pago</h3>
+                <button class="modal-close" onclick="closeModal('paymentModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Alumno</label>
+                    <select class="form-select" id="paymentStudent" onchange="loadStudentDebts()">
+                        <option value="">Seleccionar alumno...</option>
+                    </select>
+                </div>
+                
+                <div id="studentDebtInfo"></div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Concepto</label>
+                        <select class="form-select" id="paymentConcept" onchange="updatePaymentCalculation()">
+                            <option value="mensualidad">Mensualidad</option>
+                            <option value="matricula">Matrícula</option>
+                            <option value="libro">Libro</option>
+                            <option value="extra">Extra</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Mes/Año</label>
+                        <input type="month" class="form-input" id="paymentMonthYear" onchange="updatePaymentCalculation()">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Monto Base</label>
+                        <input type="number" class="form-input" id="paymentBaseAmount" onchange="updatePaymentCalculation()">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Fecha de Pago</label>
+                        <input type="date" class="form-input" id="paymentDate" onchange="updatePaymentCalculation()">
+                    </div>
+                </div>
+                
+                <div class="form-row" id="calculationResult" style="background: #f8fafc; padding: 1rem; border-radius: 0.5rem;">
+                    <div class="form-group">
+                        <label class="form-label">Descuento</label>
+                        <input type="number" class="form-input" id="paymentDiscount" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Recargo</label>
+                        <input type="number" class="form-input" id="paymentSurcharge" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Monto Final</label>
+                        <input type="number" class="form-input" id="paymentFinalAmount" readonly style="font-weight: bold; color: var(--primary);">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Monto a Pagar Ahora</label>
+                        <input type="number" class="form-input" id="paymentAmount" placeholder="Pago parcial o total">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Método de Pago</label>
+                        <select class="form-select" id="paymentMethod">
+                            <option value="cash">Efectivo</option>
+                            <option value="transfer">Transferencia</option>
+                            <option value="card">Tarjeta</option>
+                            <option value="mercadopago">MercadoPago</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Comentario</label>
+                    <textarea class="form-textarea" id="paymentComment" rows="2"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('paymentModal')">Cancelar</button>
+                <button class="btn btn-primary" onclick="savePayment()">Registrar Pago</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Book Modal -->
+    <div class="modal-overlay" id="bookModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title" id="bookModalTitle">Nuevo Libro</h3>
+                <button class="modal-close" onclick="closeModal('bookModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="bookId">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Título *</label>
+                        <input type="text" class="form-input" id="bookTitle">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Autor</label>
+                        <input type="text" class="form-input" id="bookAuthor">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Editorial</label>
+                        <input type="text" class="form-input" id="bookPublisher">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">ISBN</label>
+                        <input type="text" class="form-input" id="bookIsbn">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Precio de Venta *</label>
+                        <input type="number" class="form-input" id="bookPrice">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Precio de Costo</label>
+                        <input type="number" class="form-input" id="bookCostPrice">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Stock</label>
+                        <input type="number" class="form-input" id="bookStock" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Stock Mínimo</label>
+                        <input type="number" class="form-input" id="bookMinStock" value="5">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Nivel</label>
+                    <select class="form-select" id="bookLevel">
+                        <option value="">Sin nivel específico</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('bookModal')">Cancelar</button>
+                <button class="btn btn-primary" onclick="saveBook()">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Level Modal -->
+    <div class="modal-overlay" id="levelModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title" id="levelModalTitle">Nuevo Nivel</h3>
+                <button class="modal-close" onclick="closeModal('levelModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="levelId">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Nombre *</label>
+                        <input type="text" class="form-input" id="levelName">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Horario</label>
+                        <input type="text" class="form-input" id="levelSchedule" placeholder="Ej: Lunes y Miércoles 18:00">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Profesor</label>
+                        <input type="text" class="form-input" id="levelTeacher">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Aula</label>
+                        <input type="text" class="form-input" id="levelClassroom">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Capacidad</label>
+                    <input type="number" class="form-input" id="levelCapacity" value="20">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('levelModal')">Cancelar</button>
+                <button class="btn btn-primary" onclick="saveLevel()">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Expense Modal -->
+    <div class="modal-overlay" id="expenseModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title" id="expenseModalTitle">Nuevo Gasto</h3>
+                <button class="modal-close" onclick="closeModal('expenseModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Descripción *</label>
+                        <input type="text" class="form-input" id="expenseDescription">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Categoría *</label>
+                        <select class="form-select" id="expenseCategory">
+                            <option value="servicios">Servicios</option>
+                            <option value="materiales">Materiales</option>
+                            <option value="sueldos">Sueldos</option>
+                            <option value="alquiler">Alquiler</option>
+                            <option value="impuestos">Impuestos</option>
+                            <option value="otros">Otros</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Proveedor</label>
+                        <input type="text" class="form-input" id="expenseProvider">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Monto Total *</label>
+                        <input type="number" class="form-input" id="expenseAmount">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Fecha del Gasto</label>
+                        <input type="date" class="form-input" id="expenseDate">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">
+                            <input type="checkbox" id="expenseHasInstallments" onchange="toggleInstallments()"> Pago en Cuotas
+                        </label>
+                    </div>
+                </div>
+                <div id="installmentsGroup" style="display: none;">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Cantidad de Cuotas</label>
+                            <input type="number" class="form-input" id="expenseInstallments" value="1" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Fecha Primera Cuota</label>
+                            <input type="date" class="form-input" id="expenseStartDate">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('expenseModal')">Cancelar</button>
+                <button class="btn btn-primary" onclick="saveExpense()">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Waiting List Modal -->
+    <div class="modal-overlay" id="waitingModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title" id="waitingModalTitle">Nueva Pre-inscripción</h3>
+                <button class="modal-close" onclick="closeModal('waitingModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="waitingId">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Nombre del Estudiante *</label>
+                        <input type="text" class="form-input" id="waitingStudentName">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Edad</label>
+                        <input type="number" class="form-input" id="waitingStudentAge">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Nombre del Padre/Madre *</label>
+                        <input type="text" class="form-input" id="waitingParentName">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Teléfono *</label>
+                        <input type="tel" class="form-input" id="waitingPhone">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-input" id="waitingEmail">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Nivel de Interés</label>
+                        <select class="form-select" id="waitingLevel">
+                            <option value="">Seleccionar...</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Horario Preferido</label>
+                        <input type="text" class="form-input" id="waitingSchedule" placeholder="Ej: Lunes y Miércoles tarde">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Academia Anterior</label>
+                        <input type="text" class="form-input" id="waitingPrevious">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Notas</label>
+                    <textarea class="form-textarea" id="waitingNotes" rows="2"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('waitingModal')">Cancelar</button>
+                <button class="btn btn-primary" onclick="saveWaiting()">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Book Payment Modal -->
+    <div class="modal-overlay" id="bookPaymentModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Pago de Libro</h3>
+                <button class="modal-close" onclick="closeModal('bookPaymentModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="bookPaymentAssignmentId">
+                <div class="debt-summary">
+                    <h4>Saldo Pendiente</h4>
+                    <div class="amount" id="bookPaymentPending">$0</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Monto a Pagar</label>
+                    <input type="number" class="form-input" id="bookPaymentAmount">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Método de Pago</label>
+                    <select class="form-select" id="bookPaymentMethod">
+                        <option value="cash">Efectivo</option>
+                        <option value="transfer">Transferencia</option>
+                        <option value="card">Tarjeta</option>
+                        <option value="mercadopago">MercadoPago</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Comentario</label>
+                    <textarea class="form-textarea" id="bookPaymentComment" rows="2"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('bookPaymentModal')">Cancelar</button>
+                <button class="btn btn-primary" onclick="saveBookPayment()">Registrar Pago</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Assign Book Modal -->
+    <div class="modal-overlay" id="assignBookModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Asignar Libro a Alumno</h3>
+                <button class="modal-close" onclick="closeModal('assignBookModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Alumno</label>
+                    <select class="form-select" id="assignBookStudent">
+                        <option value="">Seleccionar alumno...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Libro</label>
+                    <select class="form-select" id="assignBookBook">
+                        <option value="">Seleccionar libro...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Precio Total</label>
+                    <input type="number" class="form-input" id="assignBookPrice" placeholder="Dejar vacío para usar precio del libro">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('assignBookModal')">Cancelar</button>
+                <button class="btn btn-primary" onclick="saveBookAssignment()">Asignar Libro</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // CONFIGURACIÓN GLOBAL
+        // ============================================
+        const API_URL = '/api';
+        let currentYearId = localStorage.getItem('alei_year_id') || '';
+        let years = [];
+        let students = [];
+        let levels = [];
+        let books = [];
+        let enrollmentTypes = [];
+
+        // ============================================
+        // INICIALIZACIÓN
+        // ============================================
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadYears();
+            if (currentYearId) {
+                document.getElementById('yearSelect').value = currentYearId;
+                await initializeApp();
+            }
+            
+            // Set default month values
+            const currentMonth = new Date().toISOString().slice(0, 7);
+            document.getElementById('paymentMonthFilter').value = currentMonth;
+            document.getElementById('posMonth').value = currentMonth;
+            document.getElementById('paymentMonthYear').value = currentMonth;
+            document.getElementById('cashFlowMonth').value = currentMonth;
+            document.getElementById('monthlyStatusMonth').value = currentMonth;
+            document.getElementById('studentEnrollmentDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('expenseStartDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('paymentDate').value = new Date().toISOString().split('T')[0];
+        });
+
+        async function initializeApp() {
+            await Promise.all([
+                loadDashboard(),
+                loadLevels(),
+                loadEnrollmentTypes(),
+                loadStudents(),
+                loadBooks(),
+                loadExpenses(),
+                loadWaitingList(),
+                loadPendingPayments(),
+                loadAlerts()
+            ]);
+        }
+
+        // ============================================
+        // API HELPERS
+        // ============================================
+        async function apiGet(endpoint, params = {}) {
+            const queryString = new URLSearchParams(params).toString();
+            const url = `${API_URL}/${endpoint}${queryString ? '?' + queryString : ''}`;
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            return response.json();
+        }
+
+        async function apiPost(endpoint, data) {
+            const response = await fetch(`${API_URL}/${endpoint}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || `HTTP ${response.status}`);
+            }
+            return response.json();
+        }
+
+        async function apiPut(endpoint, data) {
+            const response = await fetch(`${API_URL}/${endpoint}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || `HTTP ${response.status}`);
+            }
+            return response.json();
+        }
+
+        async function apiDelete(endpoint) {
+            const response = await fetch(`${API_URL}/${endpoint}`, {
+                method: 'DELETE'
+            });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            return response.json();
+        }
+
+        // ============================================
+        // UI HELPERS
+        // ============================================
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'exclamation-triangle'}"></i>
+                <span>${message}</span>
+            `;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 4000);
+        }
+
+        function formatMoney(amount) {
+            return '$' + parseFloat(amount || 0).toLocaleString('es-UY', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('es-UY');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        function showTab(tabGroup, tabName) {
+            document.querySelectorAll(`[id^="${tabGroup}-"]`).forEach(el => el.classList.remove('active'));
+            document.getElementById(`${tabGroup}-${tabName}`).classList.add('active');
+            document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+        }
+
+        // ============================================
+        // NAVEGACIÓN
+        // ============================================
+        function showSection(sectionName) {
+            // Hide all sections
+            document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
+            // Show selected section
+            document.getElementById(`${sectionName}-section`).classList.remove('hidden');
+            // Update nav active state
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            event.target.closest('.nav-item').classList.add('active');
+            // Close sidebar on mobile
+            document.getElementById('sidebar').classList.remove('open');
+            
+            // Load section data
+            if (sectionName === 'dashboard') loadDashboard();
+            if (sectionName === 'students') loadStudents();
+            if (sectionName === 'payments') loadPendingPayments();
+            if (sectionName === 'books') loadBooks();
+            if (sectionName === 'levels') loadLevels();
+            if (sectionName === 'expenses') loadExpenses();
+            if (sectionName === 'waiting') loadWaitingList();
+            if (sectionName === 'reports') {
+                loadCashFlow();
+                loadMonthlyStatus();
+            }
+            if (sectionName === 'pos') loadPosStudents();
+        }
+
+        // ============================================
+        // AÑOS LECTIVOS
+        // ============================================
+        async function loadYears() {
+            try {
+                years = await apiGet('years');
+                const select = document.getElementById('yearSelect');
+                select.innerHTML = years.map(y => 
+                    `<option value="${y.id}" ${y.is_active ? 'selected' : ''}>${y.year_name}</option>`
+                ).join('');
+                
+                if (!currentYearId && years.length > 0) {
+                    const activeYear = years.find(y => y.is_active);
+                    currentYearId = activeYear ? activeYear.id : years[0].id;
+                    localStorage.setItem('alei_year_id', currentYearId);
+                }
+            } catch (error) {
+                showToast('Error cargando años lectivos', 'error');
+            }
+        }
+
+        async function changeYear() {
+            currentYearId = document.getElementById('yearSelect').value;
+            localStorage.setItem('alei_year_id', currentYearId);
+            await initializeApp();
+            showToast('Año lectivo cambiado');
+        }
+
+        // ============================================
+        // DASHBOARD
+        // ============================================
+        async function loadDashboard() {
+            if (!currentYearId) return;
+            
+            try {
+                const stats = await apiGet('reports/dashboard', { year_id: currentYearId });
+                document.getElementById('statStudents').textContent = stats.students;
+                document.getElementById('statLevels').textContent = stats.levels;
+                document.getElementById('statIncome').textContent = formatMoney(stats.monthlyIncome);
+                document.getElementById('statAlerts').textContent = stats.alerts;
+                document.getElementById('statDebt').textContent = formatMoney(stats.tuitionDebt + stats.bookDebt);
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+            }
+        }
+
+        // ============================================
+        // ALERTAS
+        // ============================================
+        async function loadAlerts() {
+            try {
+                const alerts = await apiGet('alerts', { unread_only: true, limit: 5 });
+                const container = document.getElementById('alertsList');
+                
+                if (alerts.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; color: var(--gray); padding: 2rem;">No hay alertas pendientes</p>';
+                    return;
+                }
+                
+                container.innerHTML = alerts.map(a => `
+                    <div class="alert-item">
+                        <div class="alert-icon ${a.type}">
+                            <i class="fas fa-${a.type === 'birthday' ? 'birthday-cake' : a.type === 'payment' ? 'dollar-sign' : 'book'}"></i>
+                        </div>
+                        <div class="alert-content">
+                            <h4>${a.title}</h4>
+                            <p>${a.message}</p>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading alerts:', error);
+            }
+        }
+
+        // ============================================
+        // ESTUDIANTES
+        // ============================================
+        async function loadStudents() {
+            if (!currentYearId) return;
+            
+            try {
+                const search = document.getElementById('studentSearch').value;
+                const levelId = document.getElementById('studentLevelFilter').value;
+                const status = document.getElementById('studentStatusFilter').value;
+                
+                const data = await apiGet('students', { 
+                    year_id: currentYearId, 
+                    search,
+                    level_id: levelId,
+                    status
+                });
+                students = data;
+                
+                const tbody = document.getElementById('studentsTable');
+                if (students.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 2rem;">No se encontraron alumnos</td></tr>';
+                    return;
+                }
+                
+                tbody.innerHTML = students.map(s => {
+                    const totalDebt = parseFloat(s.tuition_debt || 0) + parseFloat(s.book_debt || 0);
+                    return `
+                        <tr>
+                            <td>${s.numero_anual}</td>
+                            <td><strong>${s.first_name} ${s.last_name}</strong></td>
+                            <td>${s.cedula}</td>
+                            <td>${s.level_name || '-'}</td>
+                            <td>
+                                ${s.phone_primary || '-'}<br>
+                                <small style="color: var(--gray);">${s.parent_name || ''}</small>
+                            </td>
+                            <td>${totalDebt > 0 ? `<span style="color: var(--danger); font-weight: 600;">${formatMoney(totalDebt)}</span>` : '-'}</td>
+                            <td><span class="badge badge-${s.status === 'active' ? 'success' : s.status === 'inactive' ? 'danger' : 'warning'}">${s.status}</span></td>
+                            <td>
+                                <button class="btn btn-sm btn-outline" onclick="viewStudentProfile('${s.id}')" title="Ver ficha">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline" onclick="editStudent('${s.id}')" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline" onclick="generateWhatsAppMessage('${s.id}')" title="WhatsApp">
+                                    <i class="fab fa-whatsapp" style="color: #25d366;"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (error) {
+                showToast('Error cargando alumnos', 'error');
+            }
+        }
+
+        function searchStudents() {
+            clearTimeout(window.searchTimeout);
+            window.searchTimeout = setTimeout(loadStudents, 300);
+        }
+
+        function openStudentModal() {
+            document.getElementById('studentId').value = '';
+            document.getElementById('studentModalTitle').textContent = 'Nuevo Alumno';
+            document.getElementById('studentCedula').value = '';
+            document.getElementById('studentFirstName').value = '';
+            document.getElementById('studentLastName').value = '';
+            document.getElementById('studentBirthDate').value = '';
+            document.getElementById('studentEmail').value = '';
+            document.getElementById('studentPhone').value = '';
+            document.getElementById('studentPhone2').value = '';
+            document.getElementById('studentAddress').value = '';
+            document.getElementById('studentParentName').value = '';
+            document.getElementById('studentParentPhone').value = '';
+            document.getElementById('studentParentEmail').value = '';
+            document.getElementById('studentParentRel').value = '';
+            document.getElementById('studentLevel').value = '';
+            document.getElementById('studentEnrollmentType').value = '';
+            document.getElementById('studentIsHermano').checked = false;
+            document.getElementById('hermanoPriceGroup').style.display = 'none';
+            document.getElementById('studentCustomPrice').value = '';
+            document.getElementById('studentStatus').value = 'active';
+            document.getElementById('cedulaValidation').textContent = '';
+            
+            document.getElementById('studentModal').classList.add('active');
+        }
+
+        async function editStudent(id) {
+            const student = students.find(s => s.id === id);
+            if (!student) return;
+            
+            document.getElementById('studentId').value = student.id;
+            document.getElementById('studentModalTitle').textContent = 'Editar Alumno';
+            document.getElementById('studentCedula').value = student.cedula;
+            document.getElementById('studentFirstName').value = student.first_name;
+            document.getElementById('studentLastName').value = student.last_name;
+            document.getElementById('studentBirthDate').value = student.birth_date ? student.birth_date.split('T')[0] : '';
+            document.getElementById('studentEmail').value = student.email || '';
+            document.getElementById('studentPhone').value = student.phone_primary || '';
+            document.getElementById('studentPhone2').value = student.phone_secondary || '';
+            document.getElementById('studentAddress').value = student.address || '';
+            document.getElementById('studentParentName').value = student.parent_name || '';
+            document.getElementById('studentParentPhone').value = student.parent_phone || '';
+            document.getElementById('studentParentEmail').value = student.parent_email || '';
+            document.getElementById('studentParentRel').value = student.parent_relationship || '';
+            document.getElementById('studentLevel').value = student.level_id || '';
+            document.getElementById('studentEnrollmentType').value = student.enrollment_type_id || '';
+            document.getElementById('studentIsHermano').checked = student.is_hermano;
+            document.getElementById('hermanoPriceGroup').style.display = student.is_hermano ? 'block' : 'none';
+            document.getElementById('studentCustomPrice').value = student.custom_tuition_price || '';
+            document.getElementById('studentStatus').value = student.status;
+            
+            document.getElementById('studentModal').classList.add('active');
+        }
+
+        async function validateCedula() {
+            const cedula = document.getElementById('studentCedula').value;
+            const studentId = document.getElementById('studentId').value;
+            if (!cedula) return;
+            
+            try {
+                const result = await apiGet('validate/cedula', { cedula, exclude_id: studentId });
+                const validationEl = document.getElementById('cedulaValidation');
+                if (result.exists) {
+                    validationEl.textContent = 'Esta cédula ya está registrada';
+                } else {
+                    validationEl.textContent = '';
+                }
+            } catch (error) {
+                console.error('Error validating cedula:', error);
+            }
+        }
+
+        function toggleHermanoPrice() {
+            const isHermano = document.getElementById('studentIsHermano').checked;
+            document.getElementById('hermanoPriceGroup').style.display = isHermano ? 'block' : 'none';
+        }
+
+        async function saveStudent() {
+            const id = document.getElementById('studentId').value;
+            const data = {
+                year_id: currentYearId,
+                cedula: document.getElementById('studentCedula').value,
+                first_name: document.getElementById('studentFirstName').value,
+                last_name: document.getElementById('studentLastName').value,
+                birth_date: document.getElementById('studentBirthDate').value || null,
+                email: document.getElementById('studentEmail').value,
+                phone_primary: document.getElementById('studentPhone').value,
+                phone_secondary: document.getElementById('studentPhone2').value,
+                address: document.getElementById('studentAddress').value,
+                parent_name: document.getElementById('studentParentName').value,
+                parent_phone: document.getElementById('studentParentPhone').value,
+                parent_email: document.getElementById('studentParentEmail').value,
+                parent_relationship: document.getElementById('studentParentRel').value,
+                level_id: document.getElementById('studentLevel').value || null,
+                enrollment_type_id: document.getElementById('studentEnrollmentType').value || null,
+                is_hermano: document.getElementById('studentIsHermano').checked,
+                custom_tuition_price: document.getElementById('studentCustomPrice').value || null,
+                enrollment_date: document.getElementById('studentEnrollmentDate').value,
+                status: document.getElementById('studentStatus').value
+            };
+            
+            if (!data.cedula || !data.first_name || !data.last_name) {
+                showToast('Cédula, nombre y apellido son obligatorios', 'error');
+                return;
+            }
+            
+            try {
+                if (id) {
+                    await apiPut(`students/${id}`, data);
+                    showToast('Alumno actualizado');
+                } else {
+                    await apiPost('students', data);
+                    showToast('Alumno creado');
+                }
+                closeModal('studentModal');
+                loadStudents();
+                loadDashboard();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        async function viewStudentProfile(id) {
+            try {
+                const profile = await apiGet(`students/${id}/full-profile`);
+                const s = profile.student;
+                
+                let html = `
+                    <div class="profile-header">
+                        <div class="profile-avatar">${s.first_name.charAt(0)}${s.last_name.charAt(0)}</div>
+                        <div class="profile-info">
+                            <h3>${s.first_name} ${s.last_name}</h3>
+                            <p>Cédula: ${s.cedula} | N° ${s.numero_anual}</p>
+                            <p>Nivel: ${s.level_name || '-'} | ${s.schedule || ''}</p>
+                            <span class="badge badge-${s.status === 'active' ? 'success' : 'danger'}">${s.status}</span>
+                            ${s.is_hermano ? '<span class="badge badge-info">Hermano</span>' : ''}
+                        </div>
+                    </div>
+                    
+                    <div class="tabs">
+                        <div class="tab active" onclick="showProfileTab('info')">Información</div>
+                        <div class="tab" onclick="showProfileTab('books')">Libros</div>
+                        <div class="tab" onclick="showProfileTab('payments')">Pagos</div>
+                    </div>
+                    
+                    <div id="profile-info" class="tab-content active">
+                        <div class="grid-2">
+                            <div>
+                                <h4>Contacto</h4>
+                                <p><strong>Email:</strong> ${s.email || '-'}</p>
+                                <p><strong>Teléfono:</strong> ${s.phone_primary || '-'}</p>
+                                <p><strong>Teléfono 2:</strong> ${s.phone_secondary || '-'}</p>
+                                <p><strong>Dirección:</strong> ${s.address || '-'}</p>
+                            </div>
+                            <div>
+                                <h4>Padre/Madre/Tutor</h4>
+                                <p><strong>Nombre:</strong> ${s.parent_name || '-'}</p>
+                                <p><strong>Teléfono:</strong> ${s.parent_phone || '-'}</p>
+                                <p><strong>Email:</strong> ${s.parent_email || '-'}</p>
+                                <p><strong>Relación:</strong> ${s.parent_relationship || '-'}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="profile-books" class="tab-content">
+                        ${profile.books.length === 0 ? '<p>No hay libros asignados</p>' : `
+                            <table>
+                                <thead>
+                                    <tr><th>Libro</th><th>Fecha</th><th>Total</th><th>Pendiente</th><th>Estado</th></tr>
+                                </thead>
+                                <tbody>
+                                    ${profile.books.map(b => `
+                                        <tr>
+                                            <td>${b.book_title}</td>
+                                            <td>${formatDate(b.assignment_date)}</td>
+                                            <td>${formatMoney(b.total_price)}</td>
+                                            <td>${formatMoney(b.pending_balance)}</td>
+                                            <td><span class="badge badge-${b.status === 'paid' ? 'success' : b.status === 'pending' ? 'warning' : 'danger'}">${b.status}</span></td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        `}
+                    </div>
+                    
+                    <div id="profile-payments" class="tab-content">
+                        ${profile.tuition.length === 0 ? '<p>No hay pagos registrados</p>' : `
+                            <table>
+                                <thead>
+                                    <tr><th>Concepto</th><th>Mes</th><th>Monto</th><th>Pagado</th><th>Pendiente</th><th>Estado</th></tr>
+                                </thead>
+                                <tbody>
+                                    ${profile.tuition.map(p => `
+                                        <tr>
+                                            <td>${p.concept}</td>
+                                            <td>${p.month_year}</td>
+                                            <td>${formatMoney(p.final_amount)}</td>
+                                            <td>${formatMoney(p.amount_paid)}</td>
+                                            <td>${formatMoney(p.pending_amount)}</td>
+                                            <td><span class="badge badge-${p.status === 'paid' ? 'success' : p.status === 'partial' ? 'warning' : 'danger'}">${p.status}</span></td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        `}
+                    </div>
+                `;
+                
+                document.getElementById('profileContent').innerHTML = html;
+                document.getElementById('profileModal').classList.add('active');
+            } catch (error) {
+                showToast('Error cargando perfil', 'error');
+            }
+        }
+
+        function showProfileTab(tabName) {
+            document.querySelectorAll('[id^="profile-"]').forEach(el => el.classList.remove('active'));
+            document.getElementById(`profile-${tabName}`).classList.add('active');
+            document.querySelectorAll('#profileModal .tab').forEach(el => el.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        // ============================================
+        // NIVELES
+        // ============================================
+        async function loadLevels() {
+            if (!currentYearId) return;
+            
+            try {
+                levels = await apiGet('levels', { year_id: currentYearId });
+                
+                // Update tables
+                const tbody = document.getElementById('levelsTable');
+                tbody.innerHTML = levels.map(l => `
+                    <tr>
+                        <td><strong>${l.name}</strong></td>
+                        <td>${l.schedule || '-'}</td>
+                        <td>${l.teacher_name || '-'}</td>
+                        <td>${l.classroom || '-'}</td>
+                        <td>${l.capacity}</td>
+                        <td>${l.student_count || 0}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline" onclick="editLevel('${l.id}')">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+                
+                // Update selects
+                const levelSelects = ['studentLevel', 'bookLevel', 'waitingLevel', 'studentLevelFilter'];
+                levelSelects.forEach(selectId => {
+                    const select = document.getElementById(selectId);
+                    if (select) {
+                        const currentValue = select.value;
+                        const options = levels.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
+                        if (selectId === 'studentLevelFilter') {
+                            select.innerHTML = '<option value="">Todos los niveles</option>' + options;
+                        } else {
+                            select.innerHTML = select.innerHTML.split('</option>')[0] + '</option>' + options;
+                        }
+                        select.value = currentValue;
+                    }
+                });
+            } catch (error) {
+                showToast('Error cargando niveles', 'error');
+            }
+        }
+
+        function openLevelModal() {
+            document.getElementById('levelId').value = '';
+            document.getElementById('levelModalTitle').textContent = 'Nuevo Nivel';
+            document.getElementById('levelName').value = '';
+            document.getElementById('levelSchedule').value = '';
+            document.getElementById('levelTeacher').value = '';
+            document.getElementById('levelClassroom').value = '';
+            document.getElementById('levelCapacity').value = '20';
+            document.getElementById('levelModal').classList.add('active');
+        }
+
+        function editLevel(id) {
+            const level = levels.find(l => l.id === id);
+            if (!level) return;
+            
+            document.getElementById('levelId').value = level.id;
+            document.getElementById('levelModalTitle').textContent = 'Editar Nivel';
+            document.getElementById('levelName').value = level.name;
+            document.getElementById('levelSchedule').value = level.schedule || '';
+            document.getElementById('levelTeacher').value = level.teacher_name || '';
+            document.getElementById('levelClassroom').value = level.classroom || '';
+            document.getElementById('levelCapacity').value = level.capacity;
+            document.getElementById('levelModal').classList.add('active');
+        }
+
+        async function saveLevel() {
+            const id = document.getElementById('levelId').value;
+            const data = {
+                year_id: currentYearId,
+                name: document.getElementById('levelName').value,
+                schedule: document.getElementById('levelSchedule').value,
+                teacher_name: document.getElementById('levelTeacher').value,
+                classroom: document.getElementById('levelClassroom').value,
+                capacity: document.getElementById('levelCapacity').value
+            };
+            
+            if (!data.name) {
+                showToast('El nombre es obligatorio', 'error');
+                return;
+            }
+            
+            try {
+                if (id) {
+                    await apiPut(`levels/${id}`, data);
+                    showToast('Nivel actualizado');
+                } else {
+                    await apiPost('levels', data);
+                    showToast('Nivel creado');
+                }
+                closeModal('levelModal');
+                loadLevels();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        // ============================================
+        // TIPOS DE MATRÍCULA
+        // ============================================
+        async function loadEnrollmentTypes() {
+            try {
+                enrollmentTypes = await apiGet('enrollment-types', { year_id: currentYearId });
+                const select = document.getElementById('studentEnrollmentType');
+                select.innerHTML = '<option value="">Seleccionar...</option>' + 
+                    enrollmentTypes.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+            } catch (error) {
+                console.error('Error loading enrollment types:', error);
+            }
+        }
+
+        // ============================================
+        // PAGOS
+        // ============================================
+        async function loadPendingPayments() {
+            if (!currentYearId) return;
+            
+            try {
+                const month = document.getElementById('paymentMonthFilter').value;
+                const data = await apiGet('payments/pending', { year_id: currentYearId, month_year: month });
+                
+                const tbody = document.getElementById('paymentsTable');
+                const allPayments = [...data.tuition, ...data.books.map(b => ({...b, concept: 'libro', month_year: '-', final_amount: b.total_price, amount_paid: b.total_price - b.pending_balance, pending_amount: b.pending_balance, status: b.status}))];
+                
+                if (allPayments.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 2rem;">No hay pagos pendientes</td></tr>';
+                    return;
+                }
+                
+                tbody.innerHTML = allPayments.map(p => `
+                    <tr>
+                        <td>${p.first_name} ${p.last_name}</td>
+                        <td>${p.concept}${p.book_title ? ': ' + p.book_title : ''}</td>
+                        <td>${p.month_year}</td>
+                        <td>${formatMoney(p.final_amount)}</td>
+                        <td>${formatMoney(p.amount_paid)}</td>
+                        <td style="color: var(--danger); font-weight: 600;">${formatMoney(p.pending_amount)}</td>
+                        <td><span class="badge badge-${p.status === 'paid' ? 'success' : p.status === 'partial' ? 'warning' : 'danger'}">${p.status}</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-success" onclick="registerPayment('${p.student_id}', '${p.id}', '${p.concept}')">
+                                <i class="fas fa-dollar-sign"></i> Pagar
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+                
+                // Update dashboard pending list
+                document.getElementById('pendingPaymentsList').innerHTML = allPayments.slice(0, 5).map(p => `
+                    <div class="payment-item ${p.status}">
+                        <div>
+                            <strong>${p.first_name} ${p.last_name}</strong>
+                            <p style="font-size: 0.75rem; color: var(--gray);">${p.concept} - ${formatMoney(p.pending_amount)}</p>
+                        </div>
+                        <button class="btn btn-sm btn-success" onclick="registerPayment('${p.student_id}', '${p.id}', '${p.concept}')">Pagar</button>
+                    </div>
+                `).join('') || '<p style="text-align: center; color: var(--gray); padding: 1rem;">No hay pagos pendientes</p>';
+            } catch (error) {
+                console.error('Error loading pending payments:', error);
+            }
+        }
+
+        function openPaymentModal() {
+            loadPaymentStudents();
+            document.getElementById('paymentStudent').value = '';
+            document.getElementById('studentDebtInfo').innerHTML = '';
+            document.getElementById('paymentBaseAmount').value = '';
+            document.getElementById('paymentAmount').value = '';
+            document.getElementById('paymentDiscount').value = '0';
+            document.getElementById('paymentSurcharge').value = '0';
+            document.getElementById('paymentFinalAmount').value = '';
+            document.getElementById('paymentComment').value = '';
+            document.getElementById('paymentModal').classList.add('active');
+        }
+
+        async function loadPaymentStudents() {
+            try {
+                const data = await apiGet('students', { year_id: currentYearId, status: 'active' });
+                const select = document.getElementById('paymentStudent');
+                select.innerHTML = '<option value="">Seleccionar alumno...</option>' + 
+                    data.map(s => `<option value="${s.id}">${s.first_name} ${s.last_name} (${s.cedula})</option>`).join('');
+            } catch (error) {
+                console.error('Error loading students:', error);
+            }
+        }
+
+        async function loadStudentDebts() {
+            const studentId = document.getElementById('paymentStudent').value;
+            if (!studentId) return;
+            
+            try {
+                const student = await apiGet(`students/${studentId}`);
+                const year = years.find(y => y.id === currentYearId);
+                
+                document.getElementById('paymentBaseAmount').value = student.is_hermano && student.custom_tuition_price 
+                    ? student.custom_tuition_price 
+                    : year?.mensualidad_price || 3200;
+                
+                updatePaymentCalculation();
+            } catch (error) {
+                console.error('Error loading student debts:', error);
+            }
+        }
+
+        async function updatePaymentCalculation() {
+            const baseAmount = parseFloat(document.getElementById('paymentBaseAmount').value) || 0;
+            const paymentDate = document.getElementById('paymentDate').value;
+            const monthYear = document.getElementById('paymentMonthYear').value;
+            const studentId = document.getElementById('paymentStudent').value;
+            
+            if (!studentId || !monthYear) return;
+            
+            try {
+                const student = await apiGet(`students/${studentId}`);
+                const year = years.find(y => y.id === currentYearId);
+                
+                if (student.is_hermano && student.custom_tuition_price) {
+                    document.getElementById('paymentDiscount').value = '0';
+                    document.getElementById('paymentSurcharge').value = '0';
+                    document.getElementById('paymentFinalAmount').value = student.custom_tuition_price;
+                } else {
+                    // Calcular recargo/descuento
+                    const [year_str, month] = monthYear.split('-');
+                    const payment = new Date(paymentDate);
+                    const paymentYear = payment.getFullYear();
+                    const paymentMonth = payment.getMonth() + 1;
+                    const paymentDay = payment.getDate();
+                    
+                    const targetMonth = parseInt(month);
+                    const targetYear = parseInt(year_str);
+                    
+                    const monthDiff = (paymentYear - targetYear) * 12 + (paymentMonth - targetMonth);
+                    
+                    let discount = 0;
+                    let surcharge = 0;
+                    
+                    if (monthDiff < 0) {
+                        discount = year?.descuento_pronto_pago || 150;
+                    } else if (monthDiff === 0) {
+                        if (paymentDay <= (year?.dia_limite_descuento || 10)) {
+                            discount = year?.descuento_pronto_pago || 150;
+                        } else if (paymentDay > (year?.dia_limite_normal || 15)) {
+                            surcharge = year?.recargo_atraso || 150;
+                        }
+                    } else {
+                        surcharge = year?.recargo_atraso || 150;
+                    }
+                    
+                    document.getElementById('paymentDiscount').value = discount;
+                    document.getElementById('paymentSurcharge').value = surcharge;
+                    document.getElementById('paymentFinalAmount').value = baseAmount - discount + surcharge;
+                }
+            } catch (error) {
+                console.error('Error calculating payment:', error);
+            }
+        }
+
+        async function savePayment() {
+            const data = {
+                student_id: document.getElementById('paymentStudent').value,
+                concept: document.getElementById('paymentConcept').value,
+                month_year: document.getElementById('paymentMonthYear').value,
+                base_amount: document.getElementById('paymentBaseAmount').value,
+                amount_paid: document.getElementById('paymentAmount').value,
+                payment_date: document.getElementById('paymentDate').value,
+                payment_method: document.getElementById('paymentMethod').value,
+                comment: document.getElementById('paymentComment').value,
+                created_by: 'admin'
+            };
+            
+            if (!data.student_id || !data.amount_paid) {
+                showToast('Alumno y monto son obligatorios', 'error');
+                return;
+            }
+            
+            try {
+                await apiPost('payments/tuition', data);
+                showToast('Pago registrado correctamente');
+                closeModal('paymentModal');
+                loadPendingPayments();
+                loadDashboard();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        function registerPayment(studentId, paymentId, concept) {
+            openPaymentModal();
+            document.getElementById('paymentStudent').value = studentId;
+            document.getElementById('paymentConcept').value = concept;
+            loadStudentDebts();
+        }
+
+        // ============================================
+        // MODO POS
+        // ============================================
+        async function loadPosStudents() {
+            try {
+                const data = await apiGet('students', { year_id: currentYearId, status: 'active' });
+                const select = document.getElementById('posStudent');
+                select.innerHTML = '<option value="">Seleccionar alumno...</option>' + 
+                    data.map(s => `<option value="${s.id}">${s.first_name} ${s.last_name}</option>`).join('');
+            } catch (error) {
+                console.error('Error loading POS students:', error);
+            }
+        }
+
+        async function updatePosAmount() {
+            const concept = document.getElementById('posConcept').value;
+            const studentId = document.getElementById('posStudent').value;
+            
+            if (concept === 'mensualidad' && studentId) {
+                try {
+                    const student = await apiGet(`students/${studentId}`);
+                    const year = years.find(y => y.id === currentYearId);
+                    const amount = student.is_hermano && student.custom_tuition_price 
+                        ? student.custom_tuition_price 
+                        : year?.mensualidad_price || 3200;
+                    document.getElementById('posAmount').value = amount;
+                } catch (error) {
+                    console.error('Error getting amount:', error);
+                }
+            } else if (concept === 'matricula') {
+                const year = years.find(y => y.id === currentYearId);
+                document.getElementById('posAmount').value = year?.matricula_price || 2500;
+            }
+        }
+
+        async function processPosPayment() {
+            const data = {
+                student_id: document.getElementById('posStudent').value,
+                concept: document.getElementById('posConcept').value,
+                amount: document.getElementById('posAmount').value,
+                month_year: document.getElementById('posMonth').value,
+                payment_method: document.getElementById('posMethod').value,
+                comment: document.getElementById('posComment').value,
+                created_by: 'admin'
+            };
+            
+            if (!data.student_id || !data.amount) {
+                showToast('Alumno y monto son obligatorios', 'error');
+                return;
+            }
+            
+            try {
+                await apiPost('payments/quick', data);
+                showToast('Pago registrado correctamente');
+                document.getElementById('posStudent').value = '';
+                document.getElementById('posAmount').value = '';
+                document.getElementById('posComment').value = '';
+                loadDashboard();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        // ============================================
+        // LIBROS
+        // ============================================
+        async function loadBooks() {
+            if (!currentYearId) return;
+            
+            try {
+                const search = document.getElementById('bookSearch').value;
+                books = await apiGet('books', { year_id: currentYearId, search });
+                
+                const tbody = document.getElementById('booksTable');
+                if (books.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem;">No se encontraron libros</td></tr>';
+                    return;
+                }
+                
+                tbody.innerHTML = books.map(b => `
+                    <tr>
+                        <td><strong>${b.title}</strong></td>
+                        <td>${b.author || '-'}</td>
+                        <td>${formatMoney(b.price)}</td>
+                        <td>
+                            <span style="color: ${b.stock <= b.min_stock ? 'var(--danger)' : 'var(--success)'}; font-weight: 600;">
+                                ${b.stock}
+                            </span>
+                            ${b.stock <= b.min_stock ? '<i class="fas fa-exclamation-triangle" style="color: var(--warning);"></i>' : ''}
+                        </td>
+                        <td>${b.level_name || '-'}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline" onclick="editBook('${b.id}')">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-success" onclick="openAssignBookModal('${b.id}')">
+                                <i class="fas fa-user-plus"></i> Asignar
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                showToast('Error cargando libros', 'error');
+            }
+        }
+
+        function openBookModal() {
+            document.getElementById('bookId').value = '';
+            document.getElementById('bookModalTitle').textContent = 'Nuevo Libro';
+            document.getElementById('bookTitle').value = '';
+            document.getElementById('bookAuthor').value = '';
+            document.getElementById('bookPublisher').value = '';
+            document.getElementById('bookIsbn').value = '';
+            document.getElementById('bookPrice').value = '';
+            document.getElementById('bookCostPrice').value = '';
+            document.getElementById('bookStock').value = '0';
+            document.getElementById('bookMinStock').value = '5';
+            document.getElementById('bookLevel').value = '';
+            document.getElementById('bookModal').classList.add('active');
+        }
+
+        function editBook(id) {
+            const book = books.find(b => b.id === id);
+            if (!book) return;
+            
+            document.getElementById('bookId').value = book.id;
+            document.getElementById('bookModalTitle').textContent = 'Editar Libro';
+            document.getElementById('bookTitle').value = book.title;
+            document.getElementById('bookAuthor').value = book.author || '';
+            document.getElementById('bookPublisher').value = book.publisher || '';
+            document.getElementById('bookIsbn').value = book.isbn || '';
+            document.getElementById('bookPrice').value = book.price;
+            document.getElementById('bookCostPrice').value = book.cost_price || '';
+            document.getElementById('bookStock').value = book.stock;
+            document.getElementById('bookMinStock').value = book.min_stock;
+            document.getElementById('bookLevel').value = book.level_id || '';
+            document.getElementById('bookModal').classList.add('active');
+        }
+
+        async function saveBook() {
+            const id = document.getElementById('bookId').value;
+            const data = {
+                year_id: currentYearId,
+                title: document.getElementById('bookTitle').value,
+                author: document.getElementById('bookAuthor').value,
+                publisher: document.getElementById('bookPublisher').value,
+                isbn: document.getElementById('bookIsbn').value,
+                price: document.getElementById('bookPrice').value,
+                cost_price: document.getElementById('bookCostPrice').value,
+                stock: document.getElementById('bookStock').value,
+                min_stock: document.getElementById('bookMinStock').value,
+                level_id: document.getElementById('bookLevel').value || null
+            };
+            
+            if (!data.title || !data.price) {
+                showToast('Título y precio son obligatorios', 'error');
+                return;
+            }
+            
+            try {
+                if (id) {
+                    await apiPut(`books/${id}`, data);
+                    showToast('Libro actualizado');
+                } else {
+                    await apiPost('books', data);
+                    showToast('Libro creado');
+                }
+                closeModal('bookModal');
+                loadBooks();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        function showLowStock() {
+            loadBooks({ low_stock: true });
+        }
+
+        async function openAssignBookModal(bookId) {
+            try {
+                const students = await apiGet('students', { year_id: currentYearId, status: 'active' });
+                document.getElementById('assignBookStudent').innerHTML = '<option value="">Seleccionar...</option>' +
+                    students.map(s => `<option value="${s.id}">${s.first_name} ${s.last_name}</option>`).join('');
+                
+                const book = books.find(b => b.id === bookId);
+                document.getElementById('assignBookBook').innerHTML = `<option value="${book.id}">${book.title}</option>`;
+                document.getElementById('assignBookPrice').value = book.price;
+                
+                document.getElementById('assignBookModal').classList.add('active');
+            } catch (error) {
+                showToast('Error cargando datos', 'error');
+            }
+        }
+
+        async function saveBookAssignment() {
+            const data = {
+                student_id: document.getElementById('assignBookStudent').value,
+                book_id: document.getElementById('assignBookBook').value,
+                total_price: document.getElementById('assignBookPrice').value
+            };
+            
+            if (!data.student_id || !data.book_id) {
+                showToast('Seleccione alumno y libro', 'error');
+                return;
+            }
+            
+            try {
+                await apiPost('books/assign', data);
+                showToast('Libro asignado correctamente');
+                closeModal('assignBookModal');
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        // ============================================
+        // GASTOS
+        // ============================================
+        async function loadExpenses() {
+            if (!currentYearId) return;
+            
+            try {
+                const category = document.getElementById('expenseCategoryFilter').value;
+                const data = await apiGet('expenses', { year_id: currentYearId, category });
+                
+                const tbody = document.getElementById('expensesTable');
+                if (data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 2rem;">No hay gastos registrados</td></tr>';
+                    return;
+                }
+                
+                tbody.innerHTML = data.map(e => `
+                    <tr>
+                        <td>${formatDate(e.expense_date)}</td>
+                        <td><strong>${e.description}</strong></td>
+                        <td><span class="badge badge-info">${e.category}</span></td>
+                        <td>${e.provider || '-'}</td>
+                        <td>${formatMoney(e.total_amount)}</td>
+                        <td>${e.has_installments ? `${e.paid_installments}/${e.total_installments}` : '1/1'}</td>
+                        <td><span class="badge badge-${e.status === 'paid' ? 'success' : e.status === 'partial' ? 'warning' : 'danger'}">${e.status}</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-outline" onclick="viewExpenseInstallments('${e.id}')">
+                                <i class="fas fa-list"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                showToast('Error cargando gastos', 'error');
+            }
+        }
+
+        function openExpenseModal() {
+            document.getElementById('expenseDescription').value = '';
+            document.getElementById('expenseCategory').value = 'servicios';
+            document.getElementById('expenseProvider').value = '';
+            document.getElementById('expenseAmount').value = '';
+            document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('expenseHasInstallments').checked = false;
+            document.getElementById('installmentsGroup').style.display = 'none';
+            document.getElementById('expenseInstallments').value = '1';
+            document.getElementById('expenseStartDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('expenseModal').classList.add('active');
+        }
+
+        function toggleInstallments() {
+            const hasInstallments = document.getElementById('expenseHasInstallments').checked;
+            document.getElementById('installmentsGroup').style.display = hasInstallments ? 'block' : 'none';
+        }
+
+        async function saveExpense() {
+            const data = {
+                year_id: currentYearId,
+                description: document.getElementById('expenseDescription').value,
+                category: document.getElementById('expenseCategory').value,
+                provider: document.getElementById('expenseProvider').value,
+                total_amount: document.getElementById('expenseAmount').value,
+                expense_date: document.getElementById('expenseDate').value,
+                has_installments: document.getElementById('expenseHasInstallments').checked,
+                installment_count: document.getElementById('expenseInstallments').value,
+                start_date: document.getElementById('expenseStartDate').value,
+                created_by: 'admin'
+            };
+            
+            if (!data.description || !data.total_amount) {
+                showToast('Descripción y monto son obligatorios', 'error');
+                return;
+            }
+            
+            try {
+                await apiPost('expenses', data);
+                showToast('Gasto registrado correctamente');
+                closeModal('expenseModal');
+                loadExpenses();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        // ============================================
+        // LISTA DE ESPERA
+        // ============================================
+        async function loadWaitingList() {
+            if (!currentYearId) return;
+            
+            try {
+                const status = document.getElementById('waitingStatusFilter').value;
+                const data = await apiGet('waiting-list', { year_id: currentYearId, status });
+                
+                const tbody = document.getElementById('waitingTable');
+                if (data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 2rem;">No hay pre-inscripciones</td></tr>';
+                    return;
+                }
+                
+                tbody.innerHTML = data.map(w => `
+                    <tr>
+                        <td>${formatDate(w.registration_date)}</td>
+                        <td><strong>${w.student_name}</strong></td>
+                        <td>${w.student_age || '-'}</td>
+                        <td>${w.parent_name || '-'}</td>
+                        <td>${w.phone}</td>
+                        <td>${w.level_name || w.preferred_schedule || '-'}</td>
+                        <td><span class="badge badge-${w.status === 'waiting' ? 'warning' : w.status === 'converted' ? 'success' : 'danger'}">${w.status}</span></td>
+                        <td>
+                            ${w.status === 'waiting' ? `
+                                <button class="btn btn-sm btn-success" onclick="convertWaiting('${w.id}')">
+                                    <i class="fas fa-user-check"></i> Convertir
+                                </button>
+                            ` : ''}
+                            <button class="btn btn-sm btn-outline" onclick="editWaiting('${w.id}')">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                showToast('Error cargando lista de espera', 'error');
+            }
+        }
+
+        function openWaitingModal() {
+            document.getElementById('waitingId').value = '';
+            document.getElementById('waitingModalTitle').textContent = 'Nueva Pre-inscripción';
+            document.getElementById('waitingStudentName').value = '';
+            document.getElementById('waitingStudentAge').value = '';
+            document.getElementById('waitingParentName').value = '';
+            document.getElementById('waitingPhone').value = '';
+            document.getElementById('waitingEmail').value = '';
+            document.getElementById('waitingLevel').value = '';
+            document.getElementById('waitingSchedule').value = '';
+            document.getElementById('waitingPrevious').value = '';
+            document.getElementById('waitingNotes').value = '';
+            document.getElementById('waitingModal').classList.add('active');
+        }
+
+        async function saveWaiting() {
+            const data = {
+                year_id: currentYearId,
+                student_name: document.getElementById('waitingStudentName').value,
+                student_age: document.getElementById('waitingStudentAge').value,
+                parent_name: document.getElementById('waitingParentName').value,
+                phone: document.getElementById('waitingPhone').value,
+                email: document.getElementById('waitingEmail').value,
+                level_id: document.getElementById('waitingLevel').value || null,
+                preferred_schedule: document.getElementById('waitingSchedule').value,
+                previous_academy: document.getElementById('waitingPrevious').value,
+                notes: document.getElementById('waitingNotes').value
+            };
+            
+            if (!data.student_name || !data.phone) {
+                showToast('Nombre del estudiante y teléfono son obligatorios', 'error');
+                return;
+            }
+            
+            try {
+                await apiPost('waiting-list', data);
+                showToast('Pre-inscripción guardada');
+                closeModal('waitingModal');
+                loadWaitingList();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        async function convertWaiting(id) {
+            if (!confirm('¿Convertir a alumno? Se creará un nuevo registro de estudiante.')) return;
+            
+            try {
+                await apiPost('waiting-list/convert', { waiting_id: id, year_id: currentYearId });
+                showToast('Convertido a alumno correctamente');
+                loadWaitingList();
+                loadStudents();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        // ============================================
+        // REPORTES
+        // ============================================
+        async function loadCashFlow() {
+            if (!currentYearId) return;
+            
+            try {
+                const month = document.getElementById('cashFlowMonth').value;
+                const data = await apiGet('reports/cash-flow', { year_id: currentYearId, month });
+                
+                const container = document.getElementById('cashFlowReport');
+                container.innerHTML = `
+                    <div class="grid-2">
+                        <div>
+                            <h4 style="color: var(--success); margin-bottom: 1rem;">
+                                <i class="fas fa-arrow-up"></i> Ingresos: ${formatMoney(data.totalIncome)}
+                            </h4>
+                            ${data.income.tuition.map(i => `
+                                <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid var(--gray-light);">
+                                    <span>${i.concept}</span>
+                                    <strong>${formatMoney(i.total)}</strong>
+                                </div>
+                            `).join('')}
+                            <div style="display: flex; justify-content: space-between; padding: 0.5rem 0;">
+                                <span>Libros</span>
+                                <strong>${formatMoney(data.income.books)}</strong>
+                            </div>
+                        </div>
+                        <div>
+                            <h4 style="color: var(--danger); margin-bottom: 1rem;">
+                                <i class="fas fa-arrow-down"></i> Gastos: ${formatMoney(data.totalExpenses)}
+                            </h4>
+                            ${data.expenses.map(e => `
+                                <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid var(--gray-light);">
+                                    <span>${e.category}</span>
+                                    <strong>${formatMoney(e.total)}</strong>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 2px solid var(--gray-light); text-align: center;">
+                        <h4>Balance: <span style="color: ${data.totalIncome >= data.totalExpenses ? 'var(--success)' : 'var(--danger)'}">
+                            ${formatMoney(data.totalIncome - data.totalExpenses)}
+                        </span></h4>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Error loading cash flow:', error);
+            }
+        }
+
+        async function loadMonthlyStatus() {
+            if (!currentYearId) return;
+            
+            try {
+                const month = document.getElementById('monthlyStatusMonth').value;
+                const data = await apiGet('reports/monthly-status', { year_id: currentYearId, month });
+                
+                const container = document.getElementById('monthlyStatusReport');
+                container.innerHTML = `
+                    <div style="display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;">
+                        <span class="badge badge-success">Pagados: ${data.stats.paid}</span>
+                        <span class="badge badge-warning">Parciales: ${data.stats.partial}</span>
+                        <span class="badge badge-danger">Pendientes: ${data.stats.pending}</span>
+                        <span class="badge badge-info">Total: ${data.stats.total}</span>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr><th>Alumno</th><th>Estado</th><th>Monto</th><th>Pagado</th><th>Pendiente</th></tr>
+                            </thead>
+                            <tbody>
+                                ${data.students.map(s => `
+                                    <tr>
+                                        <td>${s.first_name} ${s.last_name}</td>
+                                        <td><span class="badge badge-${s.status === 'paid' ? 'success' : s.status === 'partial' ? 'warning' : 'danger'}">${s.status || 'pending'}</span></td>
+                                        <td>${formatMoney(s.final_amount)}</td>
+                                        <td>${formatMoney(s.amount_paid)}</td>
+                                        <td>${formatMoney(s.pending_amount)}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Error loading monthly status:', error);
+            }
+        }
+
+        // ============================================
+        // WHATSAPP
+        // ============================================
+        async function generateWhatsAppMessage(studentId) {
+            try {
+                const message = await apiGet(`whatsapp-message/${studentId}`, { type: 'reminder' });
+                
+                // Copy to clipboard
+                navigator.clipboard.writeText(message.message).then(() => {
+                    showToast('Mensaje copiado al portapapeles');
+                });
+                
+                // Open WhatsApp if phone available
+                if (message.phone) {
+                    const whatsappUrl = `https://wa.me/${message.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message.message)}`;
+                    window.open(whatsappUrl, '_blank');
+                }
+            } catch (error) {
+                showToast('Error generando mensaje', 'error');
+            }
+        }
+
+        // ============================================
+        // BACKUP / RESTORE
+        // ============================================
+        async function backupData(entity) {
+            try {
+                const data = await apiGet(`backup/${entity}`, { year_id: currentYearId });
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `alei_backup_${entity}_${new Date().toISOString().split('T')[0]}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                showToast('Backup descargado');
+            } catch (error) {
+                showToast('Error generando backup', 'error');
+            }
+        }
+
+        function loadRestoreFile() {
+            const file = document.getElementById('restoreFile').files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                document.getElementById('restoreData').value = e.target.result;
+            };
+            reader.readAsText(file);
+        }
+
+        async function restoreData() {
+            const section = document.getElementById('restoreSection').value;
+            const data = document.getElementById('restoreData').value;
+            
+            if (!data) {
+                showToast('Ingrese los datos a restaurar', 'error');
+                return;
+            }
+            
+            if (!confirm('¿Está seguro de importar estos datos?')) return;
+            
+            try {
+                await apiPost(`restore/${section}`, { data, year_id: currentYearId });
+                showToast('Datos importados correctamente');
+                document.getElementById('restoreData').value = '';
+                document.getElementById('restoreFile').value = '';
+                initializeApp();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        async function confirmReset() {
+            const confirmation = prompt('Para confirmar el reseteo, escriba ELIMINAR');
+            if (confirmation !== 'ELIMINAR') {
+                showToast('Confirmación incorrecta', 'error');
+                return;
+            }
+            
+            try {
+                await fetch(`${API_URL}/system/reset`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'X-Confirm-Reset': 'true'
+                    },
+                    body: JSON.stringify({ confirm: 'DELETE_ALL_DATA', year_id: currentYearId })
+                });
+                showToast('Sistema reseteado correctamente');
+                initializeApp();
+            } catch (error) {
+                showToast('Error reseteando sistema', 'error');
+            }
+        }
+
+        // ============================================
+        // CONFIGURACIÓN
+        // ============================================
+        async function saveConfig() {
+            showToast('Configuración guardada');
+        }
+
+        async function saveYearConfig() {
+            showToast('Configuración de precios guardada');
+        }
+
+        // Inicializar
+        initializeApp();
+    </script>
+</body>
+</html>
