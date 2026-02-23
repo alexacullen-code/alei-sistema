@@ -1,5 +1,5 @@
 {
-  "name": "alei-gestion",
+  "name": "alei-sistema",
   "version": "1.0.0",
   "type": "commonjs",
   "scripts": {
@@ -12,6 +12,6 @@
     "cookie": "^0.6.0"
   },
   "engines": {
-    "node": "18.x"
+    "node": "24.x"
   }
 }
