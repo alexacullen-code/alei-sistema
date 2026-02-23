@@ -3,7 +3,10 @@
   "builds": [
     {
       "src": "api/[...path].js",
-      "use": "@vercel/node"
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": ["db/**"]
+      }
     },
     {
       "src": "public/**",
@@ -17,7 +20,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "public/index.html"
+      "dest": "public/$1"
     }
   ],
   "env": {
