@@ -227,10 +227,13 @@ export default function Pagos() {
     if (filtroMes !== 'all' && pago.mes !== parseInt(filtroMes)) return false;
     if (search) {
       const searchLower = search.toLowerCase();
+      const concepto = String(pago.concepto || '').toLowerCase();
+      const nombre = String(pago.alumno_nombre || '').toLowerCase();
+      const apellido = String(pago.alumno_apellido || '').toLowerCase();
       return (
-        pago.concepto.toLowerCase().includes(searchLower) ||
-        pago.alumno_nombre?.toLowerCase().includes(searchLower) ||
-        pago.alumno_apellido?.toLowerCase().includes(searchLower)
+        concepto.includes(searchLower) ||
+        nombre.includes(searchLower) ||
+        apellido.includes(searchLower)
       );
     }
     return true;
@@ -238,11 +241,11 @@ export default function Pagos() {
 
   const totalPendiente = filteredPagos
     .filter(p => p.estado !== 'pagado')
-    .reduce((sum, p) => sum + p.saldo_pendiente, 0);
+    .reduce((sum, p) => sum + (Number(p.saldo_pendiente) || 0), 0);
 
   const totalRecaudado = filteredPagos
     .filter(p => p.estado === 'pagado')
-    .reduce((sum, p) => sum + p.monto_pagado, 0);
+    .reduce((sum, p) => sum + (Number(p.monto_pagado) || 0), 0);
 
   return (
     <div className="space-y-6">
@@ -375,10 +378,10 @@ export default function Pagos() {
                   {filteredPagos.map((pago) => (
                     <tr key={pago.id} className="border-b hover:bg-slate-50">
                       <td className="py-3 px-4">
-                        <p className="font-medium">{pago.alumno_apellido}, {pago.alumno_nombre}</p>
+                        <p className="font-medium">{pago.alumno_apellido || '-'}, {pago.alumno_nombre || '-'}</p>
                       </td>
                       <td className="py-3 px-4">
-                        <p className="font-medium">{pago.concepto}</p>
+                        <p className="font-medium">{pago.concepto || "-"}</p>
                         {pago.mes && (
                           <p className="text-sm text-slate-500">
                             {MESES.find(m => m.value === pago.mes)?.label} {pago.anio}

@@ -1029,13 +1029,30 @@ async function backupData(anioLectivoId, section = 'all') {
   }
 }
 
+
+function getSectionsToRestore(data, section) {
+  if (section !== 'all') {
+    return { [section]: data?.data || data?.[section] || data };
+  }
+
+  if (data && typeof data === 'object' && typeof data.section === 'string' && Array.isArray(data.data)) {
+    return { [data.section]: data.data };
+  }
+
+  if (data && typeof data === 'object' && data.data && typeof data.data === 'object' && !Array.isArray(data.data)) {
+    return data.data;
+  }
+
+  return data;
+}
+
 async function restoreData(data, anioLectivoId, section = 'all') {
   try {
     if (section !== 'all' && !SECTION_KEYS.includes(section)) {
       return createResponse({ error: 'Sección de restore inválida' }, 400);
     }
 
-    const sectionsToRestore = section === 'all' ? data : { [section]: data?.data || data?.[section] || data };
+    const sectionsToRestore = getSectionsToRestore(data, section);
 
     const results = {
       niveles: 0,
@@ -1128,7 +1145,7 @@ async function restoreData(data, anioLectivoId, section = 'all') {
               descuento, tipo_descuento, recargo, tipo_recargo,
               estado, fecha_vencimiento, fecha_pago, comentarios
             ) VALUES (
-              ${alumnoId}, ${pago.tipo}, ${pago.concepto}, ${pago.mes}, ${pago.anio},
+              ${alumnoId}, ${pago.tipo || 'mensualidad'}, ${pago.concepto || 'Pago restaurado'}, ${pago.mes || null}, ${pago.anio || null},
               ${pago.monto_total}, ${pago.monto_pagado || 0}, ${pago.saldo_pendiente || 0},
               ${pago.descuento || 0}, ${pago.tipo_descuento}, ${pago.recargo || 0}, ${pago.tipo_recargo},
               ${pago.estado || 'pendiente'}, ${pago.fecha_vencimiento}, ${pago.fecha_pago}, ${pago.comentarios}
