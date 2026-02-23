@@ -162,6 +162,7 @@ async function getNiveles(anioLectivoId) {
     }
     return createResponse(result);
   } catch (error) {
+    if (isMissingRelationError(error)) return createResponse([]);
     return handleError(error);
   }
 }
@@ -240,6 +241,7 @@ async function getAlumnos(anioLectivoId, nivelId, search) {
     const result = await query;
     return createResponse(result);
   } catch (error) {
+    if (isMissingRelationError(error)) return createResponse([]);
     return handleError(error);
   }
 }
@@ -402,6 +404,7 @@ async function getPagos(alumnoId, anioLectivoId, mes, estado) {
     const result = await query;
     return createResponse(result);
   } catch (error) {
+    if (isMissingRelationError(error)) return createResponse([]);
     return handleError(error);
   }
 }

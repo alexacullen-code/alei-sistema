@@ -44,18 +44,18 @@ export function Sidebar() {
       {/* Sidebar */}
       <aside
         className={cn(
-          'fixed left-0 top-0 z-50 h-screen w-64 bg-slate-900 text-white transition-transform duration-300 lg:translate-x-0',
+          'fixed left-0 top-0 z-50 h-screen w-64 bg-[#012169] text-white transition-transform duration-300 lg:translate-x-0',
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
         <div className="flex h-full flex-col">
           {/* Header */}
-          <div className="flex h-16 items-center justify-between border-b border-slate-700 px-4">
+          <div className="flex h-16 items-center justify-between border-b border-blue-900/70 px-4">
             <div className="flex items-center gap-2">
               <GraduationCap className="h-8 w-8 text-blue-400" />
               <div>
-                <h1 className="font-bold text-lg">ALEI</h1>
-                <p className="text-xs text-slate-400">
+                <h1 className="font-bold text-lg">ALEI <span aria-label="Union Jack">🇬🇧</span></h1>
+                <p className="text-xs text-blue-200">
                   {anioLectivoActivo ? anioLectivoActivo.anio : 'Cargando...'}
                 </p>
               </div>
@@ -63,7 +63,7 @@ export function Sidebar() {
             <Button
               variant="ghost"
               size="icon"
-              className="lg:hidden text-white hover:bg-slate-800"
+              className="lg:hidden text-white hover:bg-[#1f3f8f]"
               onClick={() => setSidebarOpen(false)}
             >
               <X className="h-5 w-5" />
@@ -82,8 +82,8 @@ export function Sidebar() {
                     cn(
                       'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                       isActive
-                        ? 'bg-blue-600 text-white'
-                        : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                        ? 'bg-[#C8102E] text-white'
+                        : 'text-blue-100 hover:bg-[#1f3f8f] hover:text-white'
                     )
                   }
                 >
@@ -95,14 +95,14 @@ export function Sidebar() {
           </ScrollArea>
 
           {/* Footer */}
-          <div className="border-t border-slate-700 p-4">
-            <div className="flex items-center gap-3 rounded-lg bg-slate-800 p-3">
+          <div className="border-t border-blue-900/70 p-4">
+            <div className="flex items-center gap-3 rounded-lg bg-[#1f3f8f] p-3">
               <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center">
                 <span className="text-sm font-bold">A</span>
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">Administrador</p>
-                <p className="text-xs text-slate-400">Admin</p>
+                <p className="text-xs text-blue-200">Admin</p>
               </div>
             </div>
           </div>
@@ -116,16 +116,16 @@ export function MobileHeader() {
   const { setSidebarOpen } = useStore();
 
   return (
-    <header className="lg:hidden h-16 bg-slate-900 text-white flex items-center px-4 sticky top-0 z-30">
+    <header className="lg:hidden h-16 bg-[#012169] text-white flex items-center px-4 sticky top-0 z-30">
       <Button
         variant="ghost"
         size="icon"
-        className="text-white hover:bg-slate-800"
+        className="text-white hover:bg-[#1f3f8f]"
         onClick={() => setSidebarOpen(true)}
       >
         <Menu className="h-6 w-6" />
       </Button>
-      <span className="ml-3 font-bold text-lg">ALEI</span>
+      <span className="ml-3 font-bold text-lg">ALEI 🇬🇧</span>
     </header>
   );
 }
