@@ -32,6 +32,63 @@ function handleError(error, message = 'Error interno del servidor') {
   return createResponse({ error: message, details: error.message }, 500);
 }
 
+
+let ensureBaseSetupPromise = null;
+
+async function ensureBaseSetup() {
+  if (ensureBaseSetupPromise) return ensureBaseSetupPromise;
+
+  ensureBaseSetupPromise = (async () => {
+    await sql`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`;
+
+    await sql`
+      CREATE TABLE IF NOT EXISTS anios_lectivos (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        anio INTEGER NOT NULL UNIQUE,
+        activo BOOLEAN DEFAULT false,
+        fecha_inicio DATE,
+        fecha_fin DATE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+
+    await sql`
+      CREATE TABLE IF NOT EXISTS configuracion (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        clave VARCHAR(100) UNIQUE NOT NULL,
+        valor TEXT,
+        descripcion TEXT,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+
+    await sql`
+      INSERT INTO anios_lectivos (anio, activo, fecha_inicio, fecha_fin)
+      VALUES (${new Date().getFullYear()}, true, ${`${new Date().getFullYear()}-03-01`}, ${`${new Date().getFullYear()}-12-15`})
+      ON CONFLICT (anio) DO NOTHING
+    `;
+
+    await sql`
+      INSERT INTO configuracion (clave, valor, descripcion) VALUES
+      ('descuento_pronto_pago', '150', 'Descuento en pesos uruguayos por pago antes del 10'),
+      ('recargo_mora', '150', 'Recargo en pesos uruguayos por pago después del 15'),
+      ('dia_limite_descuento', '10', 'Día límite para descuento por pronto pago'),
+      ('dia_inicio_recargo', '16', 'Día de inicio de recargo por mora'),
+      ('nombre_instituto', 'Instituto ALEI', 'Nombre del instituto'),
+      ('telefono_instituto', '', 'Teléfono de contacto'),
+      ('email_instituto', '', 'Email de contacto'),
+      ('direccion_instituto', '', 'Dirección del instituto')
+      ON CONFLICT (clave) DO NOTHING
+    `;
+  })().catch((error) => {
+    ensureBaseSetupPromise = null;
+    throw error;
+  });
+
+  return ensureBaseSetupPromise;
+}
+
 // Validar UUID
 function isValidUUID(str) {
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -1464,6 +1521,8 @@ export default async function handler(request) {
   const searchParams = url.searchParams;
   
   try {
+    await ensureBaseSetup();
+
     // Obtener año lectivo activo si no se especifica
     let anioLectivoId = searchParams.get('anio_lectivo_id');
     if (!anioLectivoId) {
