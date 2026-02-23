@@ -740,6 +740,48 @@ async function createPreinscripcion(data) {
   }
 }
 
+async function updatePreinscripcion(id, data) {
+  try {
+    const result = await sql`
+      UPDATE preinscripciones SET
+        nombre = ${data.nombre},
+        apellido = ${data.apellido},
+        cedula = ${data.cedula},
+        fecha_nacimiento = ${data.fecha_nacimiento},
+        email = ${data.email},
+        telefono = ${data.telefono},
+        telefono_alternativo = ${data.telefono_alternativo},
+        nombre_tutor = ${data.nombre_tutor},
+        telefono_tutor = ${data.telefono_tutor},
+        nivel_interesado_id = ${data.nivel_interesado_id},
+        horario_preferido = ${data.horario_preferido},
+        estado = ${data.estado || 'pendiente'},
+        fuente = ${data.fuente},
+        comentarios = ${data.comentarios},
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${id}
+      RETURNING *
+    `;
+
+    if (result.length === 0) {
+      return createResponse({ error: 'Pre-inscripción no encontrada' }, 404);
+    }
+
+    return createResponse(result[0]);
+  } catch (error) {
+    return handleError(error, 'Error al actualizar pre-inscripción');
+  }
+}
+
+async function deletePreinscripcion(id) {
+  try {
+    await sql`DELETE FROM preinscripciones WHERE id = ${id}`;
+    return createResponse({ message: 'Pre-inscripción eliminada' });
+  } catch (error) {
+    return handleError(error, 'Error al eliminar pre-inscripción');
+  }
+}
+
 async function convertirPreinscripcion(id, data) {
   try {
     // Crear alumno
@@ -944,7 +986,8 @@ async function buildBackupBySection(anioLectivoId) {
     alumnos: await sql`SELECT * FROM alumnos WHERE anio_lectivo_id = ${anioLectivoId}`,
     libros: await sql`SELECT * FROM libros WHERE anio_lectivo_id = ${anioLectivoId}`,
     pagos: await sql`
-      SELECT p.* FROM pagos p
+      SELECT p.*, a.cedula as alumno_cedula
+      FROM pagos p
       JOIN alumnos a ON p.alumno_id = a.id
       WHERE a.anio_lectivo_id = ${anioLectivoId}
     `,
@@ -952,8 +995,10 @@ async function buildBackupBySection(anioLectivoId) {
     examenes: await sql`SELECT * FROM examenes WHERE anio_lectivo_id = ${anioLectivoId}`,
     preinscripciones: await sql`SELECT * FROM preinscripciones WHERE anio_lectivo_id = ${anioLectivoId}`,
     prestamos: await sql`
-      SELECT pl.* FROM prestamos_libros pl
+      SELECT pl.*, a.cedula as alumno_cedula, l.codigo as libro_codigo
+      FROM prestamos_libros pl
       JOIN alumnos a ON pl.alumno_id = a.id
+      JOIN libros l ON pl.libro_id = l.id
       WHERE a.anio_lectivo_id = ${anioLectivoId}
     `,
   };
@@ -986,65 +1031,112 @@ async function backupData(anioLectivoId, section = 'all') {
 
 async function restoreData(data, anioLectivoId, section = 'all') {
   try {
-    // Esta función requiere lógica más compleja para manejar dependencias
-    // y evitar duplicados. Por ahora, solo insertamos datos básicos.
-    
+    if (section !== 'all' && !SECTION_KEYS.includes(section)) {
+      return createResponse({ error: 'Sección de restore inválida' }, 400);
+    }
+
+    const sectionsToRestore = section === 'all' ? data : { [section]: data?.data || data?.[section] || data };
+
     const results = {
       niveles: 0,
       alumnos: 0,
       libros: 0,
       pagos: 0,
       gastos: 0,
-      preinscripciones: 0
+      preinscripciones: 0,
     };
-    
-    const sectionsToRestore = section === 'all' ? data : { [section]: data?.data || data?.[section] || data };
 
-    // Restaurar niveles
+    const nivelesMap = new Map();
+
     if (sectionsToRestore.niveles && Array.isArray(sectionsToRestore.niveles)) {
       for (const nivel of sectionsToRestore.niveles) {
         try {
-          await sql`
+          const inserted = await sql`
             INSERT INTO niveles (anio_lectivo_id, nombre, descripcion, capacidad_maxima, cuota_mensual, horario, profesor)
             VALUES (${anioLectivoId}, ${nivel.nombre}, ${nivel.descripcion}, ${nivel.capacidad_maxima}, ${nivel.cuota_mensual}, ${nivel.horario}, ${nivel.profesor})
+            RETURNING id, nombre
           `;
+          nivelesMap.set(nivel.id, inserted[0].id);
+          nivelesMap.set(nivel.nombre, inserted[0].id);
           results.niveles++;
         } catch (e) {
           console.error('Error al restaurar nivel:', e);
         }
       }
     }
-    
-    // Restaurar alumnos
+
+    const alumnosMap = new Map();
+
     if (sectionsToRestore.alumnos && Array.isArray(sectionsToRestore.alumnos)) {
       for (const alumno of sectionsToRestore.alumnos) {
         try {
-          await sql`
-            INSERT INTO alumnos (anio_lectivo_id, cedula, nombre, apellido, fecha_nacimiento, email, telefono, direccion)
-            VALUES (${anioLectivoId}, ${alumno.cedula}, ${alumno.nombre}, ${alumno.apellido}, ${alumno.fecha_nacimiento}, ${alumno.email}, ${alumno.telefono}, ${alumno.direccion})
+          const nivelId = nivelesMap.get(alumno.nivel_id) || alumno.nivel_id || null;
+          const inserted = await sql`
+            INSERT INTO alumnos (
+              anio_lectivo_id, cedula, nombre, apellido, fecha_nacimiento, email, telefono, telefono_alternativo,
+              direccion, nombre_tutor, telefono_tutor, email_tutor, relacion_tutor, nivel_id, es_hermano,
+              grupo_hermanos, cuota_especial, estado
+            ) VALUES (
+              ${anioLectivoId}, ${alumno.cedula}, ${alumno.nombre}, ${alumno.apellido}, ${alumno.fecha_nacimiento}, ${alumno.email},
+              ${alumno.telefono}, ${alumno.telefono_alternativo}, ${alumno.direccion}, ${alumno.nombre_tutor}, ${alumno.telefono_tutor},
+              ${alumno.email_tutor}, ${alumno.relacion_tutor}, ${nivelId}, ${alumno.es_hermano || false},
+              ${alumno.grupo_hermanos}, ${alumno.cuota_especial}, ${alumno.estado || 'activo'}
+            )
+            RETURNING id, cedula
           `;
+          alumnosMap.set(alumno.id, inserted[0].id);
+          alumnosMap.set(alumno.cedula, inserted[0].id);
           results.alumnos++;
         } catch (e) {
           console.error('Error al restaurar alumno:', e);
         }
       }
     }
-    
+
     if (sectionsToRestore.libros && Array.isArray(sectionsToRestore.libros)) {
       for (const libro of sectionsToRestore.libros) {
         try {
+          const nivelId = nivelesMap.get(libro.nivel_id) || libro.nivel_id || null;
           await sql`
             INSERT INTO libros (
               anio_lectivo_id, codigo, titulo, autor, editorial,
-              materia, nivel_id, precio, stock_total, stock_disponible, descripcion
+              materia, nivel_id, precio, stock_total, stock_disponible, descripcion, activo
             ) VALUES (
               ${anioLectivoId}, ${libro.codigo}, ${libro.titulo}, ${libro.autor}, ${libro.editorial},
-              ${libro.materia}, ${libro.nivel_id}, ${libro.precio}, ${libro.stock_total}, ${libro.stock_disponible || libro.stock_total}, ${libro.descripcion}
+              ${libro.materia}, ${nivelId}, ${libro.precio}, ${libro.stock_total}, ${libro.stock_disponible || libro.stock_total}, ${libro.descripcion}, ${libro.activo ?? true}
             )
           `;
           results.libros++;
         } catch (e) {
           console.error('Error al restaurar libro:', e);
+        }
+      }
+    }
+
+    if (sectionsToRestore.pagos && Array.isArray(sectionsToRestore.pagos)) {
+      for (const pago of sectionsToRestore.pagos) {
+        try {
+          const alumnoId = alumnosMap.get(pago.alumno_id) || alumnosMap.get(pago.alumno_cedula);
+          if (!alumnoId) {
+            continue;
+          }
+
+          await sql`
+            INSERT INTO pagos (
+              alumno_id, tipo, concepto, mes, anio,
+              monto_total, monto_pagado, saldo_pendiente,
+              descuento, tipo_descuento, recargo, tipo_recargo,
+              estado, fecha_vencimiento, fecha_pago, comentarios
+            ) VALUES (
+              ${alumnoId}, ${pago.tipo}, ${pago.concepto}, ${pago.mes}, ${pago.anio},
+              ${pago.monto_total}, ${pago.monto_pagado || 0}, ${pago.saldo_pendiente || 0},
+              ${pago.descuento || 0}, ${pago.tipo_descuento}, ${pago.recargo || 0}, ${pago.tipo_recargo},
+              ${pago.estado || 'pendiente'}, ${pago.fecha_vencimiento}, ${pago.fecha_pago}, ${pago.comentarios}
+            )
+          `;
+          results.pagos++;
+        } catch (e) {
+          console.error('Error al restaurar pago:', e);
         }
       }
     }
@@ -1073,6 +1165,7 @@ async function restoreData(data, anioLectivoId, section = 'all') {
     if (sectionsToRestore.preinscripciones && Array.isArray(sectionsToRestore.preinscripciones)) {
       for (const pre of sectionsToRestore.preinscripciones) {
         try {
+          const nivelInteresadoId = nivelesMap.get(pre.nivel_interesado_id) || pre.nivel_interesado_id || null;
           await sql`
             INSERT INTO preinscripciones (
               anio_lectivo_id, nombre, apellido, cedula, fecha_nacimiento,
@@ -1081,7 +1174,7 @@ async function restoreData(data, anioLectivoId, section = 'all') {
             ) VALUES (
               ${anioLectivoId}, ${pre.nombre}, ${pre.apellido}, ${pre.cedula}, ${pre.fecha_nacimiento},
               ${pre.email}, ${pre.telefono}, ${pre.telefono_alternativo}, ${pre.nombre_tutor}, ${pre.telefono_tutor},
-              ${pre.nivel_interesado_id}, ${pre.horario_preferido}, ${pre.estado || 'pendiente'}, ${pre.fuente}, ${pre.comentarios}
+              ${nivelInteresadoId}, ${pre.horario_preferido}, ${pre.estado || 'pendiente'}, ${pre.fuente}, ${pre.comentarios}
             )
           `;
           results.preinscripciones++;
@@ -1463,10 +1556,18 @@ export default async function handler(request) {
       }
       if (request.method === 'POST') return await createPreinscripcion(await request.json());
     }
-    
+
     if (path.startsWith('preinscripciones/') && path.endsWith('/convertir')) {
       const id = path.split('/')[1];
       if (request.method === 'POST') return await convertirPreinscripcion(id, await request.json());
+    }
+
+    if (path.startsWith('preinscripciones/')) {
+      const id = path.split('/')[1];
+      if (id && !path.endsWith('/convertir')) {
+        if (request.method === 'PUT') return await updatePreinscripcion(id, await request.json());
+        if (request.method === 'DELETE') return await deletePreinscripcion(id);
+      }
     }
     
     // ============================================
