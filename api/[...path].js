@@ -1,488 +1,430 @@
-import { createClient } from '@vercel/postgres';
-import { neon } from '@neondatabase/serverless';
+const { createPool } = require('@neondatabase/serverless');
+const bcrypt = require('bcryptjs');
+const cookie = require('cookie');
 
-// Configuración CORS y headers
+// Configuración de base de datos
+const pool = createPool(process.env.DATABASE_URL);
+
+// Helper para CORS
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
 
-export default async function handler(req, res) {
-  // Manejar CORS preflight
+// Helper para respuestas JSON
+const jsonResponse = (data, status = 200) => ({
+  statusCode: status,
+  headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  body: JSON.stringify(data),
+});
+
+// Middleware de autenticación básica (puedes mejorarla luego)
+const checkAuth = (event) => {
+  // Por ahora permitimos todo, luego puedes agregar tokens
+  return true;
+};
+
+// Router principal
+module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-    return res.status(200).end();
+    return res.status(200).json({});
   }
 
-  const sql = neon(process.env.POSTGRES_URL);
   const path = req.url.replace('/api/', '').split('?')[0];
-  
+  const method = req.method;
+
   try {
     // Rutas de Alumnos
     if (path === 'alumnos') {
-      if (req.method === 'GET') {
-        const { rows } = await sql`
-          SELECT a.*, n.nombre as nivel_nombre, t.nombre as tipo_matricula_nombre 
-          FROM alumnos a 
-          LEFT JOIN niveles n ON a.nivel_id = n.id 
+      if (method === 'GET') {
+        const { anio, busqueda } = req.query;
+        let sql = `
+          SELECT a.*, n.nombre as nivel_nombre, t.nombre as tipo_matricula_nombre, t.es_excepcion
+          FROM alumnos a
+          LEFT JOIN niveles n ON a.nivel_id = n.id
           LEFT JOIN tipos_matricula t ON a.tipo_matricula_id = t.id
           WHERE a.activo = true
-          ORDER BY a.numero_anual DESC
-        `;
-        return res.status(200).json(rows);
-      }
-      
-      if (req.method === 'POST') {
-        const data = req.body;
-        
-        // Validar cédula única
-        const { rows: existing } = await sql`SELECT id FROM alumnos WHERE cedula = ${data.cedula}`;
-        if (existing.length > 0 && !data.id) {
-          return res.status(400).json({ error: 'Cédula ya registrada' });
-        }
-        
-        if (data.id) {
-          // Update
-          const { rows } = await sql`
-            UPDATE alumnos SET 
-              nombre = ${data.nombre},
-              cedula = ${data.cedula},
-              telefono = ${data.telefono},
-              telefono_alt = ${data.telefono_alt},
-              email = ${data.email},
-              direccion = ${data.direccion},
-              edad = ${data.edad},
-              nombre_padre = ${data.nombre_padre},
-              nombre_madre = ${data.nombre_madre},
-              nivel_id = ${data.nivel_id},
-              tipo_matricula_id = ${data.tipo_matricula_id},
-              es_hermano = ${data.es_hermano},
-              precio_especial = ${data.precio_especial},
-              observaciones = ${data.observaciones},
-              updated_at = CURRENT_TIMESTAMP
-            WHERE id = ${data.id}
-            RETURNING *
-          `;
-          await auditar(sql, 'alumnos', data.id, 'update', null, data, data.usuario);
-          return res.status(200).json(rows[0]);
-        } else {
-          // Insert
-          const { rows } = await sql`
-            INSERT INTO alumnos (
-              numero_anual, nombre, cedula, telefono, telefono_alt, email, 
-              direccion, edad, nombre_padre, nombre_madre, nivel_id, 
-              tipo_matricula_id, fecha_inscripcion, año_id, es_hermano, 
-              precio_especial, observaciones
-            ) VALUES (
-              ${data.numero_anual}, ${data.nombre}, ${data.cedula}, 
-              ${data.telefono}, ${data.telefono_alt}, ${data.email},
-              ${data.direccion}, ${data.edad}, ${data.nombre_padre}, 
-              ${data.nombre_madre}, ${data.nivel_id}, ${data.tipo_matricula_id},
-              ${data.fecha_inscripcion}, ${data.año_id}, ${data.es_hermano},
-              ${data.precio_especial}, ${data.observaciones}
-            )
-            RETURNING *
-          `;
-          await auditar(sql, 'alumnos', rows[0].id, 'insert', null, data, data.usuario);
-          return res.status(201).json(rows[0]);
-        }
-      }
-      
-      if (req.method === 'DELETE') {
-        const { id } = req.query;
-        await sql`UPDATE alumnos SET activo = false WHERE id = ${id}`;
-        return res.status(200).json({ success: true });
-      }
-    }
-
-    // Rutas de Pagos
-    if (path === 'pagos') {
-      if (req.method === 'GET') {
-        const { alumno_id, mes, año } = req.query;
-        let query = `
-          SELECT p.*, a.nombre as alumno_nombre 
-          FROM pagos p 
-          JOIN alumnos a ON p.alumno_id = a.id 
-          WHERE 1=1
         `;
         const params = [];
         
-        if (alumno_id) {
-          params.push(alumno_id);
-          query += ` AND p.alumno_id = $${params.length}`;
-        }
-        if (mes) {
-          params.push(mes);
-          query += ` AND p.mes = $${params.length}`;
-        }
-        if (año) {
-          params.push(año);
-          query += ` AND p.año = $${params.length}`;
+        if (anio) {
+          params.push(anio);
+          sql += ` AND a.anio_id = $${params.length}`;
         }
         
-        query += ` ORDER BY p.fecha_pago DESC`;
+        if (busqueda) {
+          params.push(`%${busqueda}%`);
+          sql += ` AND (a.nombre ILIKE $${params.length} OR a.cedula ILIKE $${params.length})`;
+        }
         
-        const { rows } = await sql.query(query, params);
-        return res.status(200).json(rows);
+        sql += ` ORDER BY a.numero_anual`;
+        
+        const result = await pool.query(sql, params);
+        return jsonResponse(result.rows);
       }
       
-      if (req.method === 'POST') {
+      if (method === 'POST') {
         const data = req.body;
         
-        // Lógica de recargos/descuentos automática
-        let montoFinal = data.monto;
-        let recargo = 0;
-        let descuento = 0;
-        
-        // Verificar si es hermano (no aplica recargas/descuentos automáticos)
-        const { rows: alumnoData } = await sql`SELECT es_hermano, precio_especial FROM alumnos WHERE id = ${data.alumno_id}`;
-        const esHermano = alumnoData[0]?.es_hermano || false;
-        
-        if (data.concepto === 'mensualidad' && !esHermano) {
-          const diaPago = new Date(data.fecha_pago).getDate();
-          const mesPago = new Date(data.fecha_pago).getMonth() + 1;
-          const mesPagando = data.mes;
-          
-          // Lógica compleja de fechas
-          let esAtrasado = false;
-          let esAdelantado = false;
-          
-          if (mesPago > mesPagando) esAdelantado = true;
-          if (mesPago < mesPagando) esAtrasado = true;
-          
-          if (!esAdelantado && !esAtrasado) {
-            // Mismo mes
-            if (diaPago <= 10) {
-              descuento = 150;
-            } else if (diaPago >= 16) {
-              recargo = 150;
-            }
-          } else if (esAtrasado) {
-            // Paga mes anterior (atrasado)
-            recargo = 150;
-          }
-          // Si es adelantado (mes siguiente), no hay recargo ni descuento según regla
-          
-          montoFinal = data.monto + recargo - descuento;
+        // Validar cédula única
+        const existe = await pool.query('SELECT id FROM alumnos WHERE cedula = $1', [data.cedula]);
+        if (existe.rows.length > 0) {
+          return jsonResponse({ error: 'La cédula ya está registrada' }, 400);
         }
         
-        if (esHermano && alumnoData[0]?.precio_especial) {
-          montoFinal = alumnoData[0].precio_especial;
-        }
-        
-        const { rows } = await sql`
-          INSERT INTO pagos (
-            alumno_id, concepto, mes, año, monto, recargo, descuento, 
-            monto_final, fecha_pago, comentarios, usuario, cuota_n, 
-            total_cuotas, año_id, metodo_pago
-          ) VALUES (
-            ${data.alumno_id}, ${data.concepto}, ${data.mes}, ${data.año}, 
-            ${data.monto}, ${recargo}, ${descuento}, ${montoFinal}, 
-            ${data.fecha_pago}, ${data.comentarios}, ${data.usuario}, 
-            ${data.cuota_n}, ${data.total_cuotas}, ${data.año_id}, ${data.metodo_pago}
-          )
+        const sql = `
+          INSERT INTO alumnos (
+            anio_id, numero_anual, nombre, cedula, email, telefono, telefono_alt, 
+            direccion, edad, nombre_padre, telefono_padre, nombre_madre, telefono_madre,
+            nivel_id, tipo_matricula_id, es_hermano, precio_especial_hermano, fecha_inscripcion
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
           RETURNING *
         `;
         
-        // Si es pago de libro, actualizar saldo
-        if (data.libro_id) {
-          await sql`UPDATE libros SET abonado = abonado + ${data.monto}, 
-                   saldo = saldo - ${data.monto} WHERE id = ${data.libro_id}`;
-          
-          await sql`INSERT INTO libro_pagos (libro_id, monto, fecha, comentarios) 
-                   VALUES (${data.libro_id}, ${data.monto}, ${data.fecha_pago}, ${data.comentarios})`;
-        }
+        const result = await pool.query(sql, [
+          data.anio_id, data.numero_anual, data.nombre, data.cedula, data.email, 
+          data.telefono, data.telefono_alt, data.direccion, data.edad,
+          data.nombre_padre, data.telefono_padre, data.nombre_madre, data.telefono_madre,
+          data.nivel_id, data.tipo_matricula_id, data.es_hermano, 
+          data.precio_especial_hermano, data.fecha_inscripcion
+        ]);
         
-        return res.status(201).json(rows[0]);
+        return jsonResponse(result.rows[0], 201);
       }
-    }
-
-    // Rutas de Libros
-    if (path === 'libros') {
-      if (req.method === 'GET') {
-        const { alumno_id } = req.query;
-        if (alumno_id) {
-          const { rows } = await sql`
-            SELECT l.*, a.nombre as alumno_nombre 
-            FROM libros l 
-            JOIN alumnos a ON l.alumno_id = a.id 
-            WHERE l.alumno_id = ${alumno_id}
-          `;
-          return res.status(200).json(rows);
-        } else {
-          const { rows } = await sql`
-            SELECT l.*, a.nombre as alumno_nombre 
-            FROM libros l 
-            JOIN alumnos a ON l.alumno_id = a.id 
-            WHERE l.saldo > 0
-          `;
-          return res.status(200).json(rows);
-        }
-      }
-      
-      if (req.method === 'POST') {
-        const data = req.body;
-        const { rows } = await sql`
-          INSERT INTO libros (alumno_id, titulo, costo_total, saldo) 
-          VALUES (${data.alumno_id}, ${data.titulo}, ${data.costo_total}, ${data.saldo}) 
-          RETURNING *
-        `;
-        return res.status(201).json(rows[0]);
-      }
-    }
-
-    // Rutas de Niveles
-    if (path === 'niveles') {
-      if (req.method === 'GET') {
-        const { rows } = await sql`SELECT * FROM niveles ORDER BY nombre`;
-        return res.status(200).json(rows);
-      }
-      
-      if (req.method === 'POST') {
-        const data = req.body;
-        if (data.id) {
-          await sql`UPDATE niveles SET nombre = ${data.nombre}, precio_mensual = ${data.precio_mensual}, costo_libro = ${data.costo_libro} WHERE id = ${data.id}`;
-        } else {
-          await sql`INSERT INTO niveles (nombre, precio_mensual, costo_libro, año_id) VALUES (${data.nombre}, ${data.precio_mensual}, ${data.costo_libro}, ${data.año_id})`;
-        }
-        return res.status(200).json({ success: true });
-      }
-    }
-
-    // Rutas de Tipos de Matrícula
-    if (path === 'tipos-matricula') {
-      if (req.method === 'GET') {
-        const { rows } = await sql`SELECT * FROM tipos_matricula ORDER BY nombre`;
-        return res.status(200).json(rows);
-      }
-      
-      if (req.method === 'POST') {
-        const data = req.body;
-        if (data.id) {
-          await sql`UPDATE tipos_matricula SET nombre = ${data.nombre}, porcentaje = ${data.porcentaje}, monto_fijo = ${data.monto_fijo}, es_hermano = ${data.es_hermano}, descripcion = ${data.descripcion} WHERE id = ${data.id}`;
-        } else {
-          await sql`INSERT INTO tipos_matricula (nombre, porcentaje, monto_fijo, es_hermano, descripcion, año_id) VALUES (${data.nombre}, ${data.porcentaje}, ${data.monto_fijo}, ${data.es_hermano}, ${data.descripcion}, ${data.año_id})`;
-        }
-        return res.status(200).json({ success: true });
-      }
-    }
-
-    // Rutas de Gastos
-    if (path === 'gastos') {
-      if (req.method === 'GET') {
-        const { rows } = await sql`SELECT * FROM gastos ORDER BY fecha DESC`;
-        return res.status(200).json(rows);
-      }
-      
-      if (req.method === 'POST') {
-        const data = req.body;
-        const { rows } = await sql`
-          INSERT INTO gastos (concepto, monto_total, categoria, fecha, es_cuota, cuota_n, total_cuotas, año_id) 
-          VALUES (${data.concepto}, ${data.monto_total}, ${data.categoria}, ${data.fecha}, ${data.es_cuota}, ${data.cuota_n}, ${data.total_cuotas}, ${data.año_id})
-          RETURNING *
-        `;
-        return res.status(201).json(rows[0]);
-      }
-    }
-
-    // Rutas de Pre-inscripciones
-    if (path === 'preinscripciones') {
-      if (req.method === 'GET') {
-        const { rows } = await sql`SELECT * FROM preinscripciones WHERE estado = 'pendiente' ORDER BY created_at DESC`;
-        return res.status(200).json(rows);
-      }
-      
-      if (req.method === 'POST') {
-        const data = req.body;
-        const { rows } = await sql`
-          INSERT INTO preinscripciones (nombre, telefono, email, nivel_interes, observaciones, año_id) 
-          VALUES (${data.nombre}, ${data.telefono}, ${data.email}, ${data.nivel_interes}, ${data.observaciones}, ${data.año_id})
-          RETURNING *
-        `;
-        return res.status(201).json(rows[0]);
-      }
-      
-      if (req.method === 'PUT') {
-        const { id, estado } = req.body;
-        await sql`UPDATE preinscripciones SET estado = ${estado} WHERE id = ${id}`;
-        return res.status(200).json({ success: true });
-      }
-    }
-
-    // Backup completo
-    if (path === 'backup') {
-      const backup = {};
-      
-      const { rows: alumnos } = await sql`SELECT * FROM alumnos WHERE activo = true`;
-      backup.alumnos = alumnos;
-      
-      const { rows: pagos } = await sql`SELECT * FROM pagos`;
-      backup.pagos = pagos;
-      
-      const { rows: libros } = await sql`SELECT * FROM libros`;
-      backup.libros = libros;
-      
-      const { rows: niveles } = await sql`SELECT * FROM niveles`;
-      backup.niveles = niveles;
-      
-      const { rows: tipos } = await sql`SELECT * FROM tipos_matricula`;
-      backup.tiposMatricula = tipos;
-      
-      const { rows: gastos } = await sql`SELECT * FROM gastos`;
-      backup.gastos = gastos;
-      
-      const { rows: preinscripciones } = await sql`SELECT * FROM preinscripciones`;
-      backup.preinscripciones = preinscripciones;
-      
-      backup.fecha_exportacion = new Date().toISOString();
-      backup.version = "3.0";
-      
-      return res.status(200).json(backup);
-    }
-
-    // Restore/Import
-    if (path === 'restore') {
-      const data = req.body;
-      
-      // Aquí implementarías la lógica de importación masiva con transacciones
-      // Por seguridad, solo lo habilitamos para admins
-      
-      return res.status(200).json({ success: true, message: 'Importación completada' });
-    }
-
-    // Dashboard stats
-    if (path === 'stats') {
-      const { año_id } = req.query;
-      
-      const stats = {};
-      
-      // Total alumnos
-      const { rows: alumnosCount } = await sql`SELECT COUNT(*) as total FROM alumnos WHERE activo = true AND año_id = ${año_id}`;
-      stats.totalAlumnos = parseInt(alumnosCount[0].total);
-      
-      // Ingresos mes actual
-      const mesActual = new Date().getMonth() + 1;
-      const { rows: ingresos } = await sql`
-        SELECT COALESCE(SUM(monto_final), 0) as total 
-        FROM pagos 
-        WHERE EXTRACT(MONTH FROM fecha_pago) = ${mesActual} AND año_id = ${año_id}
-      `;
-      stats.ingresosMes = parseInt(ingresos[0].total);
-      
-      // Deudores de mensualidad (no pagaron este mes)
-      const { rows: deudores } = await sql`
-        SELECT a.id, a.nombre, a.cedula, n.nombre as nivel, t.nombre as tipo_matricula
-        FROM alumnos a
-        LEFT JOIN niveles n ON a.nivel_id = n.id
-        LEFT JOIN tipos_matricula t ON a.tipo_matricula_id = t.id
-        LEFT JOIN pagos p ON a.id = p.alumno_id 
-          AND p.concepto = 'mensualidad' 
-          AND p.mes = ${mesActual} 
-          AND p.año_id = ${año_id}
-        WHERE a.activo = true 
-          AND a.año_id = ${año_id}
-          AND p.id IS NULL
-      `;
-      stats.deudoresMensualidad = deudores;
-      
-      // Libros pendientes
-      const { rows: librosPendientes } = await sql`
-        SELECT l.*, a.nombre as alumno_nombre 
-        FROM libros l 
-        JOIN alumnos a ON l.alumno_id = a.id 
-        WHERE l.saldo > 0
-      `;
-      stats.librosPendientes = librosPendientes;
-      
-      // Pre-inscripciones
-      const { rows: preinsc } = await sql`SELECT COUNT(*) as total FROM preinscripciones WHERE estado = 'pendiente' AND año_id = ${año_id}`;
-      stats.preinscripciones = parseInt(preinsc[0].total);
-      
-      return res.status(200).json(stats);
     }
 
     // Ficha completa del alumno
     if (path.startsWith('alumnos/') && path.includes('/ficha')) {
       const alumnoId = path.split('/')[1];
       
-      const ficha = {};
-      
-      // Datos básicos
-      const { rows: alumno } = await sql`
-        SELECT a.*, n.nombre as nivel_nombre, t.nombre as tipo_matricula_nombre 
-        FROM alumnos a 
-        LEFT JOIN niveles n ON a.nivel_id = n.id 
+      const alumno = await pool.query(`
+        SELECT a.*, n.nombre as nivel_nombre, n.precio_mensual, t.nombre as tipo_matricula, t.porcentaje
+        FROM alumnos a
+        LEFT JOIN niveles n ON a.nivel_id = n.id
         LEFT JOIN tipos_matricula t ON a.tipo_matricula_id = t.id
-        WHERE a.id = ${alumnoId}
-      `;
-      ficha.datos = alumno[0];
+        WHERE a.id = $1
+      `, [alumnoId]);
       
-      // Historial de pagos
-      const { rows: pagos } = await sql`
-        SELECT * FROM pagos WHERE alumno_id = ${alumnoId} ORDER BY fecha_pago DESC
-      `;
-      ficha.pagos = pagos;
-      
-      // Libros
-      const { rows: libros } = await sql`
-        SELECT l.*, 
-               (SELECT COALESCE(SUM(monto), 0) FROM libro_pagos WHERE libro_id = l.id) as total_abonado
-        FROM libros l 
-        WHERE l.alumno_id = ${alumnoId}
-      `;
-      ficha.libros = libros;
-      
-      // Deuda total calculada
-      let deudaMatricula = 0;
-      let deudaLibros = 0;
-      
-      // Calcular si debe matrícula (simplificado)
-      const { rows: pagoMat } = await sql`
-        SELECT * FROM pagos 
-        WHERE alumno_id = ${alumnoId} AND concepto = 'matricula' 
-        ORDER BY fecha_pago DESC LIMIT 1
-      `;
-      
-      if (pagoMat.length === 0) {
-        // No pagó matrícula, calcular según tipo
-        const { rows: tipo } = await sql`SELECT * FROM tipos_matricula WHERE id = ${ficha.datos.tipo_matricula_id}`;
-        deudaMatricula = tipo[0]?.monto_fijo || 3000; // default
+      if (alumno.rows.length === 0) {
+        return jsonResponse({ error: 'Alumno no encontrado' }, 404);
       }
       
-      // Deuda libros
-      const { rows: sumLibros } = await sql`
-        SELECT COALESCE(SUM(saldo), 0) as total 
-        FROM libros 
-        WHERE alumno_id = ${alumnoId}
-      `;
-      deudaLibros = parseInt(sumLibros[0].total);
+      const libros = await pool.query('SELECT * FROM libros WHERE alumno_id = $1', [alumnoId]);
+      const pagos = await pool.query(`
+        SELECT * FROM pagos 
+        WHERE alumno_id = $1 
+        ORDER BY fecha_pago DESC
+      `, [alumnoId]);
       
-      ficha.deudaTotal = deudaMatricula + deudaLibros;
-      ficha.deudaMatricula = deudaMatricula;
-      ficha.deudaLibros = deudaLibros;
+      const deudaMatricula = await calcularDeudaMatricula(alumnoId, pool);
+      const deudaMensual = await calcularDeudaMensual(alumnoId, pool);
       
-      return res.status(200).json(ficha);
+      return jsonResponse({
+        alumno: alumno.rows[0],
+        libros: libros.rows,
+        pagos: pagos.rows,
+        deudas: {
+          matricula: deudaMatricula,
+          mensual: deudaMensual,
+          libros: libros.rows.filter(l => l.estado !== 'pagado').reduce((sum, l) => sum + (l.costo_total - l.pagado), 0)
+        }
+      });
     }
 
-    // Si llega aquí, ruta no encontrada
-    return res.status(404).json({ error: 'Ruta no encontrada' });
+    // Rutas de Pagos
+    if (path === 'pagos') {
+      if (method === 'GET') {
+        const { alumno_id, desde, hasta, tipo } = req.query;
+        let sql = `
+          SELECT p.*, a.nombre as alumno_nombre, a.cedula
+          FROM pagos p
+          JOIN alumnos a ON p.alumno_id = a.id
+          WHERE 1=1
+        `;
+        const params = [];
+        
+        if (alumno_id) {
+          params.push(alumno_id);
+          sql += ` AND p.alumno_id = $${params.length}`;
+        }
+        if (desde) {
+          params.push(desde);
+          sql += ` AND p.fecha_pago >= $${params.length}`;
+        }
+        if (hasta) {
+          params.push(hasta);
+          sql += ` AND p.fecha_pago <= $${params.length}`;
+        }
+        if (tipo) {
+          params.push(tipo);
+          sql += ` AND p.tipo = $${params.length}`;
+        }
+        
+        sql += ` ORDER BY p.fecha_pago DESC`;
+        
+        const result = await pool.query(sql, params);
+        return jsonResponse(result.rows);
+      }
+      
+      if (method === 'POST') {
+        const data = req.body;
+        
+        // Calcular descuentos/recargos automáticos si es mensualidad
+        let descuento = 0;
+        let recargo = 0;
+        let montoFinal = data.monto;
+        
+        if (data.tipo === 'mensualidad' && data.fecha_pago && data.mes_referencia) {
+          const alumno = await pool.query('SELECT es_hermano, precio_especial_hermano FROM alumnos WHERE id = $1', [data.alumno_id]);
+          const esHermanoo = alumno.rows[0]?.es_hermano;
+          
+          if (!esHermanoo) {
+            const fechaPago = new Date(data.fecha_pago);
+            const dia = fechaPago.getDate();
+            const mesPago = fechaPago.getMonth() + 1;
+            
+            // Si paga el mes anterior al que corresponde (adelantado) o en el mes correcto
+            if (dia <= 10) {
+              descuento = 150; // Descuento pronto pago
+            } else if (dia >= 16) {
+              // Verificar si está pagando atrasado (mes de referencia < mes actual)
+              const hoy = new Date();
+              if (data.anio_referencia < hoy.getFullYear() || 
+                  (data.anio_referencia === hoy.getFullYear() && data.mes_referencia < (hoy.getMonth() + 1))) {
+                recargo = 150;
+              }
+            }
+            
+            montoFinal = data.monto - descuento + recargo;
+          }
+        }
+        
+        const sql = `
+          INSERT INTO pagos (
+            alumno_id, libro_id, tipo, concepto, monto, metodo_pago,
+            mes_referencia, anio_referencia, fecha_pago, comentarios,
+            descuento_aplicado, recargo_aplicado, es_abono
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+          RETURNING *
+        `;
+        
+        const result = await pool.query(sql, [
+          data.alumno_id, data.libro_id, data.tipo, data.concepto, montoFinal,
+          data.metodo_pago, data.mes_referencia, data.anio_referencia,
+          data.fecha_pago, data.comentarios, descuento, recargo, data.es_abono || false
+        ]);
+        
+        // Si es pago de libro, actualizar estado
+        if (data.libro_id) {
+          const libro = await pool.query('SELECT * FROM libros WHERE id = $1', [data.libro_id]);
+          const totalPagado = await pool.query(
+            'SELECT COALESCE(SUM(monto), 0) as total FROM pagos WHERE libro_id = $1',
+            [data.libro_id]
+          );
+          
+          const nuevoEstado = totalPagado.rows[0].total >= libro.rows[0].costo_total ? 'pagado' : 
+                             totalPagado.rows[0].total > 0 ? 'parcial' : 'pendiente';
+          
+          await pool.query(
+            'UPDATE libros SET estado = $1 WHERE id = $2',
+            [nuevoEstado, data.libro_id]
+          );
+        }
+        
+        return jsonResponse(result.rows[0], 201);
+      }
+    }
+
+    // Backup y Restore
+    if (path === 'backup') {
+      if (method === 'GET') {
+        // Exportar todo
+        const tablas = ['config_anio', 'tipos_matricula', 'niveles', 'alumnos', 'libros', 'pagos', 'gastos', 'preinscripciones'];
+        const backup = {};
+        
+        for (const tabla of tablas) {
+          const result = await pool.query(`SELECT * FROM ${tabla}`);
+          backup[tabla] = result.rows;
+        }
+        
+        backup.fecha_exportacion = new Date().toISOString();
+        backup.version = '2.0';
+        
+        return jsonResponse(backup);
+      }
+      
+      if (method === 'POST') {
+        const data = req.body;
+        
+        // Importar datos (con transacción)
+        const client = await pool.connect();
+        try {
+          await client.query('BEGIN');
+          
+          // Limpiar tablas si es full restore
+          if (data.full_restore) {
+            await client.query('TRUNCATE TABLE pagos, libros, alumnos, gastos, preinscripciones, niveles, tipos_matricula, config_anio RESTART IDENTITY CASCADE');
+          }
+          
+          // Insertar por tablas
+          if (data.config_anio) {
+            for (const row of data.config_anio) {
+              await client.query(`
+                INSERT INTO config_anio (id, anio, activo, matricula_base, mensualidad_base)
+                VALUES ($1, $2, $3, $4, $5)
+                ON CONFLICT (id) DO UPDATE SET
+                activo = EXCLUDED.activo, matricula_base = EXCLUDED.matricula_base
+              `, [row.id, row.anio, row.activo, row.matricula_base, row.mensualidad_base]);
+            }
+          }
+          
+          // Repetir para otras tablas...
+          if (data.alumnos) {
+            for (const row of data.alumnos) {
+              await client.query(`
+                INSERT INTO alumnos (
+                  id, anio_id, numero_anual, nombre, cedula, email, telefono, 
+                  nivel_id, tipo_matricula_id, es_hermano, fecha_inscripcion, activo
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                ON CONFLICT (id) DO UPDATE SET
+                nombre = EXCLUDED.nombre, telefono = EXCLUDED.telefono, activo = EXCLUDED.activo
+              `, [row.id, row.anio_id, row.numero_anual, row.nombre, row.cedula, 
+                  row.email, row.telefono, row.nivel_id, row.tipo_matricula_id, 
+                  row.es_hermano, row.fecha_inscripcion, row.activo]);
+            }
+          }
+          
+          await client.query('COMMIT');
+          return jsonResponse({ success: true, message: 'Backup restaurado' });
+        } catch (e) {
+          await client.query('ROLLBACK');
+          throw e;
+        } finally {
+          client.release();
+        }
+      }
+    }
+
+    // Reset completo (con doble seguridad)
+    if (path === 'reset' && method === 'POST') {
+      const { confirmacion, anio_id } = req.body;
+      
+      if (confirmacion !== 'RESET_TOTAL_2026') {
+        return jsonResponse({ error: 'Código de confirmación inválido' }, 403);
+      }
+      
+      await pool.query('TRUNCATE TABLE alertas, auditoria, pagos, libros, alumnos, gastos, preinscripciones, niveles, tipos_matricula RESTART IDENTITY CASCADE');
+      
+      return jsonResponse({ success: true, message: 'Sistema reseteado completamente' });
+    }
+
+    // Dashboard y estadísticas
+    if (path === 'dashboard') {
+      const { anio_id, mes } = req.query;
+      
+      // Estadísticas generales
+      const totalAlumnos = await pool.query('SELECT COUNT(*) FROM alumnos WHERE activo = true AND anio_id = $1', [anio_id]);
+      const ingresosMes = await pool.query(`
+        SELECT COALESCE(SUM(monto), 0) as total 
+        FROM pagos 
+        WHERE EXTRACT(MONTH FROM fecha_pago) = $1 AND EXTRACT(YEAR FROM fecha_pago) = $2
+      `, [mes, new Date().getFullYear()]);
+      
+      const deudores = await pool.query(`
+        SELECT a.id, a.nombre, a.cedula, n.nombre as nivel,
+               (SELECT COALESCE(SUM(monto), 0) FROM pagos WHERE alumno_id = a.id AND tipo = 'matricula') as pagado_mat
+        FROM alumnos a
+        LEFT JOIN niveles n ON a.nivel_id = n.id
+        WHERE a.activo = true AND a.anio_id = $1
+      `, [anio_id]);
+      
+      return jsonResponse({
+        total_alumnos: totalAlumnos.rows[0].count,
+        ingresos_mes: ingresosMes.rows[0].total,
+        deudores: deudores.rows
+      });
+    }
+
+    // Generar mensaje WhatsApp
+    if (path === 'whatsapp') {
+      const { alumno_id, tipo } = req.query;
+      
+      const alumno = await pool.query('SELECT * FROM alumnos WHERE id = $1', [alumno_id]);
+      if (alumno.rows.length === 0) return jsonResponse({ error: 'No encontrado' }, 404);
+      
+      const a = alumno.rows[0];
+      let mensaje = '';
+      
+      if (tipo === 'cobranza') {
+        const deuda = await calcularDeudaTotal(alumno_id, pool);
+        mensaje = `Hola ${a.nombre_padre || 'Padre/Madre'}, le recordamos que ${a.nombre} tiene un saldo pendiente de $${deuda}. Por favor regularice su situación para mantener activa la matrícula. Gracias. ALEI Instituto de Inglés.`;
+      } else if (tipo === 'bienvenida') {
+        mensaje = `Bienvenido/a ${a.nombre} a ALEI Instituto de Inglés. Su número de estudiante es ${a.numero_anual}. Nos contactaremos por este medio para informar sobre pagos y novedades. ¡Gracias por confiar en nosotros!`;
+      }
+      
+      return jsonResponse({ mensaje, telefono: a.telefono_padre || a.telefono });
+    }
+
+    return jsonResponse({ error: 'Ruta no encontrada' }, 404);
     
   } catch (error) {
-    console.error('API Error:', error);
-    return res.status(500).json({ error: error.message });
+    console.error('Error:', error);
+    return jsonResponse({ error: error.message }, 500);
   }
+};
+
+// Funciones auxiliares
+async function calcularDeudaMatricula(alumnoId, pool) {
+  const alumno = await pool.query(`
+    SELECT a.*, t.costo_fijo, t.porcentaje, c.matricula_base
+    FROM alumnos a
+    JOIN tipos_matricula t ON a.tipo_matricula_id = t.id
+    JOIN config_anio c ON a.anio_id = c.id
+    WHERE a.id = $1
+  `, [alumnoId]);
+  
+  if (alumno.rows.length === 0) return 0;
+  
+  const a = alumno.rows[0];
+  let costoMatricula = a.costo_fijo || (a.matricula_base * a.porcentaje / 100);
+  
+  const pagado = await pool.query(`
+    SELECT COALESCE(SUM(monto), 0) as total 
+    FROM pagos 
+    WHERE alumno_id = $1 AND tipo = 'matricula'
+  `, [alumnoId]);
+  
+  return Math.max(0, costoMatricula - pagado.rows[0].total);
 }
 
-async function auditar(sql, tabla, registroId, accion, datosAnteriores, datosNuevos, usuario) {
-  try {
-    await sql`
-      INSERT INTO auditoria (tabla, registro_id, accion, datos_anteriores, datos_nuevos, usuario)
-      VALUES (${tabla}, ${registroId}, ${accion}, ${JSON.stringify(datosAnteriores)}, ${JSON.stringify(datosNuevos)}, ${usuario})
-    `;
-  } catch (e) {
-    console.error('Error en auditoría:', e);
-  }
+async function calcularDeudaMensual(alumnoId, pool) {
+  const hoy = new Date();
+  const mesActual = hoy.getMonth() + 1;
+  
+  const pagado = await pool.query(`
+    SELECT COALESCE(SUM(monto), 0) as total 
+    FROM pagos 
+    WHERE alumno_id = $1 AND tipo = 'mensualidad' AND mes_referencia = $2
+  `, [alumnoId, mesActual]);
+  
+  const alumno = await pool.query(`
+    SELECT es_hermano, precio_especial_hermano, n.precio_mensual
+    FROM alumnos a
+    LEFT JOIN niveles n ON a.nivel_id = n.id
+    WHERE a.id = $1
+  `, [alumnoId]);
+  
+  if (alumno.rows.length === 0) return 0;
+  
+  const a = alumno.rows[0];
+  const mensualidad = a.es_hermano ? a.precio_especial_hermano : a.precio_mensual;
+  
+  return Math.max(0, mensualidad - pagado.rows[0].total);
+}
+
+async function calcularDeudaTotal(alumnoId, pool) {
+  const mat = await calcularDeudaMatricula(alumnoId, pool);
+  const men = await calcularDeudaMensual(alumnoId, pool);
+  return mat + men;
 }
