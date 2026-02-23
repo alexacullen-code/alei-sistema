@@ -1,157 +1,160 @@
--- Habilitar UUID
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
--- Años lectivos
-CREATE TABLE IF NOT EXISTS años_lectivos (
-    id SERIAL PRIMARY KEY,
-    año INTEGER UNIQUE NOT NULL,
-    activo BOOLEAN DEFAULT false,
-    fecha_inicio DATE,
-    fecha_fin DATE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Tipos de matrícula
-CREATE TABLE IF NOT EXISTS tipos_matricula (
-    id SERIAL PRIMARY KEY,
-    nombre VARCHAR(100) NOT NULL,
-    porcentaje INTEGER DEFAULT 100,
-    monto_fijo INTEGER,
-    es_hermano BOOLEAN DEFAULT false,
-    descripcion TEXT,
-    año_id INTEGER REFERENCES años_lectivos(id) ON DELETE CASCADE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Niveles
-CREATE TABLE IF NOT EXISTS niveles (
-    id SERIAL PRIMARY KEY,
-    nombre VARCHAR(100) NOT NULL,
-    precio_mensual INTEGER NOT NULL,
-    costo_libro INTEGER DEFAULT 0,
-    año_id INTEGER REFERENCES años_lectivos(id) ON DELETE CASCADE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Alumnos
-CREATE TABLE IF NOT EXISTS alumnos (
-    id SERIAL PRIMARY KEY,
-    numero_anual INTEGER,
-    nombre VARCHAR(200) NOT NULL,
-    cedula VARCHAR(50) UNIQUE NOT NULL,
-    telefono VARCHAR(50),
-    telefono_alt VARCHAR(50),
-    email VARCHAR(100),
-    direccion TEXT,
-    edad INTEGER,
-    nombre_padre VARCHAR(200),
-    nombre_madre VARCHAR(200),
-    nivel_id INTEGER REFERENCES niveles(id),
-    tipo_matricula_id INTEGER REFERENCES tipos_matricula(id),
-    fecha_inscripcion DATE,
-    año_id INTEGER REFERENCES años_lectivos(id) ON DELETE CASCADE,
-    es_hermano BOOLEAN DEFAULT false,
-    precio_especial INTEGER,
-    activo BOOLEAN DEFAULT true,
-    observaciones TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Libros/Materiales asignados
-CREATE TABLE IF NOT EXISTS libros (
-    id SERIAL PRIMARY KEY,
-    alumno_id INTEGER REFERENCES alumnos(id) ON DELETE CASCADE,
-    titulo VARCHAR(200) NOT NULL,
-    costo_total INTEGER NOT NULL,
-    abonado INTEGER DEFAULT 0,
-    saldo INTEGER NOT NULL,
-    estado VARCHAR(50) DEFAULT 'pendiente',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Pagos individuales de libros (historial de abonos)
-CREATE TABLE IF NOT EXISTS libro_pagos (
-    id SERIAL PRIMARY KEY,
-    libro_id INTEGER REFERENCES libros(id) ON DELETE CASCADE,
-    monto INTEGER NOT NULL,
-    fecha DATE NOT NULL,
-    comentarios TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Pagos generales (matrícula, mensualidad, etc)
-CREATE TABLE IF NOT EXISTS pagos (
-    id SERIAL PRIMARY KEY,
-    alumno_id INTEGER REFERENCES alumnos(id) ON DELETE CASCADE,
-    concepto VARCHAR(50) NOT NULL, -- matricula, mensualidad, libro, otro
-    mes INTEGER, -- 1-12 para mensualidades
-    año INTEGER,
-    monto INTEGER NOT NULL,
-    recargo INTEGER DEFAULT 0,
-    descuento INTEGER DEFAULT 0,
-    monto_final INTEGER NOT NULL,
-    fecha_pago DATE NOT NULL,
-    fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    metodo_pago VARCHAR(50) DEFAULT 'efectivo',
-    comentarios TEXT,
-    usuario VARCHAR(100),
-    cuota_n INTEGER, -- para sistema de cuotas
-    total_cuotas INTEGER,
-    año_id INTEGER REFERENCES años_lectivos(id) ON DELETE CASCADE
-);
-
--- Gastos del instituto
-CREATE TABLE IF NOT EXISTS gastos (
-    id SERIAL PRIMARY KEY,
-    concepto VARCHAR(200) NOT NULL,
-    monto_total INTEGER NOT NULL,
-    categoria VARCHAR(100),
-    fecha DATE NOT NULL,
-    es_cuota BOOLEAN DEFAULT false,
-    cuota_n INTEGER,
-    total_cuotas INTEGER,
-    año_id INTEGER REFERENCES años_lectivos(id) ON DELETE CASCADE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Pre-inscripciones y lista de espera
-CREATE TABLE IF NOT EXISTS preinscripciones (
-    id SERIAL PRIMARY KEY,
-    nombre VARCHAR(200) NOT NULL,
-    telefono VARCHAR(50),
-    email VARCHAR(100),
-    nivel_interes VARCHAR(100),
-    fecha_preinscripcion DATE DEFAULT CURRENT_DATE,
-    estado VARCHAR(50) DEFAULT 'pendiente', -- pendiente, convertido, rechazado
-    año_id INTEGER REFERENCES años_lectivos(id) ON DELETE CASCADE,
-    observaciones TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Auditoría
-CREATE TABLE IF NOT EXISTS auditoria (
-    id SERIAL PRIMARY KEY,
-    tabla VARCHAR(50) NOT NULL,
-    registro_id INTEGER,
-    accion VARCHAR(50) NOT NULL, -- insert, update, delete
-    datos_anteriores JSONB,
-    datos_nuevos JSONB,
-    usuario VARCHAR(100),
-    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Insertar año 2026 por defecto
-INSERT INTO años_lectivos (año, activo) VALUES (2026, true) ON CONFLICT DO NOTHING;
-
--- Insertar tipos de matrícula por defecto
-INSERT INTO tipos_matricula (nombre, porcentaje, descripcion, año_id) 
-SELECT 'Regular', 100, 'Pago completo', id FROM años_lectivos WHERE activo = true
-ON CONFLICT DO NOTHING;
-
--- Índices para búsquedas rápidas
-CREATE INDEX IF NOT EXISTS idx_alumnos_cedula ON alumnos(cedula);
-CREATE INDEX IF NOT EXISTS idx_alumnos_año ON alumnos(año_id);
-CREATE INDEX IF NOT EXISTS idx_pagos_alumno ON pagos(alumno_id);
-CREATE INDEX IF NOT EXISTS idx_pagos_fecha ON pagos(fecha_pago);
-CREATE INDEX IF NOT EXISTS idx_libros_alumno ON libros(alumno_id);
+-- Failed query:
+-- -- Tabla de configuración por año lectivo
+-- CREATE TABLE config_anio (
+--     id SERIAL PRIMARY KEY,
+--     anio INTEGER UNIQUE NOT NULL,
+--     activo BOOLEAN DEFAULT false,
+--     matricula_base INTEGER DEFAULT 3000,
+--     mensualidad_base INTEGER DEFAULT 2500,
+--     descuento_pronto_pago INTEGER DEFAULT 150,
+--     recargo_atraso INTEGER DEFAULT 150,
+--     dia_limite_descuento INTEGER DEFAULT 10,
+--     dia_inicio_recargo INTEGER DEFAULT 16,
+--     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+-- );
+-- 
+-- -- Tabla de tipos de matrícula
+-- CREATE TABLE tipos_matricula (
+--     id SERIAL PRIMARY KEY,
+--     anio_id INTEGER REFERENCES config_anio(id),
+--     nombre VARCHAR(50) NOT NULL,
+--     porcentaje INTEGER DEFAULT 100,
+--     costo_fijo INTEGER, -- Para casos especiales como hermanos
+--     es_excepcion BOOLEAN DEFAULT false, -- true para hermanos (sin recargos/descuentos)
+--     descripcion TEXT,
+--     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+-- );
+-- 
+-- -- Tabla de niveles/cursos
+-- CREATE TABLE niveles (
+--     id SERIAL PRIMARY KEY,
+--     anio_id INTEGER REFERENCES config_anio(id),
+--     nombre VARCHAR(50) NOT NULL,
+--     precio_mensual INTEGER NOT NULL,
+--     costo_libro INTEGER DEFAULT 0,
+--     cupo_maximo INTEGER DEFAULT 20,
+--     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+-- );
+-- 
+-- -- Tabla de alumnos
+-- CREATE TABLE alumnos (
+--     id SERIAL PRIMARY KEY,
+--     anio_id INTEGER REFERENCES config_anio(id),
+--     numero_anual INTEGER,
+--     nombre VARCHAR(100) NOT NULL,
+--     cedula VARCHAR(20) UNIQUE NOT NULL,
+--     email VARCHAR(100),
+--     telefono VARCHAR(20),
+--     telefono_alt VARCHAR(20),
+--     direccion TEXT,
+--     edad INTEGER,
+--     nombre_padre VARCHAR(100),
+--     telefono_padre VARCHAR(20),
+--     nombre_madre VARCHAR(100),
+--     telefono_madre VARCHAR(20),
+--     nivel_id INTEGER REFERENCES niveles(id),
+--     tipo_matricula_id INTEGER REFERENCES tipos_matricula(id),
+--     es_hermano BOOLEAN DEFAULT false,
+--     precio_especial_hermano INTEGER, -- Precio fijo mensual para hermanos
+--     fecha_inscripcion DATE,
+--     activo BOOLEAN DEFAULT true,
+--     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+-- );
+-- 
+-- -- Tabla de libros/materiales
+-- CREATE TABLE libros (
+--     id SERIAL PRIMARY KEY,
+--     alumno_id INTEGER REFERENCES alumnos(id) ON DELETE CASCADE,
+--     titulo VARCHAR(100) NOT NULL,
+--     costo_total INTEGER NOT NULL,
+--     estado VARCHAR(20) DEFAULT 'pendiente', -- pendiente, parcial, pagado
+--     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+-- );
+-- 
+-- -- Tabla de pagos (parciales y totales)
+-- CREATE TABLE pagos (
+--     id SERIAL PRIMARY KEY,
+--     alumno_id INTEGER REFERENCES alumnos(id) ON DELETE CASCADE,
+--     libro_id INTEGER REFERENCES libros(id) ON DELETE SET NULL,
+--     tipo VARCHAR(20) NOT NULL, -- matricula, mensualidad, libro, cuota
+--     concepto VARCHAR(100), -- ej: "Marzo 2026", "Matrícula Regular"
+--     monto INTEGER NOT NULL,
+--     metodo_pago VARCHAR(20) DEFAULT 'efectivo',
+--     mes_referencia INTEGER, -- 1-12 para mensualidades
+--     anio_referencia INTEGER,
+--     fecha_pago DATE NOT NULL,
+--     comentarios TEXT,
+--     descuento_aplicado INTEGER DEFAULT 0,
+--     recargo_aplicado INTEGER DEFAULT 0,
+--     es_abono BOOLEAN DEFAULT false, -- true si es pago parcial
+--     saldo_anterior INTEGER,
+--     saldo_nuevo INTEGER,
+--     usuario_modifico VARCHAR(50),
+--     fecha_modificacion TIMESTAMP,
+--     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+-- );
+-- 
+-- -- Tabla de gastos (con soporte para cuotas)
+-- CREATE TABLE gastos (
+--     id SERIAL PRIMARY KEY,
+--     anio_id INTEGER REFERENCES config_anio(id),
+--     fecha DATE NOT NULL,
+--     concepto VARCHAR(100) NOT NULL,
+--     categoria VARCHAR(50), -- servicios, materiales, personal, cuotas, otros
+--     monto_total INTEGER NOT NULL,
+--     monto_pagado INTEGER DEFAULT 0,
+--     es_cuota BOOLEAN DEFAULT false,
+--     numero_cuota INTEGER,
+--     total_cuotas INTEGER,
+--     proveedor VARCHAR(100),
+--     observaciones TEXT,
+--     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+-- );
+-- 
+-- -- Tabla de pre-inscripciones/lista de espera
+-- CREATE TABLE preinscripciones (
+--     id SERIAL PRIMARY KEY,
+--     anio_id INTEGER REFERENCES config_anio(id),
+--     nombre VARCHAR(100) NOT NULL,
+--     telefono VARCHAR(20),
+--     email VARCHAR(100),
+--     nivel_interesado INTEGER REFERENCES niveles(id),
+--     fecha_preinscripcion DATE,
+--     estado VARCHAR(20) DEFAULT 'pendiente', -- pendiente, contactado, convertido, descartado
+--     observaciones TEXT,
+--     fecha_conversion DATE,
+--     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+-- );
+-- 
+-- -- Tabla de auditoría
+-- CREATE TABLE auditoria (
+--     id SERIAL PRIMARY KEY,
+--     tabla VARCHAR(50) NOT NULL,
+--     registro_id INTEGER NOT NULL,
+--     accion VARCHAR(20) NOT NULL, -- insert, update, delete
+--     datos_anteriores JSONB,
+--     datos_nuevos JSONB,
+--     usuario VARCHAR(50),
+--     fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+-- );
+-- 
+-- -- Tabla de alertas/notificaciones
+-- CREATE TABLE alertas (
+--     id SERIAL PRIMARY KEY,
+--     tipo VARCHAR(50) NOT NULL, -- cumpleaños, pago_atrasado, libro_pendiente
+--     alumno_id INTEGER REFERENCES alumnos(id) ON DELETE CASCADE,
+--     mensaje TEXT NOT NULL,
+--     fecha_generada DATE,
+--     leida BOOLEAN DEFAULT false,
+--     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+-- );
+-- 
+-- -- Índices para búsquedas rápidas
+-- CREATE INDEX idx_alumnos_cedula ON alumnos(cedula);
+-- CREATE INDEX idx_alumnos_nombre ON alumnos(nombre);
+-- CREATE INDEX idx_pagos_alumno ON pagos(alumno_id);
+-- CREATE INDEX idx_pagos_fecha ON pagos(fecha_pago);
+-- CREATE INDEX idx_pagos_mes ON pagos(mes_referencia, anio_referencia);
+-- Query can't be composed effectively.
+-- The table "config_anio" already exists in the database. To create a new table with the same name, you need to drop the existing table firs
