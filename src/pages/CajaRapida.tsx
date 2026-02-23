@@ -7,7 +7,6 @@ import {
   CheckCircle, 
   User,
   DollarSign,
-  FileText,
   Calendar
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';

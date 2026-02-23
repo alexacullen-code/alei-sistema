@@ -49,7 +49,7 @@ export default function Alumnos() {
   
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [selectedNivel, setSelectedNivel] = useState<string>('');
+  const [selectedNivel, setSelectedNivel] = useState<string>('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [editingAlumno, setEditingAlumno] = useState<Alumno | null>(null);
@@ -96,7 +96,7 @@ export default function Alumnos() {
     
     const params: Record<string, string> = {};
     if (search) params.search = search;
-    if (selectedNivel) params.nivel_id = selectedNivel;
+    if (selectedNivel !== 'all') params.nivel_id = selectedNivel;
     
     const data = await get<Alumno[]>('alumnos', params);
     if (data) setAlumnos(data);
@@ -249,7 +249,7 @@ export default function Alumnos() {
                 <SelectValue placeholder="Todos los niveles" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos los niveles</SelectItem>
+                <SelectItem value="all">Todos los niveles</SelectItem>
                 {niveles.map((nivel) => (
                   <SelectItem key={nivel.id} value={nivel.id}>
                     {nivel.nombre}
