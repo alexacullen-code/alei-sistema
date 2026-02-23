@@ -250,7 +250,7 @@ export default function Alumnos() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos los niveles</SelectItem>
-                {niveles.map((nivel) => (
+                {niveles.filter((nivel) => Boolean(nivel.id)).map((nivel) => (
                   <SelectItem key={nivel.id} value={nivel.id}>
                     {nivel.nombre}
                   </SelectItem>
@@ -491,7 +491,7 @@ export default function Alumnos() {
                       <SelectValue placeholder="Seleccionar nivel" />
                     </SelectTrigger>
                     <SelectContent>
-                      {niveles.map((nivel) => (
+                      {niveles.filter((nivel) => Boolean(nivel.id)).map((nivel) => (
                         <SelectItem key={nivel.id} value={nivel.id}>
                           {nivel.nombre}
                         </SelectItem>

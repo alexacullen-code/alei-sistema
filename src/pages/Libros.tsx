@@ -409,7 +409,7 @@ export default function Libros() {
                     <SelectValue placeholder="Seleccionar nivel" />
                   </SelectTrigger>
                   <SelectContent>
-                    {niveles.map((nivel) => (
+                    {niveles.filter((nivel) => Boolean(nivel.id)).map((nivel) => (
                       <SelectItem key={nivel.id} value={nivel.id}>
                         {nivel.nombre}
                       </SelectItem>
@@ -478,7 +478,7 @@ export default function Libros() {
                   <SelectValue placeholder="Seleccionar alumno" />
                 </SelectTrigger>
                 <SelectContent>
-                  {alumnos.filter(a => a.estado === 'activo').map((alumno) => (
+                  {alumnos.filter(a => a.estado === 'activo').filter((alumno) => Boolean(alumno.id)).map((alumno) => (
                     <SelectItem key={alumno.id} value={alumno.id}>
                       {alumno.apellido}, {alumno.nombre}
                     </SelectItem>

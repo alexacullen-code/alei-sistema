@@ -448,7 +448,7 @@ export default function Preinscripciones() {
                     <SelectValue placeholder="Seleccionar nivel" />
                   </SelectTrigger>
                   <SelectContent>
-                    {niveles.map((nivel) => (
+                    {niveles.filter((nivel) => Boolean(nivel.id)).map((nivel) => (
                       <SelectItem key={nivel.id} value={nivel.id}>
                         {nivel.nombre}
                       </SelectItem>
@@ -506,7 +506,7 @@ export default function Preinscripciones() {
                   <SelectValue placeholder="Seleccionar nivel" />
                 </SelectTrigger>
                 <SelectContent>
-                  {niveles.map((nivel) => (
+                  {niveles.filter((nivel) => Boolean(nivel.id)).map((nivel) => (
                     <SelectItem key={nivel.id} value={nivel.id}>
                       {nivel.nombre}
                     </SelectItem>

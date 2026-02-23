@@ -444,7 +444,7 @@ export default function Pagos() {
                     <SelectValue placeholder="Seleccionar alumno" />
                   </SelectTrigger>
                   <SelectContent>
-                    {alumnos.filter(a => a.estado === 'activo').map((alumno) => (
+                    {alumnos.filter(a => a.estado === 'activo').filter((alumno) => Boolean(alumno.id)).map((alumno) => (
                       <SelectItem key={alumno.id} value={alumno.id}>
                         {alumno.apellido}, {alumno.nombre}
                       </SelectItem>
