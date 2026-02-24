@@ -74,22 +74,39 @@ async function parseBody(req) {
 }
 
 async function activeYearId() {
-  const cols = await getTableColumns('anios_lectivos');
-  const labelCol = cols.has('nombre')
-    ? 'nombre'
-    : cols.has('anio')
-      ? 'anio'
-      : cols.has('year')
-        ? 'year'
-        : null;
-
-  const selectLabel = labelCol ? `, ${labelCol} AS nombre` : '';
-  const q = await pool.query(`SELECT id${selectLabel} FROM anios_lectivos WHERE activo = true ORDER BY id DESC LIMIT 1`);
+  const q = await pool.query('SELECT * FROM anios_lectivos WHERE activo = true ORDER BY id DESC LIMIT 1');
   if (!q.rowCount) throw new Error('No existe año lectivo activo.');
-  return q.rows[0];
+  const row = q.rows[0];
+  return {
+    ...row,
+    nombre: row.nombre ?? row.anio ?? row.year ?? String(row.id),
+  };
 }
 
 async function listByTable(res, table, anioLectivoId) {
+  if (table === 'alumnos') {
+    const nivelCol = await getLabelColumn('niveles');
+    const tipoCol = await getLabelColumn('tipos_matricula');
+
+    const nivelExpr = nivelCol ? `n.${nivelCol}` : 'NULL';
+    const tipoExpr = tipoCol ? `tm.${tipoCol}` : 'NULL';
+
+    const query = `
+      SELECT a.id, a.numero_anual, a.nombre, a.cedula, a.telefono, a.edad, a.direccion,
+             a.nivel_id, ${nivelExpr} AS nivel, a.tipo_matricula_id,
+             ${tipoExpr} AS tipo_matricula_nombre,
+             a.fecha_inscripcion, a.es_hermano, a.monto_cuota_personalizado, a.created_at
+      FROM alumnos a
+      LEFT JOIN niveles n ON n.id = a.nivel_id
+      LEFT JOIN tipos_matricula tm ON tm.id = a.tipo_matricula_id
+      WHERE a.anio_lectivo_id = $1 AND a.activo = true
+      ORDER BY a.numero_anual ASC
+    `;
+
+    const { rows } = await pool.query(query, [anioLectivoId]);
+    return send(res, 200, { data: rows });
+  }
+
   const { rows } = await pool.query(TABLES[table].select, [anioLectivoId]);
   send(res, 200, { data: rows });
 }
@@ -424,27 +441,26 @@ async function getTableColumns(table) {
   return new Set(q.rows.map((r) => r.column_name));
 }
 
+async function getLabelColumn(table) {
+  const cols = await getTableColumns(table);
+  if (cols.has('nombre')) return 'nombre';
+  if (cols.has('descripcion')) return 'descripcion';
+  if (cols.has('name')) return 'name';
+  return null;
+}
+
 async function getNameToIdMap(table, anioLectivoId) {
   const cols = await getTableColumns(table);
   if (!cols.has('id')) return new Map();
 
-  const labelCol = cols.has('nombre')
-    ? 'nombre'
-    : cols.has('descripcion')
-      ? 'descripcion'
-      : cols.has('name')
-        ? 'name'
-        : null;
-
-  if (!labelCol) return new Map();
-
   const where = cols.has('anio_lectivo_id') ? 'WHERE anio_lectivo_id = $1' : '';
   const params = cols.has('anio_lectivo_id') ? [anioLectivoId] : [];
-  const q = await pool.query(`SELECT id, ${labelCol} AS label FROM ${table} ${where}`, params);
+  const q = await pool.query(`SELECT * FROM ${table} ${where}`, params);
 
   const map = new Map();
   for (const row of q.rows) {
-    const key = String(row.label || '').trim().toLowerCase();
+    const label = row.nombre ?? row.descripcion ?? row.name;
+    const key = String(label || '').trim().toLowerCase();
     if (key) map.set(key, row.id);
   }
 
