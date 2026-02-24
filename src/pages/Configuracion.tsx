@@ -3,14 +3,12 @@ import { useApi } from '@/hooks/useApi';
 import { useStore } from '@/hooks/useStore';
 import type { Configuracion as ConfigType, AnioLectivo } from '@/types';
 import { 
-  Settings, 
   Download, 
   Upload, 
   AlertTriangle,
   Trash2,
   Save,
   Database,
-  RefreshCw,
   Calendar,
   DollarSign,
   Building
@@ -36,13 +34,11 @@ export default function Configuracion() {
   const { 
     configuracion, 
     setConfiguracion, 
-    anioLectivoActivo, 
     setAnioLectivoActivo,
     aniosLectivos,
     setAniosLectivos
   } = useStore();
   
-  const [loading, setLoading] = useState(false);
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const [isResetConfirmDialogOpen, setIsResetConfirmDialogOpen] = useState(false);
   const [resetConfirmText, setResetConfirmText] = useState('');

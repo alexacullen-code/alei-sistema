@@ -6,14 +6,7 @@ import {
   Plus, 
   Edit2, 
   Trash2, 
-  UserPlus, 
-  Download,
-  CheckCircle,
-  XCircle,
-  Clock,
-  UserCheck,
-  Phone,
-  Mail
+  UserCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,7 +27,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -43,7 +35,6 @@ export default function Preinscripciones() {
   const { get, post, put, del } = useApi();
   const { preinscripciones, setPreinscripciones, niveles, setNiveles, anioLectivoActivo } = useStore();
   
-  const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isConvertDialogOpen, setIsConvertDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -78,7 +69,6 @@ export default function Preinscripciones() {
   const loadData = async () => {
     if (!anioLectivoActivo) return;
     
-    setLoading(true);
     const [preData, nivelesData] = await Promise.all([
       get<Preinscripcion[]>('preinscripciones'),
       get<Nivel[]>('niveles')
@@ -86,7 +76,6 @@ export default function Preinscripciones() {
     
     if (preData) setPreinscripciones(preData);
     if (nivelesData) setNiveles(nivelesData);
-    setLoading(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -153,13 +142,6 @@ export default function Preinscripciones() {
     }
   };
 
-  const updateEstado = async (id: string, estado: string) => {
-    const result = await put(`preinscripciones/${id}`, { estado });
-    if (result) {
-      toast.success('Estado actualizado');
-      loadData();
-    }
-  };
 
   const openEditDialog = (pre: Preinscripcion) => {
     setEditingPre(pre);
