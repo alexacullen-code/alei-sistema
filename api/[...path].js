@@ -438,10 +438,6 @@ async function getNameToIdMap(table, anioLectivoId) {
     if (key) map.set(key, row.id);
   }
 
-  const q = await pool.query(`SELECT id, nombre FROM ${table} WHERE anio_lectivo_id = $1`, [anioLectivoId]);
-  const map = new Map();
-  for (const row of q.rows) map.set(String(row.nombre || '').trim().toLowerCase(), row.id);
-main
   return map;
 }
 

@@ -235,19 +235,48 @@
         });
       }
 
-      async function getImportPayloadAsync() {
-        const fromText = $('#jsonImport').value.trim();
-        if (fromText) {
-          const parsed = JSON.parse(fromText);
+      function cleanJsonText(input) {
+        let text = String(input || '').trim();
+        if (!text) return text;
+
+        text = text.replace(/^﻿/, '');
+
+        if (text.startsWith('```')) {
+          text = text
+            .replace(/^```(?:json)?\s*/i, '')
+            .replace(/\s*```$/, '')
+            .trim();
+        }
+
+        return text;
+      }
+
+      function parseJsonSafe(rawText, sourceLabel) {
+        const text = cleanJsonText(rawText);
+        if (!text) throw new Error(`No hay JSON válido en ${sourceLabel}.`);
+
+        try {
+          const parsed = JSON.parse(text);
           return parsed.backup || parsed;
+        } catch (error) {
+          const preview = text.slice(0, 40).replace(/
+/g, ' ');
+          throw new Error(`JSON inválido en ${sourceLabel}. Revisá formato (inicio detectado: "${preview}")`);
+        }
+      }
+
+      async function getImportPayloadAsync() {
+        const fromText = $('#jsonImport').value;
+        if (fromText && fromText.trim()) {
+          return parseJsonSafe(fromText, 'el texto pegado');
         }
 
         const file = $('#jsonFile').files[0];
         if (!file) throw new Error('Pegá JSON o seleccioná un archivo .json primero.');
         const fileText = await readFileText(file);
-        const parsed = JSON.parse(fileText);
-        $('#jsonImport').value = JSON.stringify(parsed, null, 2);
-        return parsed.backup || parsed;
+        const payload = parseJsonSafe(fileText, `el archivo ${file.name}`);
+        $('#jsonImport').value = JSON.stringify(payload, null, 2);
+        return payload;
       }
 
       $('#formAlumno').onsubmit = async (e) => {
