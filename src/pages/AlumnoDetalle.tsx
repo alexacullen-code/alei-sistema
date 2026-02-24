@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useApi } from '@/hooks/useApi';
 import type { Alumno, Pago } from '@/types';
 import { 
@@ -10,7 +10,8 @@ import {
   Phone, 
   Mail,
   MessageCircle,
-  TrendingDown
+  TrendingDown,
+  Edit2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';

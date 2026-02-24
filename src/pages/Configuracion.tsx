@@ -3,17 +3,16 @@ import { useApi } from '@/hooks/useApi';
 import { useStore } from '@/hooks/useStore';
 import type { Configuracion as ConfigType, AnioLectivo } from '@/types';
 import { 
-  Settings, 
   Download, 
   Upload, 
   AlertTriangle,
   Trash2,
   Save,
   Database,
-  RefreshCw,
   Calendar,
   DollarSign,
-  Building
+  Building,
+  Plus
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,18 +35,29 @@ export default function Configuracion() {
   const { 
     configuracion, 
     setConfiguracion, 
-    anioLectivoActivo, 
     setAnioLectivoActivo,
     aniosLectivos,
     setAniosLectivos
   } = useStore();
   
-  const [loading, setLoading] = useState(false);
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const [isResetConfirmDialogOpen, setIsResetConfirmDialogOpen] = useState(false);
   const [resetConfirmText, setResetConfirmText] = useState('');
   const [jsonInput, setJsonInput] = useState('');
   const [isRestoreDialogOpen, setIsRestoreDialogOpen] = useState(false);
+  const [backupSection, setBackupSection] = useState('all');
+  const [restoreSection, setRestoreSection] = useState('all');
+  const [restoring, setRestoring] = useState(false);
+
+  const sectionOptions = [
+    { value: 'all', label: 'Todo el sistema' },
+    { value: 'alumnos', label: 'Alumnos' },
+    { value: 'niveles', label: 'Niveles' },
+    { value: 'libros', label: 'Libros' },
+    { value: 'pagos', label: 'Pagos' },
+    { value: 'gastos', label: 'Gastos' },
+    { value: 'preinscripciones', label: 'Pre-inscripciones' },
+  ];
   
   const [configForm, setConfigForm] = useState({
     descuento_pronto_pago: '150',
@@ -94,7 +104,7 @@ export default function Configuracion() {
     if (configData) setConfiguracion(configData);
     if (aniosData) {
       setAniosLectivos(aniosData);
-      const activo = aniosData.find(a => a.activo);
+      const activo = aniosData.find(a => a.activo) || aniosData[0] || null;
       if (activo) setAnioLectivoActivo(activo);
     }
   };
@@ -124,30 +134,43 @@ export default function Configuracion() {
   };
 
   const handleBackup = async () => {
-    const data = await get('backup');
+    const data = await get(`backup${backupSection !== 'all' ? `?section=${backupSection}` : ''}`);
     if (data) {
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `backup-completo-${new Date().toISOString().split('T')[0]}.json`;
+      a.download = `backup-${backupSection}-${new Date().toISOString().split('T')[0]}.json`;
       a.click();
       toast.success('Backup descargado');
     }
   };
 
   const handleRestore = async () => {
+    const raw = jsonInput.trim();
+    if (!raw) {
+      toast.error('Debe pegar o subir un JSON antes de restaurar');
+      return;
+    }
+
     try {
-      const data = JSON.parse(jsonInput);
-      const result = await post('restore', data);
-      if (result) {
-        toast.success('Datos restaurados');
-        setIsRestoreDialogOpen(false);
-        setJsonInput('');
-        loadData();
+      setRestoring(true);
+      const data = JSON.parse(raw);
+      const result = await post<{ results?: Record<string, number> }>(`restore${restoreSection !== 'all' ? `?section=${restoreSection}` : ''}`, data);
+      if (!result) {
+        toast.error('No se pudo restaurar. Verifique la respuesta de /api/restore en Red (F12).');
+        return;
       }
-    } catch (e) {
+
+      const count = Object.values(result.results || {}).reduce((acc, n) => acc + Number(n || 0), 0);
+      toast.success(`Datos restaurados correctamente (${count} registros procesados)`);
+      setIsRestoreDialogOpen(false);
+      setJsonInput('');
+      loadData();
+    } catch (_e) {
       toast.error('JSON inválido');
+    } finally {
+      setRestoring(false);
     }
   };
 
@@ -387,6 +410,18 @@ export default function Configuracion() {
                   <Download className="h-4 w-4 mr-2" />
                   Descargar Backup
                 </Button>
+                <div className="mt-3 max-w-xs">
+                  <Label>Sección a respaldar</Label>
+                  <select
+                    className="w-full border rounded-md px-3 py-2 text-sm mt-1"
+                    value={backupSection}
+                    onChange={(e) => setBackupSection(e.target.value)}
+                  >
+                    {sectionOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div className="border-t pt-6">
@@ -406,6 +441,18 @@ export default function Configuracion() {
                     onChange={(e) => setJsonInput(e.target.value)}
                     rows={5}
                   />
+                  <div className="max-w-xs">
+                    <Label>Sección a restaurar</Label>
+                    <select
+                      className="w-full border rounded-md px-3 py-2 text-sm mt-1"
+                      value={restoreSection}
+                      onChange={(e) => setRestoreSection(e.target.value)}
+                    >
+                      {sectionOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
                   <Button 
                     onClick={() => setIsRestoreDialogOpen(true)}
                     disabled={!jsonInput}
@@ -542,9 +589,9 @@ export default function Configuracion() {
             <Button variant="outline" onClick={() => setIsRestoreDialogOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleRestore}>
+            <Button onClick={handleRestore} disabled={restoring}>
               <Upload className="h-4 w-4 mr-2" />
-              Confirmar Restauración
+              {restoring ? 'Restaurando...' : 'Confirmar Restauración'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -552,5 +599,3 @@ export default function Configuracion() {
     </div>
   );
 }
-
-import { Plus } from 'lucide-react';

@@ -49,7 +49,7 @@ export default function Alumnos() {
   
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [selectedNivel, setSelectedNivel] = useState<string>('');
+  const [selectedNivel, setSelectedNivel] = useState<string>('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [editingAlumno, setEditingAlumno] = useState<Alumno | null>(null);
@@ -78,8 +78,11 @@ export default function Alumnos() {
   }, [anioLectivoActivo, refreshAlumnos]);
 
   const loadData = async () => {
-    if (!anioLectivoActivo) return;
-    
+    if (!anioLectivoActivo) {
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     const [alumnosData, nivelesData] = await Promise.all([
       get<Alumno[]>('alumnos'),
@@ -96,7 +99,7 @@ export default function Alumnos() {
     
     const params: Record<string, string> = {};
     if (search) params.search = search;
-    if (selectedNivel) params.nivel_id = selectedNivel;
+    if (selectedNivel !== 'all') params.nivel_id = selectedNivel;
     
     const data = await get<Alumno[]>('alumnos', params);
     if (data) setAlumnos(data);
@@ -230,6 +233,15 @@ export default function Alumnos() {
         </div>
       </div>
 
+
+      {!anioLectivoActivo && (
+        <Card className="border-amber-200 bg-amber-50">
+          <CardContent className="p-4 text-sm text-amber-800">
+            No hay año lectivo activo o la API respondió con error. Activá un año en Configuración para cargar alumnos.
+          </CardContent>
+        </Card>
+      )}
+
       {/* Filters */}
       <Card>
         <CardContent className="p-4">
@@ -249,8 +261,8 @@ export default function Alumnos() {
                 <SelectValue placeholder="Todos los niveles" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos los niveles</SelectItem>
-                {niveles.map((nivel) => (
+                <SelectItem value="all">Todos los niveles</SelectItem>
+                {niveles.filter((nivel) => Boolean(nivel.id)).map((nivel) => (
                   <SelectItem key={nivel.id} value={nivel.id}>
                     {nivel.nombre}
                   </SelectItem>
@@ -491,7 +503,7 @@ export default function Alumnos() {
                       <SelectValue placeholder="Seleccionar nivel" />
                     </SelectTrigger>
                     <SelectContent>
-                      {niveles.map((nivel) => (
+                      {niveles.filter((nivel) => Boolean(nivel.id)).map((nivel) => (
                         <SelectItem key={nivel.id} value={nivel.id}>
                           {nivel.nombre}
                         </SelectItem>

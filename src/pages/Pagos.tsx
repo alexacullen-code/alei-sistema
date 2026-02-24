@@ -48,8 +48,8 @@ export default function Pagos() {
   
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [filtroEstado, setFiltroEstado] = useState<string>('');
-  const [filtroMes, setFiltroMes] = useState<string>('');
+  const [filtroEstado, setFiltroEstado] = useState<string>('all');
+  const [filtroMes, setFiltroMes] = useState<string>('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isPagoParcialDialogOpen, setIsPagoParcialDialogOpen] = useState(false);
   const [selectedPago, setSelectedPago] = useState<Pago | null>(null);
@@ -80,8 +80,11 @@ export default function Pagos() {
   }, [anioLectivoActivo, refreshPagos]);
 
   const loadData = async () => {
-    if (!anioLectivoActivo) return;
-    
+    if (!anioLectivoActivo) {
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     const [pagosData, alumnosData] = await Promise.all([
       get<Pago[]>('pagos'),
@@ -223,14 +226,17 @@ export default function Pagos() {
   };
 
   const filteredPagos = pagos.filter(pago => {
-    if (filtroEstado && pago.estado !== filtroEstado) return false;
-    if (filtroMes && pago.mes !== parseInt(filtroMes)) return false;
+    if (filtroEstado !== 'all' && pago.estado !== filtroEstado) return false;
+    if (filtroMes !== 'all' && pago.mes !== parseInt(filtroMes)) return false;
     if (search) {
       const searchLower = search.toLowerCase();
+      const concepto = String(pago.concepto || '').toLowerCase();
+      const nombre = String(pago.alumno_nombre || '').toLowerCase();
+      const apellido = String(pago.alumno_apellido || '').toLowerCase();
       return (
-        pago.concepto.toLowerCase().includes(searchLower) ||
-        pago.alumno_nombre?.toLowerCase().includes(searchLower) ||
-        pago.alumno_apellido?.toLowerCase().includes(searchLower)
+        concepto.includes(searchLower) ||
+        nombre.includes(searchLower) ||
+        apellido.includes(searchLower)
       );
     }
     return true;
@@ -238,11 +244,11 @@ export default function Pagos() {
 
   const totalPendiente = filteredPagos
     .filter(p => p.estado !== 'pagado')
-    .reduce((sum, p) => sum + p.saldo_pendiente, 0);
+    .reduce((sum, p) => sum + (Number(p.saldo_pendiente) || 0), 0);
 
   const totalRecaudado = filteredPagos
     .filter(p => p.estado === 'pagado')
-    .reduce((sum, p) => sum + p.monto_pagado, 0);
+    .reduce((sum, p) => sum + (Number(p.monto_pagado) || 0), 0);
 
   return (
     <div className="space-y-6">
@@ -257,6 +263,15 @@ export default function Pagos() {
           Nuevo Pago
         </Button>
       </div>
+
+
+      {!anioLectivoActivo && (
+        <Card className="border-amber-200 bg-amber-50">
+          <CardContent className="p-4 text-sm text-amber-800">
+            No hay año lectivo activo o la API respondió con error. Activá un año en Configuración para cargar pagos.
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -319,7 +334,7 @@ export default function Pagos() {
                 <SelectValue placeholder="Estado" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos</SelectItem>
+                <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="pendiente">Pendiente</SelectItem>
                 <SelectItem value="parcial">Parcial</SelectItem>
                 <SelectItem value="pagado">Pagado</SelectItem>
@@ -330,7 +345,7 @@ export default function Pagos() {
                 <SelectValue placeholder="Mes" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos</SelectItem>
+                <SelectItem value="all">Todos</SelectItem>
                 {MESES.map((mes) => (
                   <SelectItem key={mes.value} value={mes.value.toString()}>
                     {mes.label}
@@ -375,10 +390,10 @@ export default function Pagos() {
                   {filteredPagos.map((pago) => (
                     <tr key={pago.id} className="border-b hover:bg-slate-50">
                       <td className="py-3 px-4">
-                        <p className="font-medium">{pago.alumno_apellido}, {pago.alumno_nombre}</p>
+                        <p className="font-medium">{pago.alumno_apellido || '-'}, {pago.alumno_nombre || '-'}</p>
                       </td>
                       <td className="py-3 px-4">
-                        <p className="font-medium">{pago.concepto}</p>
+                        <p className="font-medium">{pago.concepto || "-"}</p>
                         {pago.mes && (
                           <p className="text-sm text-slate-500">
                             {MESES.find(m => m.value === pago.mes)?.label} {pago.anio}
@@ -444,7 +459,7 @@ export default function Pagos() {
                     <SelectValue placeholder="Seleccionar alumno" />
                   </SelectTrigger>
                   <SelectContent>
-                    {alumnos.filter(a => a.estado === 'activo').map((alumno) => (
+                    {alumnos.filter(a => a.estado === 'activo').filter((alumno) => Boolean(alumno.id)).map((alumno) => (
                       <SelectItem key={alumno.id} value={alumno.id}>
                         {alumno.apellido}, {alumno.nombre}
                       </SelectItem>
