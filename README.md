@@ -155,3 +155,19 @@ Si querés, podés seguir este orden exacto:
 4. Probar web + API
 
 Con eso ya quedás operativo.
+
+
+---
+
+## 9) Si Vercel te sigue mostrando TS6133 después de corregir
+
+A veces Vercel está desplegando un commit anterior.
+
+Hacé esto en orden:
+
+1. Confirmá que en GitHub está el commit más nuevo con la corrección.
+2. En Vercel, abrí Deployments y ejecutá **Redeploy** del último commit.
+3. Si persiste, usá **Redeploy with Clear Build Cache**.
+4. Revisá que el deploy apunte a la rama correcta.
+
+Si el comando local `npm run build` pasa, el deploy debería pasar también con el commit correcto.
