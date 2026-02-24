@@ -74,7 +74,17 @@ async function parseBody(req) {
 }
 
 async function activeYearId() {
-  const q = await pool.query('SELECT id, nombre FROM anios_lectivos WHERE activo = true ORDER BY id DESC LIMIT 1');
+  const cols = await getTableColumns('anios_lectivos');
+  const labelCol = cols.has('nombre')
+    ? 'nombre'
+    : cols.has('anio')
+      ? 'anio'
+      : cols.has('year')
+        ? 'year'
+        : null;
+
+  const selectLabel = labelCol ? `, ${labelCol} AS nombre` : '';
+  const q = await pool.query(`SELECT id${selectLabel} FROM anios_lectivos WHERE activo = true ORDER BY id DESC LIMIT 1`);
   if (!q.rowCount) throw new Error('No existe año lectivo activo.');
   return q.rows[0];
 }
@@ -562,7 +572,8 @@ async function backupImport(req, res, anioLectivoId) {
 
 async function resetAnio(req, res, anioLectivo) {
   const body = await parseBody(req);
-  const expected = `ELIMINAR TODO ${anioLectivo.nombre}`;
+  const etiquetaAnio = anioLectivo.nombre ?? anioLectivo.id;
+  const expected = `ELIMINAR TODO ${etiquetaAnio}`;
   if (body.confirmacion !== expected) {
     return send(res, 400, { error: `Confirmación inválida. Debe ser: ${expected}` });
   }
