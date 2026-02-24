@@ -1,73 +1,129 @@
-# React + TypeScript + Vite
+# ALEI Sistema – Guía paso a paso (Neon + Vercel + GitHub)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Esta guía está escrita para que la puedas seguir **sin ser programador**.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 1) Qué ya tenés bien (según lo que contaste)
 
-## React Compiler
+- ✅ Neon conectado a Vercel.
+- ✅ Vercel conectado a tu repositorio de GitHub.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Con eso ya tenés lo más difícil resuelto.
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## 2) Estructura actual del proyecto (resumen simple)
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- Frontend: React + Vite.
+- API en Vercel Serverless: `api/[...path].js`.
+- Base de datos: PostgreSQL en Neon.
+- Configuración de Vercel: `vercel.json`.
+- Esquema SQL: `db/schema.sql`.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+---
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## 3) Paso a paso para dejarlo funcionando online
+
+## Paso A — Cargar tablas en Neon
+
+1. Entrá a tu panel de **Neon**.
+2. Abrí tu proyecto y buscá el editor SQL.
+3. Copiá todo el contenido del archivo `db/schema.sql`.
+4. Pegalo en Neon y ejecutalo.
+5. Verificá que se crearon las tablas (por ejemplo: `alumnos`, `pagos`, `gastos`, etc.).
+
+> Si ya las creaste antes, no pasa nada: el script usa `CREATE TABLE IF NOT EXISTS`.
+
+## Paso B — Configurar variables de entorno en Vercel
+
+1. Entrá a **Vercel → tu proyecto → Settings → Environment Variables**.
+2. Creá la variable:
+   - `DATABASE_URL` = string de conexión de Neon (la que empieza con `postgres://` o `postgresql://`).
+3. Guardá.
+4. Aplicala en **Production**, **Preview** y **Development**.
+
+## Paso C — Verificar configuración anti-error ESM
+
+El error que querés evitar es:
+
+> `Warning: Node.js functions are compiled from ESM to CommonJS`
+
+Checklist rápido:
+
+- `package.json` debe tener: `"type": "module"` ✅
+- Tu API debe usar `import ...` y no `require(...)` ✅
+- Tu API debe exportar handler con `export default` ✅
+
+Este proyecto ya viene configurado en ese estilo.
+
+## Paso D — Hacer deploy desde GitHub
+
+1. Subí cambios al repositorio (`git push`).
+2. Vercel detecta el push y hace deploy automático.
+3. Esperá a que termine (estado "Ready").
+
+## Paso E — Probar que quedó bien
+
+Cuando termine el deploy, abrí estas URLs en tu dominio de Vercel:
+
+- Frontend: `https://TU-DOMINIO.vercel.app`
+- API health básico (ejemplo): `https://TU-DOMINIO.vercel.app/api/anios-lectivos`
+
+Si no sabés qué endpoint usar primero, probá alguno de lectura de datos (`GET`) para ver respuesta JSON.
+
+---
+
+## 4) Qué hacer si falla
+
+## Error: `DATABASE_URL` no definida
+
+- Revisá que esté escrita exactamente igual en Vercel (`DATABASE_URL`).
+- Hacé **Redeploy** después de agregarla.
+
+## Error de CORS
+
+- Este proyecto ya define headers CORS en `vercel.json` y en la API.
+- Si persiste, revisá que estés llamando al mismo dominio correcto.
+
+## Error ESM/CommonJS
+
+- No uses `require` ni `module.exports` en `api/[...path].js`.
+- Dejá `"type": "module"` en `package.json`.
+- Redeploy completo después del cambio.
+
+---
+
+## 5) Flujo recomendado para vos (día a día)
+
+1. Hacer cambios en el proyecto.
+2. Probar local (`npm run dev`).
+3. Subir a GitHub.
+4. Verificar deploy en Vercel.
+5. Probar 2 o 3 pantallas clave:
+   - Alumnos
+   - Pagos
+   - Dashboard
+
+---
+
+## 6) Comandos útiles (si alguien técnico te ayuda)
+
+```bash
+npm install
+npm run build
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Si `npm run build` funciona, normalmente el deploy también está bien encaminado.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+---
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## 7) Siguiente paso recomendado
+
+Como ya tenés Neon y Vercel vinculados, el siguiente paso práctico es:
+
+1. Confirmar que `db/schema.sql` está ejecutado en Neon.
+2. Confirmar `DATABASE_URL` en Vercel.
+3. Hacer un deploy y probar un endpoint `/api/...`.
+
+Con eso ya quedás con la base funcionando online.
