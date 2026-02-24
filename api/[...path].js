@@ -415,9 +415,33 @@ async function getTableColumns(table) {
 }
 
 async function getNameToIdMap(table, anioLectivoId) {
+  const cols = await getTableColumns(table);
+  if (!cols.has('id')) return new Map();
+
+  const labelCol = cols.has('nombre')
+    ? 'nombre'
+    : cols.has('descripcion')
+      ? 'descripcion'
+      : cols.has('name')
+        ? 'name'
+        : null;
+
+  if (!labelCol) return new Map();
+
+  const where = cols.has('anio_lectivo_id') ? 'WHERE anio_lectivo_id = $1' : '';
+  const params = cols.has('anio_lectivo_id') ? [anioLectivoId] : [];
+  const q = await pool.query(`SELECT id, ${labelCol} AS label FROM ${table} ${where}`, params);
+
+  const map = new Map();
+  for (const row of q.rows) {
+    const key = String(row.label || '').trim().toLowerCase();
+    if (key) map.set(key, row.id);
+  }
+
   const q = await pool.query(`SELECT id, nombre FROM ${table} WHERE anio_lectivo_id = $1`, [anioLectivoId]);
   const map = new Map();
   for (const row of q.rows) map.set(String(row.nombre || '').trim().toLowerCase(), row.id);
+main
   return map;
 }
 
