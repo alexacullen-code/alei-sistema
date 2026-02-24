@@ -127,3 +127,31 @@ Como ya tenés Neon y Vercel vinculados, el siguiente paso práctico es:
 3. Hacer un deploy y probar un endpoint `/api/...`.
 
 Con eso ya quedás con la base funcionando online.
+
+---
+
+## 8) Respuesta directa: ¿tenés que hacer algo o solo deploy?
+
+**Respuesta corta:** no es solo deploy. Antes del deploy final tenés que chequear **2 cosas obligatorias**:
+
+1. Que corriste `db/schema.sql` en Neon (tablas creadas).
+2. Que `DATABASE_URL` está cargada en Vercel para Production/Preview/Development.
+
+Si esas dos cosas ya están listas, ahí sí: **hacés deploy y probás**.
+
+Checklist final (rápido):
+
+- [ ] Schema ejecutado en Neon
+- [ ] `DATABASE_URL` en Vercel
+- [ ] Deploy en estado `Ready`
+- [ ] Abrir frontend
+- [ ] Probar al menos un endpoint `/api/...`
+
+Si querés, podés seguir este orden exacto:
+
+1. Cargar schema en Neon
+2. Verificar variable en Vercel
+3. Deploy
+4. Probar web + API
+
+Con eso ya quedás operativo.
