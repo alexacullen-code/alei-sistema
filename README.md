@@ -28,6 +28,7 @@ Esta versión reinicia el proyecto con más cobertura funcional: **Alumnos, Pago
 
 ### Backup y reset
 - `GET /api/backup/export?tipo=alumnos|pagos|libros|gastos|preinscripciones|alertas`
+- `POST /api/backup/preview` con body `{ backup }` (preview de cambios antes de importar)
 - `POST /api/backup/import` con body `{ modo, backup }`
 - `POST /api/reset` con body `{ "confirmacion": "ELIMINAR TODO 2026" }`
 
@@ -55,8 +56,8 @@ Este repo evita el warning por:
 
 En la pestaña **Config/Backup** ahora podés importar:
 
-1. **Pegando texto JSON** en el textarea y usando el botón *Importar desde texto JSON*.
-2. **Subiendo archivo `.json`** con el selector de archivo y usando *Importar desde archivo JSON*.
+1. **Pegando texto JSON** en el textarea y usando *Preview importación* para validar antes de importar.
+2. **Subiendo archivo `.json`** con el selector y usando *Preview importación* antes de *Importar desde archivo JSON*.
 
 > La importación ahora es tolerante a diferencias de estructura entre backups: ignora columnas inexistentes en tu base actual y mapea `nivel`/`tipo_matricula_nombre` a IDs cuando corresponde.
 

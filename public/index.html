@@ -138,6 +138,7 @@
         <h2 class="font-semibold text-blue-900">Config / Backup / Import / Reset</h2>
         <div class="flex flex-wrap gap-2 text-sm">
           <button id="btnBackup" class="bg-emerald-700 text-white rounded px-3 py-2 hover:bg-emerald-600">Exportar backup JSON</button>
+          <button id="btnPreviewImport" class="bg-indigo-700 text-white rounded px-3 py-2 hover:bg-indigo-600">Preview importación</button>
           <button id="btnImportText" class="bg-blue-800 text-white rounded px-3 py-2 hover:bg-blue-700">Importar desde texto JSON</button>
           <button id="btnImportFile" class="bg-blue-900 text-white rounded px-3 py-2 hover:bg-blue-800">Importar desde archivo JSON</button>
           <button id="btnReset" class="bg-red-700 text-white rounded px-3 py-2 hover:bg-red-600">Reset año</button>
@@ -147,6 +148,7 @@
         <label class="block text-sm font-medium">O seleccionar archivo .json</label>
         <input id="jsonFile" type="file" accept="application/json,.json" class="w-full border rounded p-2 text-sm bg-blue-50" />
         <input id="confirmReset" class="border rounded p-2 text-sm w-full" placeholder='Escribí: ELIMINAR TODO 2026'>
+        <pre id="previewOutput" class="bg-indigo-950 text-indigo-100 p-3 rounded text-xs overflow-auto max-h-60"></pre>
         <pre id="backupOutput" class="bg-blue-950 text-blue-100 p-3 rounded text-xs overflow-auto max-h-72"></pre>
       </section>
 
@@ -233,6 +235,21 @@
         });
       }
 
+      async function getImportPayloadAsync() {
+        const fromText = $('#jsonImport').value.trim();
+        if (fromText) {
+          const parsed = JSON.parse(fromText);
+          return parsed.backup || parsed;
+        }
+
+        const file = $('#jsonFile').files[0];
+        if (!file) throw new Error('Pegá JSON o seleccioná un archivo .json primero.');
+        const fileText = await readFileText(file);
+        const parsed = JSON.parse(fileText);
+        $('#jsonImport').value = JSON.stringify(parsed, null, 2);
+        return parsed.backup || parsed;
+      }
+
       $('#formAlumno').onsubmit = async (e) => {
         e.preventDefault();
         try {
@@ -305,12 +322,22 @@
         } catch (err) { toast(err.message); }
       };
 
+      $('#btnPreviewImport').onclick = async () => {
+        try {
+          const backupPayload = await getImportPayloadAsync();
+          const r = await api('backup/preview', {
+            method: 'POST',
+            body: JSON.stringify({ backup: backupPayload }),
+          });
+          $('#previewOutput').textContent = JSON.stringify(r, null, 2);
+          toast('Preview generado');
+        } catch (err) { toast(err.message); }
+      };
+
       $('#btnImportText').onclick = async () => {
         try {
-          const txt = $('#jsonImport').value.trim();
-          if (!txt) throw new Error('Pegá JSON en el textarea para importar por texto.');
-          const parsed = JSON.parse(txt);
-          await importBackupObject(parsed);
+          const backupPayload = await getImportPayloadAsync();
+          await importBackupObject(backupPayload);
           toast('Importación por texto realizada');
           refreshAll();
         } catch (err) { toast(err.message); }
@@ -318,12 +345,8 @@
 
       $('#btnImportFile').onclick = async () => {
         try {
-          const file = $('#jsonFile').files[0];
-          if (!file) throw new Error('Seleccioná un archivo .json para importar.');
-          const fileText = await readFileText(file);
-          const parsed = JSON.parse(fileText);
-          await importBackupObject(parsed);
-          $('#jsonImport').value = JSON.stringify(parsed, null, 2);
+          const backupPayload = await getImportPayloadAsync();
+          await importBackupObject(backupPayload);
           toast('Importación por archivo realizada');
           refreshAll();
         } catch (err) { toast(err.message); }

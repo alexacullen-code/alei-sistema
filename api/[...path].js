@@ -5,6 +5,8 @@ const pool = new Pool({
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
 });
 
+const IMPORT_TABLES = ['alumnos', 'pagos', 'libros', 'gastos', 'preinscripciones', 'alertas'];
+
 const TABLES = {
   alumnos: {
     pk: 'id',
@@ -391,8 +393,7 @@ async function reporteFlujoCaja(res, anioLectivoId, url) {
 
 async function backupExport(res, anioLectivoId, url) {
   const tipo = url.searchParams.get('tipo');
-  const all = ['alumnos', 'pagos', 'libros', 'gastos', 'preinscripciones', 'alertas'];
-  const tables = tipo && all.includes(tipo) ? [tipo] : all;
+  const tables = tipo && IMPORT_TABLES.includes(tipo) ? [tipo] : IMPORT_TABLES;
   const backup = {};
 
   for (const table of tables) {
@@ -463,13 +464,51 @@ async function insertImportRow(table, row, colsSet, anioLectivoId) {
   );
 }
 
+async function backupPreview(req, res, anioLectivoId) {
+  const body = await parseBody(req);
+  const payload = body.backup;
+  if (!payload || typeof payload !== 'object') return send(res, 400, { error: 'backup inválido.' });
+
+  const summary = {};
+  const tableColumns = {};
+  for (const t of IMPORT_TABLES) tableColumns[t] = await getTableColumns(t);
+
+  const nameMaps = {
+    niveles: await getNameToIdMap('niveles', anioLectivoId),
+    tipos: await getNameToIdMap('tipos_matricula', anioLectivoId),
+  };
+
+  for (const t of IMPORT_TABLES) {
+    const rows = Array.isArray(payload[t]) ? payload[t] : [];
+    let withMappableFields = 0;
+    let totalMissingInSchema = 0;
+
+    for (const raw of rows) {
+      const normalized = sanitizeImportRow(t, raw, anioLectivoId, nameMaps);
+      const keys = Object.keys(normalized).filter((k) => k !== 'id' && k !== 'created_at' && k !== 'modified_at');
+      const validKeys = keys.filter((k) => tableColumns[t].has(k));
+      const missingKeys = keys.filter((k) => !tableColumns[t].has(k));
+      if (validKeys.length > 0) withMappableFields += 1;
+      totalMissingInSchema += missingKeys.length;
+    }
+
+    summary[t] = {
+      registros_en_archivo: rows.length,
+      registros_con_campos_insertables: withMappableFields,
+      columnas_no_encontradas_en_schema: totalMissingInSchema,
+    };
+  }
+
+  send(res, 200, { anio_lectivo_id: anioLectivoId, preview: summary });
+}
+
 async function backupImport(req, res, anioLectivoId) {
   const body = await parseBody(req);
   const modo = body.modo || 'fusion';
   const payload = body.backup;
   if (!payload || typeof payload !== 'object') return send(res, 400, { error: 'backup inválido.' });
 
-  const tables = ['alumnos', 'pagos', 'libros', 'gastos', 'preinscripciones', 'alertas'];
+  const tables = IMPORT_TABLES;
 
   await pool.query('BEGIN');
   try {
@@ -547,6 +586,10 @@ export default async function handler(req, res) {
 
     if (head === 'backup' && sub === 'export' && req.method === 'GET') {
       return backupExport(res, anioLectivo.id, url);
+    }
+
+    if (head === 'backup' && sub === 'preview' && req.method === 'POST') {
+      return backupPreview(req, res, anioLectivo.id);
     }
 
     if (head === 'backup' && sub === 'import' && req.method === 'POST') {
