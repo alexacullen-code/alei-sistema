@@ -88,3 +88,5 @@ Si ves ese 500 en Config/Backup, tu base tiene un esquema antiguo de `anios_lect
 
 Esto agrega/sincroniza `nombre` y `activo` para que tanto versiones nuevas como antiguas funcionen.
 
+Si el error cambia a `null value in column "anio" ... violates not-null constraint`, significa que tu esquema exige `anio` además de `nombre`; en ese caso, redeployá con el último commit porque la API ya crea ambos campos automáticamente.
+

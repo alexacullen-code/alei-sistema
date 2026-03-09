@@ -141,11 +141,28 @@ async function ensureActiveYearForImport() {
     };
   }
 
-  const insertCols = [meta.labelCol];
-  const insertValues = [yearName];
+  const insertCols = [];
+  const insertValues = [];
+
+  if (meta.cols.has('nombre')) {
+    insertCols.push('nombre');
+    insertValues.push(yearName);
+  }
+  if (meta.cols.has('anio')) {
+    insertCols.push('anio');
+    insertValues.push(Number(yearName));
+  }
+  if (meta.cols.has('year')) {
+    insertCols.push('year');
+    insertValues.push(Number(yearName));
+  }
   if (meta.activeCol) {
     insertCols.push(meta.activeCol);
     insertValues.push(true);
+  }
+
+  if (!insertCols.length) {
+    throw new Error('No se pudieron determinar columnas para crear anio_lectivo.');
   }
 
   const placeholders = insertValues.map((_, i) => `$${i + 1}`).join(', ');
