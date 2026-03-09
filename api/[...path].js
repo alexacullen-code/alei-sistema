@@ -859,6 +859,18 @@ export default async function handler(req, res) {
 
     const anioLectivo = await activeYearId();
 
+    if (head === 'backup' && sub === 'preview' && req.method === 'POST') {
+      const anioLectivo = await ensureActiveYearForImport();
+      return backupPreview(req, res, anioLectivo.id);
+    }
+
+    if (head === 'backup' && sub === 'import' && req.method === 'POST') {
+      const anioLectivo = await ensureActiveYearForImport();
+      return backupImport(req, res, anioLectivo.id);
+    }
+
+    const anioLectivo = await activeYearId();
+
     if (head in TABLES) {
       if (req.method === 'GET') return listByTable(res, head, anioLectivo.id);
       if (req.method === 'POST') {
