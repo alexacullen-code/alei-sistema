@@ -33,6 +33,20 @@ Esta versión reinicia el proyecto con más cobertura funcional: **Alumnos, Pago
 - `POST /api/backup/import` con body `{ modo, backup }`
 - `POST /api/reset` con body `{ "confirmacion": "ELIMINAR TODO 2026" }`
 
+
+## Variables de entorno (.env.example)
+
+El repositorio incluye un archivo `.env.example` con las variables mínimas para ejecutar en local y en Vercel:
+
+- `DATABASE_URL`
+- `NODE_ENV`
+
+Podés copiarlo como base local:
+
+```bash
+cp .env.example .env
+```
+
 ## Deploy paso a paso (sin programar)
 
 1. **Neon** → SQL Editor → pegar y ejecutar `db/schema.sql`.
