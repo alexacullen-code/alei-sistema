@@ -417,7 +417,6 @@ async function reporteFlujoCaja(res, anioLectivoId, url) {
     balance: totalIngresos - totalGastos,
   });
 }
-
 async function reporteMateriales(res, anioLectivoId) {
   const q = await pool.query(
     `SELECT l.id, l.titulo, l.costo_total, l.pagado, l.saldo, l.estado,
