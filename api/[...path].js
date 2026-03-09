@@ -73,9 +73,104 @@ async function parseBody(req) {
   });
 }
 
+async function getAnioLectivoMeta() {
+  const cols = await getTableColumns('anios_lectivos');
+  const labelCol = cols.has('nombre') ? 'nombre' : cols.has('anio') ? 'anio' : cols.has('year') ? 'year' : null;
+  const activeCol = cols.has('activo') ? 'activo' : cols.has('is_active') ? 'is_active' : null;
+  return { cols, labelCol, activeCol };
+}
+
+async function activeYearOrNull() {
+  const meta = await getAnioLectivoMeta();
+  let sql = 'SELECT * FROM anios_lectivos';
+
+  if (meta.activeCol) {
+    sql += ` WHERE ${meta.activeCol} = true ORDER BY id DESC LIMIT 1`;
+  } else {
+    sql += ' ORDER BY id DESC LIMIT 1';
+  }
+
+  const q = await pool.query(sql);
+  if (!q.rowCount) return null;
+  const row = q.rows[0];
+  return {
+    ...row,
+    nombre: row.nombre ?? row.anio ?? row.year ?? String(row.id),
+  };
+}
+
 async function activeYearId() {
-  const q = await pool.query('SELECT * FROM anios_lectivos WHERE activo = true ORDER BY id DESC LIMIT 1');
-  if (!q.rowCount) throw new Error('No existe año lectivo activo.');
+  const row = await activeYearOrNull();
+  if (!row) throw new Error('No existe año lectivo activo.');
+  return row;
+}
+
+async function ensureActiveYearForImport() {
+  const current = await activeYearOrNull();
+  if (current) return current;
+
+  const meta = await getAnioLectivoMeta();
+  if (!meta.labelCol) {
+    throw new Error('No se encontró columna de nombre de año lectivo (nombre/anio/year).');
+  }
+
+  const yearName = String(new Date().getFullYear());
+
+  if (meta.activeCol) {
+    await pool.query(`UPDATE anios_lectivos SET ${meta.activeCol} = false WHERE ${meta.activeCol} = true`);
+  }
+
+  const existing = await pool.query(
+    `SELECT * FROM anios_lectivos WHERE ${meta.labelCol} = $1 ORDER BY id DESC LIMIT 1`,
+    [yearName],
+  );
+
+  if (existing.rowCount) {
+    let row = existing.rows[0];
+    if (meta.activeCol) {
+      const updated = await pool.query(
+        `UPDATE anios_lectivos SET ${meta.activeCol} = true WHERE id = $1 RETURNING *`,
+        [row.id],
+      );
+      row = updated.rows[0];
+    }
+
+    return {
+      ...row,
+      nombre: row.nombre ?? row.anio ?? row.year ?? String(row.id),
+    };
+  }
+
+  const insertCols = [];
+  const insertValues = [];
+
+  if (meta.cols.has('nombre')) {
+    insertCols.push('nombre');
+    insertValues.push(yearName);
+  }
+  if (meta.cols.has('anio')) {
+    insertCols.push('anio');
+    insertValues.push(Number(yearName));
+  }
+  if (meta.cols.has('year')) {
+    insertCols.push('year');
+    insertValues.push(Number(yearName));
+  }
+  if (meta.activeCol) {
+    insertCols.push(meta.activeCol);
+    insertValues.push(true);
+  }
+
+  if (!insertCols.length) {
+    throw new Error('No se pudieron determinar columnas para crear anio_lectivo.');
+  }
+
+  const placeholders = insertValues.map((_, i) => `$${i + 1}`).join(', ');
+  const q = await pool.query(
+    `INSERT INTO anios_lectivos (${insertCols.join(', ')}) VALUES (${placeholders}) RETURNING *`,
+    insertValues,
+  );
+
   const row = q.rows[0];
   return {
     ...row,
@@ -554,12 +649,20 @@ async function getNameToIdMap(table, anioLectivoId) {
   return map;
 }
 
+async function getValidIdSet(table, anioLectivoId) {
+  const cols = await getTableColumns(table);
+  if (!cols.has('id') || !cols.has('anio_lectivo_id')) return new Set();
+
+  const q = await pool.query(`SELECT id FROM ${table} WHERE anio_lectivo_id = $1`, [anioLectivoId]);
+  return new Set(q.rows.map((r) => Number(r.id)));
+}
+
 async function nextNumeroAnual(anioLectivoId) {
   const q = await pool.query('SELECT COALESCE(MAX(numero_anual),0)+1 AS next FROM alumnos WHERE anio_lectivo_id = $1', [anioLectivoId]);
   return Number(q.rows[0].next);
 }
 
-function sanitizeImportRow(table, raw, anioLectivoId, nameMaps) {
+function sanitizeImportRow(table, raw, anioLectivoId, nameMaps, validIds) {
   const row = { ...raw };
 
   if (table === 'alumnos') {
@@ -569,6 +672,11 @@ function sanitizeImportRow(table, raw, anioLectivoId, nameMaps) {
     if (!row.tipo_matricula_id && row.tipo_matricula_nombre) {
       row.tipo_matricula_id = nameMaps.tipos.get(String(row.tipo_matricula_nombre).trim().toLowerCase()) ?? null;
     }
+
+    const nivelId = toNumber(row.nivel_id);
+    const tipoId = toNumber(row.tipo_matricula_id);
+    if (nivelId && !validIds.niveles.has(nivelId)) row.nivel_id = null;
+    if (tipoId && !validIds.tipos.has(tipoId)) row.tipo_matricula_id = null;
   }
 
   row.anio_lectivo_id = anioLectivoId;
@@ -610,6 +718,10 @@ async function backupPreview(req, res, anioLectivoId) {
     niveles: await getNameToIdMap('niveles', anioLectivoId),
     tipos: await getNameToIdMap('tipos_matricula', anioLectivoId),
   };
+  const validIds = {
+    niveles: await getValidIdSet('niveles', anioLectivoId),
+    tipos: await getValidIdSet('tipos_matricula', anioLectivoId),
+  };
 
   for (const t of IMPORT_TABLES) {
     const rows = Array.isArray(payload[t]) ? payload[t] : [];
@@ -617,7 +729,7 @@ async function backupPreview(req, res, anioLectivoId) {
     let totalMissingInSchema = 0;
 
     for (const raw of rows) {
-      const normalized = sanitizeImportRow(t, raw, anioLectivoId, nameMaps);
+      const normalized = sanitizeImportRow(t, raw, anioLectivoId, nameMaps, validIds);
       const keys = Object.keys(normalized).filter((k) => k !== 'id' && k !== 'created_at' && k !== 'modified_at');
       const validKeys = keys.filter((k) => tableColumns[t].has(k));
       const missingKeys = keys.filter((k) => !tableColumns[t].has(k));
@@ -652,6 +764,10 @@ async function backupImport(req, res, anioLectivoId) {
       niveles: await getNameToIdMap('niveles', anioLectivoId),
       tipos: await getNameToIdMap('tipos_matricula', anioLectivoId),
     };
+    const validIds = {
+      niveles: await getValidIdSet('niveles', anioLectivoId),
+      tipos: await getValidIdSet('tipos_matricula', anioLectivoId),
+    };
 
     if (modo === 'reemplazo_total') {
       for (const t of tables) await pool.query(`DELETE FROM ${t} WHERE anio_lectivo_id = $1`, [anioLectivoId]);
@@ -660,7 +776,7 @@ async function backupImport(req, res, anioLectivoId) {
     for (const t of tables) {
       if (!Array.isArray(payload[t])) continue;
       for (const raw of payload[t]) {
-        const normalized = sanitizeImportRow(t, raw, anioLectivoId, nameMaps);
+        const normalized = sanitizeImportRow(t, raw, anioLectivoId, nameMaps, validIds);
         await insertImportRow(t, normalized, tableColumns[t], anioLectivoId);
       }
     }
@@ -694,8 +810,19 @@ export default async function handler(req, res) {
   const url = getUrl(req);
 
   try {
-    const anioLectivo = await activeYearId();
     const [head, sub] = path.split('/');
+
+    if (head === 'backup' && sub === 'preview' && req.method === 'POST') {
+      const anioLectivo = await ensureActiveYearForImport();
+      return backupPreview(req, res, anioLectivo.id);
+    }
+
+    if (head === 'backup' && sub === 'import' && req.method === 'POST') {
+      const anioLectivo = await ensureActiveYearForImport();
+      return backupImport(req, res, anioLectivo.id);
+    }
+
+    const anioLectivo = await activeYearId();
 
     if (head in TABLES) {
       if (req.method === 'GET') return listByTable(res, head, anioLectivo.id);
@@ -738,13 +865,6 @@ export default async function handler(req, res) {
       return backupExport(res, anioLectivo.id, url);
     }
 
-    if (head === 'backup' && sub === 'preview' && req.method === 'POST') {
-      return backupPreview(req, res, anioLectivo.id);
-    }
-
-    if (head === 'backup' && sub === 'import' && req.method === 'POST') {
-      return backupImport(req, res, anioLectivo.id);
-    }
 
     if (head === 'reset' && req.method === 'POST') {
       return resetAnio(req, res, anioLectivo);
