@@ -95,6 +95,15 @@ function getUrl(req) {
   return new URL(rawUrl, 'http://localhost');
 }
 
+
+function isHealthPath(path) {
+  const clean = String(path || '').replace(/^\/+|\/+$/g, '');
+  if (!clean) return false;
+
+  const parts = clean.split('/').filter(Boolean);
+  return parts.includes('health') || clean === 'health' || clean === 'api/health';
+}
+
 function toNumber(value) {
   if (value === null || value === undefined || value === '') return null;
   const n = Number(value);
@@ -854,8 +863,13 @@ export default async function handler(req, res) {
     const url = getUrl(req);
     const [head, sub] = path.split('/');
 
-    if (head === 'health' && req.method === 'GET') {
-      return send(res, 200, { ok: true, service: 'api', has_database_url: Boolean(process.env.DATABASE_URL) });
+    if (req.method === 'GET' && (head === 'health' || isHealthPath(path))) {
+      return send(res, 200, {
+        ok: true,
+        service: 'api',
+        has_database_url: Boolean(process.env.DATABASE_URL),
+        resolved_path: path,
+      });
     }
 
     if (head === 'backup' && sub === 'preview' && req.method === 'POST') {
@@ -916,7 +930,10 @@ export default async function handler(req, res) {
       return resetAnio(req, res, anioLectivo);
     }
 
-    return send(res, 404, { error: `Ruta no encontrada: /api/${path}` });
+    return send(res, 404, {
+      error: `Ruta no encontrada: /api/${path}`,
+      debug: { path, head, sub, method: req.method },
+    });
   } catch (error) {
     try {
       return send(res, 500, { error: error?.message || 'Error interno inesperado en API.' });
