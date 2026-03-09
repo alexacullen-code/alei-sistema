@@ -33,6 +33,20 @@ Esta versión reinicia el proyecto con más cobertura funcional: **Alumnos, Pago
 - `POST /api/backup/import` con body `{ modo, backup }`
 - `POST /api/reset` con body `{ "confirmacion": "ELIMINAR TODO 2026" }`
 
+
+## Variables de entorno (.env.example)
+
+El repositorio incluye un archivo `.env.example` con las variables mínimas para ejecutar en local y en Vercel:
+
+- `DATABASE_URL`
+- `NODE_ENV`
+
+Podés copiarlo como base local:
+
+```bash
+cp .env.example .env
+```
+
 ## Deploy paso a paso (sin programar)
 
 1. **Neon** → SQL Editor → pegar y ejecutar `db/schema.sql`.
@@ -63,3 +77,14 @@ En la pestaña **Config/Backup** ahora podés importar:
 > La importación ahora es tolerante a diferencias de estructura entre backups: ignora columnas inexistentes en tu base actual y mapea `nivel`/`tipo_matricula_nombre` a IDs cuando corresponde.
 
 La UI también se ajustó a una paleta inspirada en la bandera inglesa (azul/rojo/blanco) y se agregó una insignia Union Jack junto al nombre ALEI.
+
+
+## Error conocido: `column "nombre" of relation "anios_lectivos" does not exist`
+
+Si ves ese 500 en Config/Backup, tu base tiene un esquema antiguo de `anios_lectivos` (por ejemplo `anio`/`year` o `is_active`).
+
+1. Asegurate de tener desplegado el commit más nuevo (Vercel debe apuntar a la última rama/commit).
+2. Ejecutá en Neon el script de compatibilidad: `db/compat_anios_lectivos.sql`.
+
+Esto agrega/sincroniza `nombre` y `activo` para que tanto versiones nuevas como antiguas funcionen.
+
