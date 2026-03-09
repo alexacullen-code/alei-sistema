@@ -26,6 +26,7 @@ Esta versión reinicia el proyecto con más cobertura funcional: **Alumnos, Pago
 - `GET /api/reportes/mensualidades?mes=xx&anio=xxxx`
 - `GET /api/reportes/flujo-caja?desde=yyyy-mm-dd&hasta=yyyy-mm-dd`
 
+
 ### Backup y reset
 - `GET /api/backup/export?tipo=alumnos|pagos|libros|gastos|preinscripciones|alertas`
 - `POST /api/backup/preview` con body `{ backup }` (preview de cambios antes de importar)

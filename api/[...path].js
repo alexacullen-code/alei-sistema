@@ -417,6 +417,93 @@ async function reporteFlujoCaja(res, anioLectivoId, url) {
     balance: totalIngresos - totalGastos,
   });
 }
+async function reporteMateriales(res, anioLectivoId) {
+  const q = await pool.query(
+    `SELECT l.id, l.titulo, l.costo_total, l.pagado, l.saldo, l.estado,
+            a.nombre AS alumno_nombre
+     FROM libros l
+     LEFT JOIN alumnos a ON a.id = l.alumno_id
+     WHERE l.anio_lectivo_id = $1
+     ORDER BY l.estado ASC, l.saldo DESC, l.titulo ASC`,
+    [anioLectivoId],
+  );
+
+  const resumen = q.rows.reduce(
+    (acc, r) => {
+      acc.total_materiales += 1;
+      acc.total_costo += Number(r.costo_total || 0);
+      acc.total_pagado += Number(r.pagado || 0);
+      acc.total_saldo += Number(r.saldo || 0);
+      return acc;
+    },
+    { total_materiales: 0, total_costo: 0, total_pagado: 0, total_saldo: 0 },
+  );
+
+  send(res, 200, { resumen, materiales: q.rows });
+}
+
+async function reporteGastosCategoria(res, anioLectivoId, url) {
+  const desde = url.searchParams.get('desde');
+  const hasta = url.searchParams.get('hasta');
+
+  const filtros = ['anio_lectivo_id = $1'];
+  const params = [anioLectivoId];
+  if (desde && hasta) {
+    filtros.push(`fecha BETWEEN $${params.length + 1} AND $${params.length + 2}`);
+    params.push(desde, hasta);
+  }
+
+  const q = await pool.query(
+    `SELECT COALESCE(categoria, 'sin_categoria') AS categoria,
+            COUNT(*) AS cantidad,
+            COALESCE(SUM(monto_total),0) AS total,
+            COALESCE(SUM(monto_pagado),0) AS total_pagado,
+            COALESCE(SUM(saldo),0) AS total_saldo
+     FROM gastos
+     WHERE ${filtros.join(' AND ')}
+     GROUP BY COALESCE(categoria, 'sin_categoria')
+     ORDER BY total DESC`,
+    params,
+  );
+
+  send(res, 200, { desde, hasta, categorias: q.rows });
+}
+
+async function reporteDeudores(res, anioLectivoId) {
+  const q = await pool.query(
+    `SELECT a.id, a.nombre, a.cedula,
+            COALESCE(SUM(l.saldo),0) AS saldo_libros,
+            COALESCE(SUM(CASE WHEN p.id IS NULL THEN tm.costo_base ELSE 0 END),0) AS deuda_mensual_estimada
+     FROM alumnos a
+     LEFT JOIN libros l ON l.alumno_id = a.id AND l.anio_lectivo_id = $1
+     LEFT JOIN tipos_matricula tm ON tm.id = a.tipo_matricula_id
+     LEFT JOIN pagos p ON p.alumno_id = a.id AND p.anio_lectivo_id = $1 AND p.concepto = 'mensualidad'
+     WHERE a.anio_lectivo_id = $1 AND a.activo = true
+     GROUP BY a.id, a.nombre, a.cedula
+     HAVING COALESCE(SUM(l.saldo),0) > 0 OR COALESCE(SUM(CASE WHEN p.id IS NULL THEN tm.costo_base ELSE 0 END),0) > 0
+     ORDER BY saldo_libros DESC, deuda_mensual_estimada DESC, a.nombre ASC`,
+    [anioLectivoId],
+  );
+
+  send(res, 200, { deudores: q.rows });
+}
+
+async function reportePreinscripciones(res, anioLectivoId) {
+  const q = await pool.query(
+    `SELECT estado, COUNT(*) AS cantidad
+     FROM preinscripciones
+     WHERE anio_lectivo_id = $1
+     GROUP BY estado
+     ORDER BY cantidad DESC`,
+    [anioLectivoId],
+  );
+
+  const total = q.rows.reduce((a, r) => a + Number(r.cantidad), 0);
+  const convertidos = q.rows.find((r) => String(r.estado).toLowerCase() === 'convertido');
+  const conversion = total ? (Number(convertidos?.cantidad || 0) / total) * 100 : 0;
+
+  send(res, 200, { total, tasa_conversion: Number(conversion.toFixed(2)), por_estado: q.rows });
+}
 
 async function backupExport(res, anioLectivoId, url) {
   const tipo = url.searchParams.get('tipo');
@@ -630,6 +717,22 @@ export default async function handler(req, res) {
     if (req.method === 'GET' && head === 'reportes' && sub === 'flujo-caja') {
       return reporteFlujoCaja(res, anioLectivo.id, url);
     }
+    if (req.method === 'GET' && head === 'reportes' && sub === 'materiales') {
+      return reporteMateriales(res, anioLectivo.id);
+    }
+
+    if (req.method === 'GET' && head === 'reportes' && sub === 'gastos-categoria') {
+      return reporteGastosCategoria(res, anioLectivo.id, url);
+    }
+
+    if (req.method === 'GET' && head === 'reportes' && sub === 'deudores') {
+      return reporteDeudores(res, anioLectivo.id);
+    }
+
+    if (req.method === 'GET' && head === 'reportes' && sub === 'preinscripciones') {
+      return reportePreinscripciones(res, anioLectivo.id);
+    }
+
 
     if (head === 'backup' && sub === 'export' && req.method === 'GET') {
       return backupExport(res, anioLectivo.id, url);

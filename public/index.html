@@ -40,6 +40,8 @@
           <div class="bg-blue-50 p-3 rounded border"><p class="text-xs text-blue-900">Pagos</p><p id="kpiPagos" class="text-2xl font-bold text-red-700">0</p></div>
           <div class="bg-blue-50 p-3 rounded border"><p class="text-xs text-blue-900">Materiales</p><p id="kpiLibros" class="text-2xl font-bold text-red-700">0</p></div>
           <div class="bg-blue-50 p-3 rounded border"><p class="text-xs text-blue-900">Gastos</p><p id="kpiGastos" class="text-2xl font-bold text-red-700">0</p></div>
+        
+
         </div>
       </section>
 
@@ -130,6 +132,34 @@
               <button class="bg-red-700 text-white rounded px-3 hover:bg-red-600">Consultar</button>
             </form>
             <pre id="outFlujo" class="mt-2 bg-blue-950 text-blue-100 p-3 rounded text-xs"></pre>
+          </div>
+
+          <div>
+            <h3 class="font-medium mb-2">Materiales (libros)</h3>
+            <button id="btnRepMateriales" class="bg-blue-800 text-white rounded px-3 py-2 text-sm hover:bg-blue-700">Ver reporte materiales</button>
+            <pre id="outMateriales" class="mt-2 bg-blue-950 text-blue-100 p-3 rounded text-xs max-h-40 overflow-auto"></pre>
+          </div>
+
+          <div>
+            <h3 class="font-medium mb-2">Deudores</h3>
+            <button id="btnRepDeudores" class="bg-red-700 text-white rounded px-3 py-2 text-sm hover:bg-red-600">Ver reporte deudores</button>
+            <pre id="outDeudores" class="mt-2 bg-blue-950 text-blue-100 p-3 rounded text-xs max-h-40 overflow-auto"></pre>
+          </div>
+
+          <div>
+            <h3 class="font-medium mb-2">Gastos por categoría</h3>
+            <form id="formRepGastosCat" class="grid grid-cols-3 gap-2 text-sm">
+              <input class="border rounded p-2" type="date" name="desde">
+              <input class="border rounded p-2" type="date" name="hasta">
+              <button class="bg-blue-800 text-white rounded px-3">Consultar</button>
+            </form>
+            <pre id="outGastosCat" class="mt-2 bg-blue-950 text-blue-100 p-3 rounded text-xs max-h-40 overflow-auto"></pre>
+          </div>
+
+          <div>
+            <h3 class="font-medium mb-2">Preinscripciones (conversión)</h3>
+            <button id="btnRepPreins" class="bg-blue-800 text-white rounded px-3 py-2 text-sm hover:bg-blue-700">Ver reporte preinscripciones</button>
+            <pre id="outPreins" class="mt-2 bg-blue-950 text-blue-100 p-3 rounded text-xs max-h-40 overflow-auto"></pre>
           </div>
         </div>
       </section>
@@ -365,6 +395,40 @@
           const f = new FormData(e.target);
           const r = await api(`reportes/flujo-caja?desde=${f.get('desde')}&hasta=${f.get('hasta')}`);
           $('#outFlujo').textContent = JSON.stringify(r, null, 2);
+        } catch (err) { toast(err.message); }
+      };
+
+
+      $('#btnRepMateriales').onclick = async () => {
+        try {
+          const r = await api('reportes/materiales');
+          $('#outMateriales').textContent = JSON.stringify(r, null, 2);
+        } catch (err) { toast(err.message); }
+      };
+
+      $('#btnRepDeudores').onclick = async () => {
+        try {
+          const r = await api('reportes/deudores');
+          $('#outDeudores').textContent = JSON.stringify(r, null, 2);
+        } catch (err) { toast(err.message); }
+      };
+
+      $('#formRepGastosCat').onsubmit = async (e) => {
+        e.preventDefault();
+        try {
+          const f = new FormData(e.target);
+          const desde = f.get('desde');
+          const hasta = f.get('hasta');
+          const qs = desde && hasta ? `?desde=${desde}&hasta=${hasta}` : '';
+          const r = await api(`reportes/gastos-categoria${qs}`);
+          $('#outGastosCat').textContent = JSON.stringify(r, null, 2);
+        } catch (err) { toast(err.message); }
+      };
+
+      $('#btnRepPreins').onclick = async () => {
+        try {
+          const r = await api('reportes/preinscripciones');
+          $('#outPreins').textContent = JSON.stringify(r, null, 2);
         } catch (err) { toast(err.message); }
       };
 
