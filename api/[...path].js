@@ -1,9 +1,29 @@
 import { Pool } from 'pg';
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-});
+let pool;
+
+function getPool() {
+  if (pool) return pool;
+
+  if (!process.env.DATABASE_URL) {
+    throw new Error('Falta variable DATABASE_URL.');
+  }
+
+  try {
+    pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    });
+    return pool;
+  } catch (error) {
+    throw new Error(`No se pudo inicializar la conexión a PostgreSQL: ${error.message}`);
+  }
+}
+
+async function dbQuery(text, params) {
+  const db = getPool();
+  return db.query(text, params);
+}
 
 const IMPORT_TABLES = ['alumnos', 'pagos', 'libros', 'gastos', 'preinscripciones', 'alertas'];
 
@@ -90,7 +110,7 @@ async function activeYearOrNull() {
     sql += ' ORDER BY id DESC LIMIT 1';
   }
 
-  const q = await pool.query(sql);
+  const q = await dbQuery(sql);
   if (!q.rowCount) return null;
   const row = q.rows[0];
   return {
@@ -117,10 +137,10 @@ async function ensureActiveYearForImport() {
   const yearName = String(new Date().getFullYear());
 
   if (meta.activeCol) {
-    await pool.query(`UPDATE anios_lectivos SET ${meta.activeCol} = false WHERE ${meta.activeCol} = true`);
+    await dbQuery(`UPDATE anios_lectivos SET ${meta.activeCol} = false WHERE ${meta.activeCol} = true`);
   }
 
-  const existing = await pool.query(
+  const existing = await dbQuery(
     `SELECT * FROM anios_lectivos WHERE ${meta.labelCol} = $1 ORDER BY id DESC LIMIT 1`,
     [yearName],
   );
@@ -128,7 +148,7 @@ async function ensureActiveYearForImport() {
   if (existing.rowCount) {
     let row = existing.rows[0];
     if (meta.activeCol) {
-      const updated = await pool.query(
+      const updated = await dbQuery(
         `UPDATE anios_lectivos SET ${meta.activeCol} = true WHERE id = $1 RETURNING *`,
         [row.id],
       );
@@ -166,7 +186,7 @@ async function ensureActiveYearForImport() {
   }
 
   const placeholders = insertValues.map((_, i) => `$${i + 1}`).join(', ');
-  const q = await pool.query(
+  const q = await dbQuery(
     `INSERT INTO anios_lectivos (${insertCols.join(', ')}) VALUES (${placeholders}) RETURNING *`,
     insertValues,
   );
@@ -198,11 +218,11 @@ async function listByTable(res, table, anioLectivoId) {
       ORDER BY a.numero_anual ASC
     `;
 
-    const { rows } = await pool.query(query, [anioLectivoId]);
+    const { rows } = await dbQuery(query, [anioLectivoId]);
     return send(res, 200, { data: rows });
   }
 
-  const { rows } = await pool.query(TABLES[table].select, [anioLectivoId]);
+  const { rows } = await dbQuery(TABLES[table].select, [anioLectivoId]);
   send(res, 200, { data: rows });
 }
 
@@ -212,14 +232,14 @@ async function createAlumno(req, res, anioLectivoId) {
   const missing = required.filter((field) => !body[field]);
   if (missing.length) return send(res, 400, { error: `Campos obligatorios faltantes: ${missing.join(', ')}` });
 
-  const exists = await pool.query(
+  const exists = await dbQuery(
     'SELECT 1 FROM alumnos WHERE cedula = $1 AND anio_lectivo_id = $2 AND activo = true LIMIT 1',
     [body.cedula, anioLectivoId],
   );
   if (exists.rowCount) return send(res, 409, { error: 'La cédula ya existe para este año lectivo.' });
 
-  const next = await pool.query('SELECT COALESCE(MAX(numero_anual),0)+1 AS next FROM alumnos WHERE anio_lectivo_id = $1', [anioLectivoId]);
-  const insert = await pool.query(
+  const next = await dbQuery('SELECT COALESCE(MAX(numero_anual),0)+1 AS next FROM alumnos WHERE anio_lectivo_id = $1', [anioLectivoId]);
+  const insert = await dbQuery(
     `INSERT INTO alumnos (
       numero_anual, nombre, cedula, telefono, telefono_alt, email, edad, direccion,
       nombre_tutor, telefono_tutor, nivel_id, tipo_matricula_id, fecha_inscripcion,
@@ -275,7 +295,7 @@ async function createPago(req, res, anioLectivoId) {
   let regla = 'manual';
 
   if (body.concepto === 'mensualidad' && !montoFinal) {
-    const q = await pool.query(
+    const q = await dbQuery(
       `SELECT a.es_hermano, a.monto_cuota_personalizado, tm.costo_base
        FROM alumnos a
        JOIN tipos_matricula tm ON tm.id = a.tipo_matricula_id
@@ -303,7 +323,7 @@ async function createPago(req, res, anioLectivoId) {
 
   if (!montoFinal) return send(res, 400, { error: 'No se pudo determinar monto final.' });
 
-  const insert = await pool.query(
+  const insert = await dbQuery(
     `INSERT INTO pagos (
       alumno_id, concepto, monto, monto_original, fecha,
       mes_referencia, anio_referencia, comentarios,
@@ -339,7 +359,7 @@ async function createLibro(req, res, anioLectivoId) {
   const saldo = Math.max(costoTotal - pagado, 0);
   const estado = saldo === 0 ? 'pagado' : pagado > 0 ? 'parcial' : 'pendiente';
 
-  const q = await pool.query(
+  const q = await dbQuery(
     `INSERT INTO libros (alumno_id, titulo, costo_total, pagado, saldo, observaciones, estado, pagos_json, anio_lectivo_id)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
      RETURNING *`,
@@ -357,7 +377,7 @@ async function createGasto(req, res, anioLectivoId) {
   const pagado = toNumber(b.monto_pagado) ?? 0;
   const saldo = Math.max(total - pagado, 0);
 
-  const q = await pool.query(
+  const q = await dbQuery(
     `INSERT INTO gastos (
       concepto, monto_total, monto_pagado, saldo, fecha,
       es_cuota, cuotas_total, cuotas_pagadas, observaciones, categoria, anio_lectivo_id
@@ -386,7 +406,7 @@ async function createSimple(req, res, table, anioLectivoId) {
   if (table === 'alertas' && !b.tipo) return send(res, 400, { error: 'tipo es obligatorio.' });
 
   if (table === 'preinscripciones') {
-    const q = await pool.query(
+    const q = await dbQuery(
       `INSERT INTO preinscripciones (
         nombre_interesado, telefono, email, nivel_interesado, fecha_contacto,
         estado, fecha_conversion, alumno_id_convertido, anio_lectivo_id
@@ -407,7 +427,7 @@ async function createSimple(req, res, table, anioLectivoId) {
     return send(res, 201, { data: q.rows[0] });
   }
 
-  const q = await pool.query(
+  const q = await dbQuery(
     `INSERT INTO alertas (tipo, alumno_id, mensaje, fecha_alerta, leida, anio_lectivo_id)
      VALUES ($1,$2,$3,$4,$5,$6)
      RETURNING *`,
@@ -432,7 +452,7 @@ async function updateById(req, res, table) {
   const values = allowed.map((k) => body[k]);
   values.push(id);
 
-  const q = await pool.query(
+  const q = await dbQuery(
     `UPDATE ${table} SET ${sets.join(', ')} WHERE ${TABLES[table].pk} = $${values.length} RETURNING *`,
     values,
   );
@@ -447,12 +467,12 @@ async function deleteById(req, res, table) {
   if (!id) return send(res, 400, { error: 'Falta query param id.' });
 
   if (table === 'alumnos') {
-    const q = await pool.query('UPDATE alumnos SET activo = false WHERE id = $1 RETURNING id', [id]);
+    const q = await dbQuery('UPDATE alumnos SET activo = false WHERE id = $1 RETURNING id', [id]);
     if (!q.rowCount) return send(res, 404, { error: 'Alumno no encontrado.' });
     return send(res, 200, { ok: true, soft_delete: true });
   }
 
-  const q = await pool.query(`DELETE FROM ${table} WHERE ${TABLES[table].pk} = $1 RETURNING ${TABLES[table].pk}`, [id]);
+  const q = await dbQuery(`DELETE FROM ${table} WHERE ${TABLES[table].pk} = $1 RETURNING ${TABLES[table].pk}`, [id]);
   if (!q.rowCount) return send(res, 404, { error: 'Registro no encontrado.' });
   return send(res, 200, { ok: true });
 }
@@ -462,7 +482,7 @@ async function reporteMensualidades(res, anioLectivoId, url) {
   const anio = toNumber(url.searchParams.get('anio'));
   if (!mes || !anio) return send(res, 400, { error: 'mes y anio son obligatorios.' });
 
-  const pagos = await pool.query(
+  const pagos = await dbQuery(
     `SELECT a.id AS alumno_id, a.nombre, a.cedula,
             COALESCE(SUM(p.monto), 0) AS total_pagado
      FROM alumnos a
@@ -487,14 +507,14 @@ async function reporteFlujoCaja(res, anioLectivoId, url) {
   const hasta = url.searchParams.get('hasta');
   if (!desde || !hasta) return send(res, 400, { error: 'desde y hasta son obligatorios (YYYY-MM-DD).' });
 
-  const ingresos = await pool.query(
+  const ingresos = await dbQuery(
     `SELECT COALESCE(SUM(monto),0) AS total_ingresos
      FROM pagos
      WHERE anio_lectivo_id = $1 AND fecha BETWEEN $2 AND $3`,
     [anioLectivoId, desde, hasta],
   );
 
-  const gastos = await pool.query(
+  const gastos = await dbQuery(
     `SELECT COALESCE(SUM(monto_pagado),0) AS total_gastos
      FROM gastos
      WHERE anio_lectivo_id = $1 AND fecha BETWEEN $2 AND $3`,
@@ -513,7 +533,7 @@ async function reporteFlujoCaja(res, anioLectivoId, url) {
   });
 }
 async function reporteMateriales(res, anioLectivoId) {
-  const q = await pool.query(
+  const q = await dbQuery(
     `SELECT l.id, l.titulo, l.costo_total, l.pagado, l.saldo, l.estado,
             a.nombre AS alumno_nombre
      FROM libros l
@@ -548,7 +568,7 @@ async function reporteGastosCategoria(res, anioLectivoId, url) {
     params.push(desde, hasta);
   }
 
-  const q = await pool.query(
+  const q = await dbQuery(
     `SELECT COALESCE(categoria, 'sin_categoria') AS categoria,
             COUNT(*) AS cantidad,
             COALESCE(SUM(monto_total),0) AS total,
@@ -565,7 +585,7 @@ async function reporteGastosCategoria(res, anioLectivoId, url) {
 }
 
 async function reporteDeudores(res, anioLectivoId) {
-  const q = await pool.query(
+  const q = await dbQuery(
     `SELECT a.id, a.nombre, a.cedula,
             COALESCE(SUM(l.saldo),0) AS saldo_libros,
             COALESCE(SUM(CASE WHEN p.id IS NULL THEN tm.costo_base ELSE 0 END),0) AS deuda_mensual_estimada
@@ -584,7 +604,7 @@ async function reporteDeudores(res, anioLectivoId) {
 }
 
 async function reportePreinscripciones(res, anioLectivoId) {
-  const q = await pool.query(
+  const q = await dbQuery(
     `SELECT estado, COUNT(*) AS cantidad
      FROM preinscripciones
      WHERE anio_lectivo_id = $1
@@ -606,7 +626,7 @@ async function backupExport(res, anioLectivoId, url) {
   const backup = {};
 
   for (const table of tables) {
-    const q = await pool.query(`SELECT * FROM ${table} WHERE anio_lectivo_id = $1`, [anioLectivoId]);
+    const q = await dbQuery(`SELECT * FROM ${table} WHERE anio_lectivo_id = $1`, [anioLectivoId]);
     backup[table] = q.rows;
   }
 
@@ -614,7 +634,7 @@ async function backupExport(res, anioLectivoId, url) {
 }
 
 async function getTableColumns(table) {
-  const q = await pool.query(
+  const q = await dbQuery(
     `SELECT column_name
      FROM information_schema.columns
      WHERE table_schema = 'public' AND table_name = $1`,
@@ -637,7 +657,7 @@ async function getNameToIdMap(table, anioLectivoId) {
 
   const where = cols.has('anio_lectivo_id') ? 'WHERE anio_lectivo_id = $1' : '';
   const params = cols.has('anio_lectivo_id') ? [anioLectivoId] : [];
-  const q = await pool.query(`SELECT * FROM ${table} ${where}`, params);
+  const q = await dbQuery(`SELECT * FROM ${table} ${where}`, params);
 
   const map = new Map();
   for (const row of q.rows) {
@@ -653,12 +673,12 @@ async function getValidIdSet(table, anioLectivoId) {
   const cols = await getTableColumns(table);
   if (!cols.has('id') || !cols.has('anio_lectivo_id')) return new Set();
 
-  const q = await pool.query(`SELECT id FROM ${table} WHERE anio_lectivo_id = $1`, [anioLectivoId]);
+  const q = await dbQuery(`SELECT id FROM ${table} WHERE anio_lectivo_id = $1`, [anioLectivoId]);
   return new Set(q.rows.map((r) => Number(r.id)));
 }
 
 async function nextNumeroAnual(anioLectivoId) {
-  const q = await pool.query('SELECT COALESCE(MAX(numero_anual),0)+1 AS next FROM alumnos WHERE anio_lectivo_id = $1', [anioLectivoId]);
+  const q = await dbQuery('SELECT COALESCE(MAX(numero_anual),0)+1 AS next FROM alumnos WHERE anio_lectivo_id = $1', [anioLectivoId]);
   return Number(q.rows[0].next);
 }
 
@@ -699,7 +719,7 @@ async function insertImportRow(table, row, colsSet, anioLectivoId) {
   const placeholders = candidates.map((_, i) => `$${i + 1}`).join(',');
   const values = candidates.map((k) => rowData[k]);
 
-  await pool.query(
+  await dbQuery(
     `INSERT INTO ${table} (${candidates.join(',')}) VALUES (${placeholders}) ON CONFLICT DO NOTHING`,
     values,
   );
@@ -755,7 +775,7 @@ async function backupImport(req, res, anioLectivoId) {
 
   const tables = IMPORT_TABLES;
 
-  await pool.query('BEGIN');
+  await dbQuery('BEGIN');
   try {
     const tableColumns = {};
     for (const t of tables) tableColumns[t] = await getTableColumns(t);
@@ -770,7 +790,7 @@ async function backupImport(req, res, anioLectivoId) {
     };
 
     if (modo === 'reemplazo_total') {
-      for (const t of tables) await pool.query(`DELETE FROM ${t} WHERE anio_lectivo_id = $1`, [anioLectivoId]);
+      for (const t of tables) await dbQuery(`DELETE FROM ${t} WHERE anio_lectivo_id = $1`, [anioLectivoId]);
     }
 
     for (const t of tables) {
@@ -781,10 +801,10 @@ async function backupImport(req, res, anioLectivoId) {
       }
     }
 
-    await pool.query('COMMIT');
+    await dbQuery('COMMIT');
     send(res, 200, { ok: true, modo });
   } catch (error) {
-    await pool.query('ROLLBACK');
+    await dbQuery('ROLLBACK');
     throw error;
   }
 }
@@ -798,14 +818,12 @@ async function resetAnio(req, res, anioLectivo) {
   }
 
   const tables = ['pagos', 'libros', 'gastos', 'preinscripciones', 'alertas', 'alumnos'];
-  for (const t of tables) await pool.query(`DELETE FROM ${t} WHERE anio_lectivo_id = $1`, [anioLectivo.id]);
+  for (const t of tables) await dbQuery(`DELETE FROM ${t} WHERE anio_lectivo_id = $1`, [anioLectivo.id]);
 
   send(res, 200, { ok: true, anio_lectivo_id: anioLectivo.id });
 }
 
 export default async function handler(req, res) {
-  if (!process.env.DATABASE_URL) return send(res, 500, { error: 'Falta variable DATABASE_URL.' });
-
   const path = getPath(req);
   const url = getUrl(req);
 
