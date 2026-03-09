@@ -58,6 +58,15 @@ cp .env.example .env
 5. Vercel deploya automático.
 6. Abrir app y cargar datos en cada sección.
 
+
+### Diagnóstico rápido en producción
+
+Si ves `FUNCTION_INVOCATION_FAILED`, probá abrir:
+
+- `/api/health`
+
+Debe responder JSON con `ok: true`. Si no responde, el deploy no está tomando el último commit o hay un problema de runtime en Vercel.
+
 ## Punto crítico del error ESM
 
 Este repo evita el warning por:

@@ -63,11 +63,25 @@ function send(res, status, payload) {
 }
 
 function getPath(req) {
-  return req.url.split('?')[0].replace(/^\/api\/?/, '').replace(/\/$/, '');
+  const qp = req?.query?.path;
+  if (Array.isArray(qp) && qp.length) return qp.join('/');
+  if (typeof qp === 'string' && qp.trim()) return qp.replace(/^\/+|\/+$/g, '');
+
+  const rawUrl = String(req?.url || '/api');
+  const pathname = rawUrl.split('?')[0];
+
+  if (pathname.includes('[...path]')) {
+    const parsed = new URL(rawUrl, 'http://localhost');
+    const alt = parsed.searchParams.get('path');
+    if (alt) return alt.replace(/^\/+|\/+$/g, '');
+  }
+
+  return pathname.replace(/^\/api\/?/, '').replace(/\/$/, '');
 }
 
 function getUrl(req) {
-  return new URL(req.url, 'http://localhost');
+  const rawUrl = String(req?.url || '/api');
+  return new URL(rawUrl, 'http://localhost');
 }
 
 function toNumber(value) {
@@ -824,11 +838,26 @@ async function resetAnio(req, res, anioLectivo) {
 }
 
 export default async function handler(req, res) {
-  const path = getPath(req);
-  const url = getUrl(req);
-
   try {
+    const path = getPath(req);
+    const url = getUrl(req);
     const [head, sub] = path.split('/');
+
+    if (head === 'health' && req.method === 'GET') {
+      return send(res, 200, { ok: true, service: 'api', has_database_url: Boolean(process.env.DATABASE_URL) });
+    }
+
+    if (head === 'backup' && sub === 'preview' && req.method === 'POST') {
+      const anioLectivo = await ensureActiveYearForImport();
+      return backupPreview(req, res, anioLectivo.id);
+    }
+
+    if (head === 'backup' && sub === 'import' && req.method === 'POST') {
+      const anioLectivo = await ensureActiveYearForImport();
+      return backupImport(req, res, anioLectivo.id);
+    }
+
+    const anioLectivo = await activeYearId();
 
     if (head === 'backup' && sub === 'preview' && req.method === 'POST') {
       const anioLectivo = await ensureActiveYearForImport();
@@ -890,6 +919,12 @@ export default async function handler(req, res) {
 
     return send(res, 404, { error: `Ruta no encontrada: /api/${path}` });
   } catch (error) {
-    return send(res, 500, { error: error.message });
+    try {
+      return send(res, 500, { error: error?.message || 'Error interno inesperado en API.' });
+    } catch {
+      res.statusCode = 500;
+      res.end('Internal Server Error');
+      return undefined;
+    }
   }
 }
