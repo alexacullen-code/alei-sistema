@@ -73,8 +73,24 @@ async function parseBody(req) {
   });
 }
 
+async function getAnioLectivoMeta() {
+  const cols = await getTableColumns('anios_lectivos');
+  const labelCol = cols.has('nombre') ? 'nombre' : cols.has('anio') ? 'anio' : cols.has('year') ? 'year' : null;
+  const activeCol = cols.has('activo') ? 'activo' : cols.has('is_active') ? 'is_active' : null;
+  return { cols, labelCol, activeCol };
+}
+
 async function activeYearOrNull() {
-  const q = await pool.query('SELECT * FROM anios_lectivos WHERE activo = true ORDER BY id DESC LIMIT 1');
+  const meta = await getAnioLectivoMeta();
+  let sql = 'SELECT * FROM anios_lectivos';
+
+  if (meta.activeCol) {
+    sql += ` WHERE ${meta.activeCol} = true ORDER BY id DESC LIMIT 1`;
+  } else {
+    sql += ' ORDER BY id DESC LIMIT 1';
+  }
+
+  const q = await pool.query(sql);
   if (!q.rowCount) return null;
   const row = q.rows[0];
   return {
@@ -93,14 +109,49 @@ async function ensureActiveYearForImport() {
   const current = await activeYearOrNull();
   if (current) return current;
 
+  const meta = await getAnioLectivoMeta();
+  if (!meta.labelCol) {
+    throw new Error('No se encontró columna de nombre de año lectivo (nombre/anio/year).');
+  }
+
   const yearName = String(new Date().getFullYear());
-  await pool.query('UPDATE anios_lectivos SET activo = false WHERE activo = true');
-  const q = await pool.query(
-    `INSERT INTO anios_lectivos (nombre, activo, fecha_inicio, fecha_fin)
-     VALUES ($1, true, NULL, NULL)
-     ON CONFLICT (nombre) DO UPDATE SET activo = true
-     RETURNING *`,
+
+  if (meta.activeCol) {
+    await pool.query(`UPDATE anios_lectivos SET ${meta.activeCol} = false WHERE ${meta.activeCol} = true`);
+  }
+
+  const existing = await pool.query(
+    `SELECT * FROM anios_lectivos WHERE ${meta.labelCol} = $1 ORDER BY id DESC LIMIT 1`,
     [yearName],
+  );
+
+  if (existing.rowCount) {
+    let row = existing.rows[0];
+    if (meta.activeCol) {
+      const updated = await pool.query(
+        `UPDATE anios_lectivos SET ${meta.activeCol} = true WHERE id = $1 RETURNING *`,
+        [row.id],
+      );
+      row = updated.rows[0];
+    }
+
+    return {
+      ...row,
+      nombre: row.nombre ?? row.anio ?? row.year ?? String(row.id),
+    };
+  }
+
+  const insertCols = [meta.labelCol];
+  const insertValues = [yearName];
+  if (meta.activeCol) {
+    insertCols.push(meta.activeCol);
+    insertValues.push(true);
+  }
+
+  const placeholders = insertValues.map((_, i) => `$${i + 1}`).join(', ');
+  const q = await pool.query(
+    `INSERT INTO anios_lectivos (${insertCols.join(', ')}) VALUES (${placeholders}) RETURNING *`,
+    insertValues,
   );
 
   const row = q.rows[0];
