@@ -62,25 +62,36 @@ function send(res, status, payload) {
   res.end(JSON.stringify(payload));
 }
 
+function normalizeApiPath(rawPath) {
+  const clean = String(rawPath || '').replace(/^\/+|\/+$/g, '');
+  return clean.replace(/^api\/?/, '').replace(/^\/+|\/+$/g, '');
+}
+
 function getPath(req) {
   const qp = req?.query?.path;
-  if (Array.isArray(qp) && qp.length) return qp.join('/');
-  if (typeof qp === 'string' && qp.trim()) return qp.replace(/^\/+|\/+$/g, '');
+  if (Array.isArray(qp) && qp.length) return normalizeApiPath(qp.join('/'));
+  if (typeof qp === 'string' && qp.trim()) return normalizeApiPath(qp);
 
   const rawUrl = String(req?.url || '/api');
-  const pathname = rawUrl.split('?')[0];
+  const parsed = getUrl(req);
 
-  if (pathname.includes('[...path]')) {
-    const parsed = new URL(rawUrl, 'http://localhost');
+  if (parsed.pathname.includes('[...path]')) {
     const alt = parsed.searchParams.get('path');
-    if (alt) return alt.replace(/^\/+|\/+$/g, '');
+    if (alt) return normalizeApiPath(alt);
   }
 
-  return pathname.replace(/^\/api\/?/, '').replace(/\/$/, '');
+  if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
+    return normalizeApiPath(parsed.pathname);
+  }
+
+  return normalizeApiPath(rawUrl.split('?')[0]);
 }
 
 function getUrl(req) {
   const rawUrl = String(req?.url || '/api');
+  if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
+    return new URL(rawUrl);
+  }
   return new URL(rawUrl, 'http://localhost');
 }
 
@@ -846,18 +857,6 @@ export default async function handler(req, res) {
     if (head === 'health' && req.method === 'GET') {
       return send(res, 200, { ok: true, service: 'api', has_database_url: Boolean(process.env.DATABASE_URL) });
     }
-
-    if (head === 'backup' && sub === 'preview' && req.method === 'POST') {
-      const anioLectivo = await ensureActiveYearForImport();
-      return backupPreview(req, res, anioLectivo.id);
-    }
-
-    if (head === 'backup' && sub === 'import' && req.method === 'POST') {
-      const anioLectivo = await ensureActiveYearForImport();
-      return backupImport(req, res, anioLectivo.id);
-    }
-
-    const anioLectivo = await activeYearId();
 
     if (head === 'backup' && sub === 'preview' && req.method === 'POST') {
       const anioLectivo = await ensureActiveYearForImport();
