@@ -58,6 +58,7 @@ CREATE TABLE IF NOT EXISTS libros (
   observaciones TEXT,
   estado TEXT NOT NULL DEFAULT 'pendiente',
   pagos_json JSONB NOT NULL DEFAULT '[]'::jsonb,
+  fecha_retiro DATE,
   anio_lectivo_id INTEGER NOT NULL REFERENCES anios_lectivos(id)
 );
 

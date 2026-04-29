@@ -104,6 +104,12 @@ function isHealthPath(path) {
   return parts.includes('health') || clean === 'health' || clean === 'api/health';
 }
 
+
+function isUuidLike(value) {
+  if (value === null || value === undefined || value === '') return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value));
+}
+
 function toNumber(value) {
   if (value === null || value === undefined || value === '') return null;
   const n = Number(value);
@@ -733,6 +739,20 @@ function sanitizeImportRow(table, raw, anioLectivoId, nameMaps, validIds) {
     if (tipoId && !validIds.tipos.has(tipoId)) row.tipo_matricula_id = null;
   }
 
+  if (table === 'pagos') {
+    if (row.alumno_id && !isUuidLike(row.alumno_id)) row.alumno_id = null;
+    if (row.libro_id && !isUuidLike(row.libro_id)) row.libro_id = null;
+  }
+
+  if (table === 'libros') {
+    if (row.alumno_id && !isUuidLike(row.alumno_id)) row.alumno_id = null;
+  }
+
+  if (table === 'alertas' || table === 'preinscripciones') {
+    if (row.alumno_id && !isUuidLike(row.alumno_id)) row.alumno_id = null;
+    if (row.alumno_id_convertido && !isUuidLike(row.alumno_id_convertido)) row.alumno_id_convertido = null;
+  }
+
   row.anio_lectivo_id = anioLectivoId;
   return row;
 }
@@ -761,7 +781,7 @@ async function insertImportRow(table, row, colsSet, anioLectivoId) {
 
 async function backupPreview(req, res, anioLectivoId) {
   const body = await parseBody(req);
-  const payload = body.backup;
+  const payload = body.backup && typeof body.backup === 'object' ? body.backup : body;
   if (!payload || typeof payload !== 'object') return send(res, 400, { error: 'backup inválido.' });
 
   const summary = {};
@@ -804,43 +824,58 @@ async function backupPreview(req, res, anioLectivoId) {
 async function backupImport(req, res, anioLectivoId) {
   const body = await parseBody(req);
   const modo = body.modo || 'fusion';
-  const payload = body.backup;
+  const payload = body.backup && typeof body.backup === 'object' ? body.backup : body;
   if (!payload || typeof payload !== 'object') return send(res, 400, { error: 'backup inválido.' });
 
   const tables = IMPORT_TABLES;
+  const tableColumns = {};
+  for (const t of tables) tableColumns[t] = await getTableColumns(t);
 
-  await dbQuery('BEGIN');
-  try {
-    const tableColumns = {};
-    for (const t of tables) tableColumns[t] = await getTableColumns(t);
+  const nameMaps = {
+    niveles: await getNameToIdMap('niveles', anioLectivoId),
+    tipos: await getNameToIdMap('tipos_matricula', anioLectivoId),
+  };
+  const validIds = {
+    niveles: await getValidIdSet('niveles', anioLectivoId),
+    tipos: await getValidIdSet('tipos_matricula', anioLectivoId),
+  };
 
-    const nameMaps = {
-      niveles: await getNameToIdMap('niveles', anioLectivoId),
-      tipos: await getNameToIdMap('tipos_matricula', anioLectivoId),
-    };
-    const validIds = {
-      niveles: await getValidIdSet('niveles', anioLectivoId),
-      tipos: await getValidIdSet('tipos_matricula', anioLectivoId),
-    };
+  if (modo === 'reemplazo_total') {
+    for (const t of tables) await dbQuery(`DELETE FROM ${t} WHERE anio_lectivo_id = $1`, [anioLectivoId]);
+  }
 
-    if (modo === 'reemplazo_total') {
-      for (const t of tables) await dbQuery(`DELETE FROM ${t} WHERE anio_lectivo_id = $1`, [anioLectivoId]);
-    }
+  const resumen = {};
+  const errores = [];
 
-    for (const t of tables) {
-      if (!Array.isArray(payload[t])) continue;
-      for (const raw of payload[t]) {
+  for (const t of tables) {
+    const rows = Array.isArray(payload[t]) ? payload[t] : [];
+    let ok = 0;
+    let failed = 0;
+
+    for (let i = 0; i < rows.length; i += 1) {
+      const raw = rows[i];
+      try {
         const normalized = sanitizeImportRow(t, raw, anioLectivoId, nameMaps, validIds);
         await insertImportRow(t, normalized, tableColumns[t], anioLectivoId);
+        ok += 1;
+      } catch (error) {
+        failed += 1;
+        if (errores.length < 25) {
+          errores.push({ tabla: t, index: i, error: error.message });
+        }
       }
     }
 
-    await dbQuery('COMMIT');
-    send(res, 200, { ok: true, modo });
-  } catch (error) {
-    await dbQuery('ROLLBACK');
-    throw error;
+    resumen[t] = { total: rows.length, insertados: ok, fallidos: failed };
   }
+
+  return send(res, 200, {
+    ok: errores.length === 0,
+    modo,
+    mensaje: errores.length ? 'Importación completada con registros omitidos por errores de formato/datos.' : 'Importación completada correctamente.',
+    resumen,
+    errores,
+  });
 }
 
 async function resetAnio(req, res, anioLectivo) {
