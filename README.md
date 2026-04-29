@@ -99,3 +99,13 @@ Esto agrega/sincroniza `nombre` y `activo` para que tanto versiones nuevas como 
 
 Si el error cambia a `null value in column "anio" ... violates not-null constraint`, significa que tu esquema exige `anio` además de `nombre`; en ese caso, redeployá con el último commit porque la API ya crea ambos campos automáticamente.
 
+
+
+## Checklist anti-ESM (prioridad #1 en Vercel)
+
+- `package.json` en raíz con `"type": "module"`.
+- `vercel.json` con rutas a `api/[...path].js` y fallback a `public/index.html`.
+- API en ESM puro: `import { Pool } from 'pg'` + `export default`.
+- **No usar** `require()` ni `module.exports` en ningún archivo de `api/`.
+
+Si aparece el warning "Node.js functions are compiled from ESM to CommonJS", normalmente hay un archivo en `api/` con sintaxis CommonJS o `package.json` fuera de raíz.
