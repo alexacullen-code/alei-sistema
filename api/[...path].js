@@ -104,6 +104,12 @@ function isHealthPath(path) {
   return parts.includes('health') || clean === 'health' || clean === 'api/health';
 }
 
+
+function isUuidLike(value) {
+  if (value === null || value === undefined || value === '') return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value));
+}
+
 function toNumber(value) {
   if (value === null || value === undefined || value === '') return null;
   const n = Number(value);
@@ -733,6 +739,20 @@ function sanitizeImportRow(table, raw, anioLectivoId, nameMaps, validIds) {
     if (tipoId && !validIds.tipos.has(tipoId)) row.tipo_matricula_id = null;
   }
 
+  if (table === 'pagos') {
+    if (row.alumno_id && !isUuidLike(row.alumno_id)) row.alumno_id = null;
+    if (row.libro_id && !isUuidLike(row.libro_id)) row.libro_id = null;
+  }
+
+  if (table === 'libros') {
+    if (row.alumno_id && !isUuidLike(row.alumno_id)) row.alumno_id = null;
+  }
+
+  if (table === 'alertas' || table === 'preinscripciones') {
+    if (row.alumno_id && !isUuidLike(row.alumno_id)) row.alumno_id = null;
+    if (row.alumno_id_convertido && !isUuidLike(row.alumno_id_convertido)) row.alumno_id_convertido = null;
+  }
+
   row.anio_lectivo_id = anioLectivoId;
   return row;
 }
@@ -839,7 +859,7 @@ async function backupImport(req, res, anioLectivoId) {
     send(res, 200, { ok: true, modo });
   } catch (error) {
     await dbQuery('ROLLBACK');
-    throw error;
+    throw new Error(`Import falló: ${error.message}`);
   }
 }
 
